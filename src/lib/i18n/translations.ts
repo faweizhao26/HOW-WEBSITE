@@ -1,0 +1,242 @@
+export const locales = ["en", "zh"] as const
+export type Locale = (typeof locales)[number]
+
+export const defaultLocale: Locale = "en"
+
+export const siteName = {
+  en: "HOW 2027",
+  zh: "HOW 2027",
+}
+
+export const navigation = {
+  home: { en: "Home", zh: "首页" },
+  about: { en: "About", zh: "关于" },
+  venue: { en: "Venue", zh: "会场" },
+  sponsors: { en: "Sponsors", zh: "赞助商" },
+  codeOfConduct: { en: "Code of Conduct", zh: "行为准则" },
+  updates: { en: "Updates", zh: "动态" },
+  schedule: { en: "Schedule", zh: "议程" },
+  register: { en: "Register", zh: "报名" },
+  cfp: { en: "Submit Talk", zh: "投递演讲" },
+  login: { en: "Login", zh: "登录" },
+  logout: { en: "Logout", zh: "退出" },
+  admin: { en: "Admin", zh: "管理" },
+  mySubmissions: { en: "My Submissions", zh: "我的投递" },
+}
+
+export const home = {
+  heroTitle: { en: "Linking the World with Open Source", zh: "开源互联世界" },
+  heroSubtitle: { en: "HOW2027: PostgreSQL Eco Conference", zh: "HOW2027：PostgreSQL 生态大会" },
+  heroDate: { en: "Coming 2027 — Jinan, China", zh: "2027 年 — 中国·济南" },
+  registerNow: { en: "Register Now", zh: "立即报名" },
+  aboutTitle: { en: "HOW2027 Eco Conference", zh: "HOW2027 生态大会" },
+  aboutDesc: {
+    en: "A community-driven event focused on open-source innovations and database technology.",
+    zh: "一场聚焦开源创新与数据库技术的社区驱动盛会。",
+  },
+  highlightsTitle: { en: "Event Highlights", zh: "大会亮点" },
+  highlights: {
+    en: [
+      "Community Collaborations",
+      "Deep Technical Insights",
+      "Open-Source Innovation and Industry Trends",
+      "Industry Leaders Gather",
+      "Global Community Heavyweights",
+    ],
+    zh: [
+      "社区协作",
+      "深度技术洞察",
+      "开源创新与行业趋势",
+      "行业领袖齐聚",
+      "全球社区重磅嘉宾",
+    ],
+  },
+  ctaTitle: { en: "We Look Forward to Seeing You in Jinan", zh: "期待在济南与您相见" },
+}
+
+export const cfp = {
+  title: { en: "Call for Proposals", zh: "征集演讲" },
+  submitTitle: { en: "Submit Your Proposal", zh: "提交您的演讲提案" },
+  titleLabel: { en: "Session Title (English)", zh: "演讲标题（英文）" },
+  titleZhLabel: { en: "Session Title (Chinese)", zh: "演讲标题（中文）" },
+  abstractLabel: { en: "Abstract (English)", zh: "摘要（英文）" },
+  abstractZhLabel: { en: "Abstract (Chinese)", zh: "摘要（中文）" },
+  durationLabel: { en: "Duration (minutes)", zh: "时长（分钟）" },
+  typeLabel: { en: "Session Type", zh: "演讲类型" },
+  talk: { en: "Talk", zh: "演讲" },
+  workshop: { en: "Workshop", zh: "工作坊" },
+  panel: { en: "Panel", zh: "圆桌讨论" },
+  submit: { en: "Submit Proposal", zh: "提交提案" },
+  submitting: { en: "Submitting...", zh: "提交中..." },
+  success: { en: "Proposal submitted successfully!", zh: "提案提交成功！" },
+  loginRequired: { en: "Please login to submit a proposal", zh: "请先登录再提交提案" },
+  closed: { en: "CFP is Now Closed", zh: "征集已截止" },
+  status: { en: "Status", zh: "状态" },
+  pending: { en: "Pending Review", zh: "审核中" },
+  approved: { en: "Approved", zh: "已通过" },
+  rejected: { en: "Rejected", zh: "未通过" },
+  noSubmissions: { en: "You haven't submitted any proposals yet.", zh: "您还没有提交过提案。" },
+}
+
+export const admin = {
+  dashboard: { en: "Dashboard", zh: "仪表盘" },
+  sessions: { en: "Sessions", zh: "提案管理" },
+  agenda: { en: "Agenda", zh: "议程编排" },
+  sponsors: { en: "Sponsors", zh: "赞助商管理" },
+  updates: { en: "Updates", zh: "动态管理" },
+  settings: { en: "Settings", zh: "站点设置" },
+  media: { en: "Media", zh: "资料管理" },
+  approve: { en: "Approve", zh: "通过" },
+  reject: { en: "Reject", zh: "拒绝" },
+  feedback: { en: "Feedback", zh: "反馈" },
+  addToAgenda: { en: "Add to Agenda", zh: "加入议程" },
+  // Dashboard
+  totalProposals: { en: "Total Proposals", zh: "提案总数" },
+  pendingReview: { en: "Pending Review", zh: "待审核" },
+  approved: { en: "Approved", zh: "已通过" },
+  speakers: { en: "Speakers", zh: "讲者" },
+  reviewProposals: { en: "Review Proposals", zh: "审核提案" },
+  manageAgenda: { en: "Manage Agenda", zh: "管理议程" },
+  demoMode: { en: "Demo mode — data is mocked. Configure Supabase to use real data.", zh: "演示模式 — 数据为模拟数据。配置 Supabase 以使用真实数据。" },
+  overview: { en: "Overview of conference management.", zh: "会议管理概览。" },
+  pendingReady: { en: "pending · {approved} approved", zh: "{pending} 待审核 · {approved} 已通过" },
+  slotsReady: { en: "slots · {approved} ready", zh: "{slots} 时段 · {approved} 可用" },
+  // Sessions
+  sessionProposals: { en: "Session Proposals", zh: "演讲提案" },
+  searchProposals: { en: "Search proposals...", zh: "搜索提案..." },
+  all: { en: "All", zh: "全部" },
+  pending: { en: "Pending", zh: "待审核" },
+  rejected: { en: "Rejected", zh: "未通过" },
+  noSessions: { en: "No sessions found", zh: "未找到提案" },
+  detail: { en: "Details", zh: "详情" },
+  rejectProposal: { en: "Reject Proposal", zh: "拒绝提案" },
+  confirmReject: { en: "Confirm Reject", zh: "确认拒绝" },
+  explainReject: { en: "Explain why this was rejected...", zh: "请说明拒绝原因..." },
+  speaker: { en: "Speaker", zh: "讲者" },
+  abstractEn: { en: "Abstract (EN)", zh: "摘要（英文）" },
+  abstractZh: { en: "Abstract (中文)", zh: "中文摘要" },
+  sessionMaterials: { en: "Session Materials", zh: "演讲资料" },
+  uploadPpt: { en: "Upload PPT", zh: "上传 PPT" },
+  uploadVideo: { en: "Upload Video", zh: "上传视频" },
+  viewSlides: { en: "View Slides", zh: "查看 PPT" },
+  watchVideo: { en: "Watch Video", zh: "观看视频" },
+  moveToRejected: { en: "Move to Rejected", zh: "移至未通过" },
+  moveToApproved: { en: "Move to Approved", zh: "移至已通过" },
+  sessionApproved: { en: "Session approved", zh: "提案已通过" },
+  sessionRejected: { en: "Session rejected", zh: "提案已拒绝" },
+  adminFeedback: { en: "Admin Feedback", zh: "管理员反馈" },
+  // Agenda
+  agendaManagement: { en: "Agenda Management", zh: "议程管理" },
+  noAgendaSlots: { en: "No agenda slots yet. Create your first day:", zh: "还没有议程时段。创建第一天：" },
+  startBuilding: { en: "Start Building Agenda", zh: "开始构建议程" },
+  addSlot: { en: "Add Slot", zh: "添加时段" },
+  newAgendaSlot: { en: "New Agenda Slot", zh: "新建议程时段" },
+  assignSession: { en: "Assign session...", zh: "分配演讲..." },
+  noSession: { en: "(No session)", zh: "（无演讲）" },
+  sessionAssigned: { en: "Session assigned", zh: "演讲已分配" },
+  sessionUnassigned: { en: "Session unassigned", zh: "演讲已取消分配" },
+  slotCreated: { en: "Slot created!", zh: "时段已创建！" },
+  slotDeleted: { en: "Slot deleted", zh: "时段已删除" },
+  firstSlotCreated: { en: "First slot created!", zh: "首个时段已创建！" },
+  // Sponsors
+  sponsorAdded: { en: "Sponsor added!", zh: "赞助商已添加！" },
+  sponsorUpdated: { en: "Sponsor updated!", zh: "赞助商已更新！" },
+  sponsorRemoved: { en: "Sponsor removed", zh: "赞助商已删除" },
+  addSponsor: { en: "Add Sponsor", zh: "添加赞助商" },
+  editSponsor: { en: "Edit Sponsor", zh: "编辑赞助商" },
+  noSponsors: { en: "No sponsors yet. Add your first sponsor!", zh: "还没有赞助商。添加第一个吧！" },
+  saving: { en: "Saving...", zh: "保存中..." },
+  update: { en: "Update", zh: "更新" },
+  add: { en: "Add", zh: "添加" },
+  website: { en: "Website", zh: "网站" },
+  // Updates
+  newPost: { en: "New Post", zh: "新建文章" },
+  editPost: { en: "Edit Post", zh: "编辑文章" },
+  postPublished: { en: "Post published!", zh: "文章已发布！" },
+  postUpdated: { en: "Post updated!", zh: "文章已更新！" },
+  postDeleted: { en: "Post deleted", zh: "文章已删除" },
+  publish: { en: "Publish", zh: "发布" },
+  noUpdates: { en: "No updates yet. Create your first post!", zh: "还没有动态。创建第一篇文章吧！" },
+  // Settings
+  siteSettings: { en: "Site Settings", zh: "站点设置" },
+  saveSettings: { en: "Save Settings", zh: "保存设置" },
+  settingsSaved: { en: "Settings saved!", zh: "设置已保存！" },
+  conferenceInfo: { en: "Conference Info", zh: "大会信息" },
+  conferenceName: { en: "Conference Name", zh: "大会名称" },
+  conferenceDate: { en: "Conference Date", zh: "大会日期" },
+  locationEn: { en: "Location (EN)", zh: "地点（英文）" },
+  locationZh: { en: "Location (中文)", zh: "地点（中文）" },
+  cfpDeadline: { en: "CFP Deadline", zh: "征集截止日期" },
+  registerUrl: { en: "Register URL", zh: "报名链接" },
+  contactEmail: { en: "Contact Email", zh: "联系邮箱" },
+  heroSection: { en: "Hero Section Content", zh: "Hero 区域内容" },
+  heroTitleEn: { en: "Hero Title (EN)", zh: "Hero 标题（英文）" },
+  heroTitleZh: { en: "Hero Title (中文)", zh: "Hero 标题（中文）" },
+  heroSubtitleEn: { en: "Hero Subtitle (EN)", zh: "Hero 副标题（英文）" },
+  heroSubtitleZh: { en: "Hero Subtitle (中文)", zh: "Hero 副标题（中文）" },
+  // Misc
+  logout: { en: "Logout", zh: "退出登录" },
+  demo: { en: "DEMO", zh: "演示" },
+  sessionApprovedMsg: { en: "Session approved", zh: "提案已通过" },
+  sessionRejectedMsg: { en: "Session rejected", zh: "提案已拒绝" },
+  pptUploaded: { en: "PPT uploaded!", zh: "PPT 已上传！" },
+  videoUploaded: { en: "Video uploaded!", zh: "视频已上传！" },
+  pptUploadedDemo: { en: "PPT uploaded! (demo)", zh: "PPT 已上传！（演示）" },
+  videoUploadedDemo: { en: "Video uploaded! (demo)", zh: "视频已上传！（演示）" },
+  items: { en: "items", zh: "项" },
+}
+
+export const common = {
+  loading: { en: "Loading...", zh: "加载中..." },
+  save: { en: "Save", zh: "保存" },
+  cancel: { en: "Cancel", zh: "取消" },
+  delete: { en: "Delete", zh: "删除" },
+  edit: { en: "Edit", zh: "编辑" },
+  create: { en: "Create", zh: "创建" },
+  back: { en: "Back", zh: "返回" },
+  upload: { en: "Upload", zh: "上传" },
+  noData: { en: "No data available", zh: "暂无数据" },
+  search: { en: "Search", zh: "搜索" },
+  startTime: { en: "Start Time", zh: "开始时间" },
+  endTime: { en: "End Time", zh: "结束时间" },
+  date: { en: "Date", zh: "日期" },
+  name: { en: "Name", zh: "名称" },
+  title: { en: "Title", zh: "标题" },
+  content: { en: "Content", zh: "内容" },
+  description: { en: "Description", zh: "描述" },
+  type: { en: "Type", zh: "类型" },
+  sort: { en: "Sort Order", zh: "排序" },
+  confirm: { en: "Confirm", zh: "确认" },
+}
+
+export const schedule = {
+  title: { en: "Conference Schedule", zh: "大会议程" },
+  day1: { en: "Day 1", zh: "第一天" },
+  day2: { en: "Day 2", zh: "第二天" },
+  day3: { en: "Day 3", zh: "第三天" },
+  room: { en: "Room", zh: "会场" },
+  speaker: { en: "Speaker", zh: "讲者" },
+  opening: { en: "Opening", zh: "开场" },
+  keynote: { en: "Keynote", zh: "主题演讲" },
+  session: { en: "Session", zh: "演讲" },
+  break: { en: "Break", zh: "休息" },
+  panel: { en: "Panel", zh: "圆桌讨论" },
+  closing: { en: "Closing", zh: "闭幕" },
+}
+
+export type TranslationKey = keyof typeof common
+
+export function t(
+  key: string,
+  locale: Locale,
+  dict?: Record<string, Record<Locale, string>>
+): string {
+  // Try common first
+  if (key in common) {
+    return common[key as keyof typeof common][locale]
+  }
+  if (dict && key in dict) {
+    return dict[key][locale]
+  }
+  return key
+}
