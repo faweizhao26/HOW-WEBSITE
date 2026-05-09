@@ -41,6 +41,9 @@ export type Profile = {
   company: string | null
   bio: string | null
   bio_zh: string | null
+  avatar_url: string | null
+  phone: string | null
+  wechat: string | null
   role: "user" | "admin"
   created_at: string
 }

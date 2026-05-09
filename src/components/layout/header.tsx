@@ -67,11 +67,18 @@ export function Header({ locale }: { locale: Locale }) {
               </Button>
             </Link>
             {user ? (
-              <form action="/auth/signout" method="post">
-                <Button variant="ghost" size="sm" className="text-zinc-400">
-                  {navigation.logout[locale]}
-                </Button>
-              </form>
+              <div className="flex items-center gap-1">
+                <Link href="/profile">
+                  <Button variant="ghost" size="sm" className="text-zinc-400">
+                    {locale === "zh" ? "个人中心" : "Profile"}
+                  </Button>
+                </Link>
+                <form action="/auth/signout" method="post">
+                  <Button variant="ghost" size="sm" className="text-zinc-500">
+                    {navigation.logout[locale]}
+                  </Button>
+                </form>
+              </div>
             ) : (
               <Link href="/auth/login">
                 <Button variant="ghost" size="sm" className="text-zinc-400">
