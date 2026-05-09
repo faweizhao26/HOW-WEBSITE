@@ -82,6 +82,8 @@ export const admin = {
   dashboard: { en: "Dashboard", zh: "仪表盘" },
   sessions: { en: "Sessions", zh: "提案管理" },
   agenda: { en: "Agenda", zh: "议程编排" },
+  registrations: { en: "Registrations", zh: "报名管理" },
+  tickets: { en: "Tickets", zh: "票种 & 渠道" },
   sponsors: { en: "Sponsors", zh: "赞助商管理" },
   updates: { en: "Updates", zh: "动态管理" },
   settings: { en: "Settings", zh: "站点设置" },

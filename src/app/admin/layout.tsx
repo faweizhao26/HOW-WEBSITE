@@ -15,6 +15,8 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
+  Users,
+  Ticket,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -22,6 +24,8 @@ const navItems = [
   { href: "/admin", icon: LayoutDashboard, key: "dashboard" },
   { href: "/admin/sessions", icon: Mic, key: "sessions" },
   { href: "/admin/agenda", icon: CalendarDays, key: "agenda" },
+  { href: "/admin/registrations", icon: Users, key: "registrations" },
+  { href: "/admin/tickets", icon: Ticket, key: "tickets" },
   { href: "/admin/sponsors", icon: Star, key: "sponsors" },
   { href: "/admin/updates", icon: Newspaper, key: "updates" },
   { href: "/admin/settings", icon: Settings, key: "settings" },
