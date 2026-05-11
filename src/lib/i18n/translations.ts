@@ -83,6 +83,7 @@ export const admin = {
   sessions: { en: "Sessions", zh: "提案管理" },
   agenda: { en: "Agenda", zh: "议程编排" },
   registrations: { en: "Registrations", zh: "报名管理" },
+  checkin: { en: "Check-In", zh: "签到" },
   tickets: { en: "Tickets", zh: "票种 & 渠道" },
   sponsors: { en: "Sponsors", zh: "赞助商管理" },
   updates: { en: "Updates", zh: "动态管理" },

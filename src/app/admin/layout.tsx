@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   Users,
   Ticket,
+  UserCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/admin/sessions", icon: Mic, key: "sessions" },
   { href: "/admin/agenda", icon: CalendarDays, key: "agenda" },
   { href: "/admin/registrations", icon: Users, key: "registrations" },
+  { href: "/admin/checkin", icon: UserCheck, key: "checkin" },
   { href: "/admin/tickets", icon: Ticket, key: "tickets" },
   { href: "/admin/sponsors", icon: Star, key: "sponsors" },
   { href: "/admin/updates", icon: Newspaper, key: "updates" },
