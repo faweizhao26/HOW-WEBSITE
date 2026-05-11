@@ -102,8 +102,8 @@ export const admin = {
   manageAgenda: { en: "Manage Agenda", zh: "管理议程" },
   demoMode: { en: "Demo mode — data is mocked. Configure Supabase to use real data.", zh: "演示模式 — 数据为模拟数据。配置 Supabase 以使用真实数据。" },
   overview: { en: "Overview of conference management.", zh: "会议管理概览。" },
-  pendingReady: { en: "pending · {approved} approved", zh: "{pending} 待审核 · {approved} 已通过" },
-  slotsReady: { en: "slots · {approved} ready", zh: "{slots} 时段 · {approved} 可用" },
+  pendingReady: { en: "{pending} pending · {approved} approved", zh: "{pending} 待审核 · {approved} 已通过" },
+  slotsReady: { en: "{slots} slots · {approved} ready", zh: "{slots} 时段 · {approved} 可用" },
   // Sessions
   sessionProposals: { en: "Session Proposals", zh: "演讲提案" },
   searchProposals: { en: "Search proposals...", zh: "搜索提案..." },

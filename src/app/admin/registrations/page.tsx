@@ -52,7 +52,9 @@ export default function AdminRegistrationsPage() {
   }
 
   async function exportCSV() {
-    const headers = ["Name", "Email", "Phone", "Company", "Position", "Ticket", "Channel", "Status", "Checked In", "Date"]
+    const headers = locale === "zh"
+      ? ["姓名", "邮箱", "手机号", "公司", "职位", "票种", "渠道码", "状态", "签到", "报名时间"]
+      : ["Name", "Email", "Phone", "Company", "Position", "Ticket", "Channel", "Status", "Checked In", "Date"]
     const rows = registrations.map(r => [
       r.name, r.email, r.phone, r.company || "", r.position || "",
       r.ticket_types?.name || "", r.channel_code || "", r.status,
