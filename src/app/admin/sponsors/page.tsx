@@ -18,10 +18,10 @@ import { Plus, Trash2, Pencil, Star } from "lucide-react"
 type Sponsor = { id: string; name: string; logo_url: string; tier: string; website_url: string | null; sort_order: number }
 
 const tiers = [
-  { value: "diamond", label: "Diamond", color: "bg-cyan-600" },
-  { value: "gold", label: "Gold", color: "bg-amber-500" },
-  { value: "silver", label: "Silver", color: "bg-zinc-400" },
-  { value: "bronze", label: "Bronze", color: "bg-orange-700" },
+  { value: "diamond", label: { en: "Diamond", zh: "钻石" }, color: "bg-cyan-600" },
+  { value: "gold", label: { en: "Gold", zh: "金牌" }, color: "bg-amber-500" },
+  { value: "silver", label: { en: "Silver", zh: "银牌" }, color: "bg-zinc-400" },
+  { value: "bronze", label: { en: "Bronze", zh: "铜牌" }, color: "bg-orange-700" },
 ]
 
 function getLocaleFromCookie(): "en" | "zh" {
@@ -86,7 +86,7 @@ function SponsorForm({ sponsor, setSponsors, locale }: { sponsor?: Sponsor; setS
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2"><Label>{common.name[locale]}</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
           <div className="space-y-2"><Label>{common.type[locale]}</Label>
-            <Select value={tier} onValueChange={(v) => setTier(v || "silver")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{tiers.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent></Select>
+            <Select value={tier} onValueChange={(v) => setTier(v || "silver")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{tiers.map(t => <SelectItem key={t.value} value={t.value}>{t.label[locale]}</SelectItem>)}</SelectContent></Select>
           </div>
           <div className="space-y-2"><Label>{adminT.website[locale]}</Label><Input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://..." /></div>
           <div className="space-y-2"><Label>Logo</Label>
@@ -126,7 +126,7 @@ export default function AdminSponsorsPage() {
         if (ts.length === 0 && sponsors.length > 0) return null
         return (
           <div key={tier.value} className="mb-8">
-            <h2 className="text-lg font-semibold text-zinc-300 mb-3 flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${tier.color} inline-block`} />{tier.label}</h2>
+            <h2 className="text-lg font-semibold text-zinc-300 mb-3 flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${tier.color} inline-block`} />{tier.label[locale]}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {ts.map(s => (
                 <Card key={s.id} className="bg-zinc-900/50 border-zinc-800">

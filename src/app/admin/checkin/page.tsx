@@ -129,7 +129,7 @@ ${reg.company ? `<div class="row"><span class="company">${reg.company}</span><sp
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium text-white text-lg">{reg.name}</span>
                   {reg.checked_in && <Badge className="bg-emerald-900/50 text-emerald-300 border-emerald-800 shrink-0">{locale === "zh" ? "已签到" : "Checked in"}</Badge>}
-                  {reg.ticket_types && <Badge variant="outline" className="text-[10px]">{reg.ticket_types.name}</Badge>}
+                  {reg.ticket_types && <Badge variant="outline" className="text-[10px]">{locale === "zh" && reg.ticket_types.name_zh ? reg.ticket_types.name_zh : reg.ticket_types.name}</Badge>}
                 </div>
                 <div className="flex items-center gap-4 text-xs text-zinc-500">
                   <span>{reg.email}</span>
