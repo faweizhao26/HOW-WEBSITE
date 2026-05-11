@@ -58,7 +58,12 @@ export async function Footer({ locale }: { locale: Locale }) {
           </div>
         </div>
         <div className="mt-10 pt-6 border-t border-zinc-800 text-center text-sm text-zinc-600">
-          &copy; {new Date().getFullYear()} HOW 2027. All rights reserved.
+          <div className="flex items-center justify-center gap-4">
+            <span>&copy; {new Date().getFullYear()} HOW 2027. All rights reserved.</span>
+            <Link href="/privacy" className="hover:text-zinc-400 transition-colors">
+              {locale === "zh" ? "隐私条款" : "Privacy Policy"}
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
