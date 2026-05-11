@@ -93,7 +93,7 @@ function ChannelForm({ channel, tickets, onSaved }: { channel?: any; tickets: an
           <div className="space-y-2"><Label>{getLocaleFromCookie() === "zh" ? "关联票种" : "Linked Ticket"}</Label>
             <select value={ticketId} onChange={e => setTicketId(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-300">
               <option value="">{getLocaleFromCookie() === "zh" ? "不关联" : "None"}</option>
-              {tickets.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {tickets.map((t: any) => <option key={t.id} value={t.id}>{locale === "zh" && t.name_zh ? t.name_zh : t.name}</option>)}
             </select>
           </div>
           {code && <div className="p-3 bg-zinc-800 rounded-lg"><p className="text-xs text-zinc-400 mb-2">{getLocaleFromCookie() === "zh" ? "报名链接" : "Registration Link"}:</p><div className="flex items-center gap-2"><code className="text-xs text-cyan-400 flex-1 truncate">{registerLink}</code><Button size="icon" variant="ghost" className="h-6 w-6" onClick={copyLink}><Copy className="h-3 w-3" /></Button></div></div>}
@@ -146,7 +146,7 @@ export default function AdminTicketsPage() {
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-white">{t.name}</span>
+                      <span className="font-medium text-white">{locale === "zh" && t.name_zh ? t.name_zh : t.name}</span>
                       {t.name_zh && <span className="text-zinc-500 text-sm">{t.name_zh}</span>}
                       {t.is_free ? <Badge variant="outline" className="text-emerald-400 border-emerald-800 text-[10px]">{locale === "zh" ? "免费" : "Free"}</Badge> : <Badge variant="outline" className="text-amber-400 border-amber-800 text-[10px]">{locale === "zh" ? "收费" : "Paid"}</Badge>}
                       {t.requires_code && <Badge variant="secondary" className="text-[10px]">{locale === "zh" ? "需渠道码" : "Code req'd"}</Badge>}
