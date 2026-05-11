@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle, ArrowRight, Calendar, MapPin, Users, Mic } from "lucide-react"
+import { Countdown } from "@/components/countdown"
 
 async function getSettings() {
   try {
@@ -75,6 +76,8 @@ export default async function HomePage() {
                 </Button>
               </Link>
             </div>
+
+            <Countdown target={settings.conference_date || "2027-04-26"} locale={locale} />
           </div>
         </div>
       </section>
