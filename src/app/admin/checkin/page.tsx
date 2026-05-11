@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Search, CheckCircle, X, UserCheck, Users, QrCode, Printer } from "lucide-react"
+import { admin as adminT } from "@/lib/i18n/translations"
 
 function getLocaleFromCookie(): "en" | "zh" {
   if (typeof document === "undefined") return "en"
