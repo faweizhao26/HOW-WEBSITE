@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
-import { Search, CheckCircle, X, UserCheck, Users, QrCode } from "lucide-react"
+import { Search, CheckCircle, X, UserCheck, Users, QrCode, Printer } from "lucide-react"
 
 function getLocaleFromCookie(): "en" | "zh" {
   if (typeof document === "undefined") return "en"
@@ -64,6 +64,29 @@ export default function AdminCheckinPage() {
     loadStats()
   }
 
+  function printBadge(reg: any) {
+    const ticketName = reg.ticket_types?.name_zh || reg.ticket_types?.name || ""
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+@page{size:90mm 55mm;margin:0}
+.badge{width:90mm;height:55mm;padding:6mm 8mm;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#064e3b,#0f766e);color:#fff;position:relative;overflow:hidden}
+.badge::after{content:"HOW 2027";position:absolute;right:-5mm;bottom:-3mm;font-size:22mm;font-weight:900;opacity:.06}
+.top{font-size:3.5mm;opacity:.7;font-weight:600;letter-spacing:1mm}
+.name{font-size:8mm;font-weight:800;line-height:1.1;margin:1mm 0}
+.row{display:flex;justify-content:space-between;align-items:flex-end}
+.company{font-size:3.2mm;opacity:.85;max-width:50mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ticket{font-size:3mm;background:rgba(255,255,255,.15);padding:1mm 3mm;border-radius:2mm;font-weight:600}
+@media print{body{margin:0}}
+</style></head><body><div class="badge">
+<div class="top">HOW 2027 · PostgreSQL Eco Conference</div>
+<div><div class="name">${reg.name}</div>
+${reg.company ? `<div class="row"><span class="company">${reg.company}</span><span class="ticket">${ticketName}</span></div>` : `<span class="ticket" style="display:inline-block;margin-top:1mm">${ticketName}</span>`}
+</div></div></body></html>`
+    const w = window.open("", "_blank", "width=400,height=300")
+    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400) }
+  }
+
   const label = locale === "zh" ? "签到管理" : "Check-In"
 
   return (
@@ -114,15 +137,23 @@ export default function AdminCheckinPage() {
                   {reg.checked_in_at && <span className="text-zinc-600">{locale === "zh" ? "签到时间: " : "At: "}{new Date(reg.checked_in_at).toLocaleTimeString(locale === "zh" ? "zh-CN" : "en-US")}</span>}
                 </div>
               </div>
-              <Button
-                size="sm"
-                variant={reg.checked_in ? "outline" : "default"}
-                className={reg.checked_in ? "border-zinc-700 text-zinc-400" : "bg-emerald-600 hover:bg-emerald-500"}
-                onClick={() => toggleCheckin(reg)}
-              >
-                <CheckCircle className="h-4 w-4 mr-1" />
-                {reg.checked_in ? (locale === "zh" ? "撤销" : "Undo") : (locale === "zh" ? "签到" : "Check In")}
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant={reg.checked_in ? "outline" : "default"}
+                  className={reg.checked_in ? "border-zinc-700 text-zinc-400" : "bg-emerald-600 hover:bg-emerald-500"}
+                  onClick={() => toggleCheckin(reg)}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  {reg.checked_in ? (locale === "zh" ? "撤销" : "Undo") : (locale === "zh" ? "签到" : "Check In")}
+                </Button>
+                {reg.checked_in && (
+                  <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-white" onClick={() => printBadge(reg)}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    {locale === "zh" ? "打印" : "Print"}
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
