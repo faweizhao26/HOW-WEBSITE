@@ -2,7 +2,22 @@ import Link from "next/link"
 import { Locale } from "@/lib/i18n/utils"
 import { navigation } from "@/lib/i18n/translations"
 
-export function Footer({ locale }: { locale: Locale }) {
+async function getSettings() {
+  try {
+    const { createServerSupabase } = await import("@/lib/supabase/server")
+    const supabase = await createServerSupabase()
+    const { data } = await supabase.from("site_settings").select("*")
+    const map: Record<string, string> = {}
+    data?.forEach((s: any) => (map[s.key] = s.value))
+    return map
+  } catch { return {} }
+}
+
+export async function Footer({ locale }: { locale: Locale }) {
+  const s = await getSettings()
+  const email = s.contact_email || "conference@how2027.org"
+  const location = s.conference_location || "Jinan, China"
+  const locationZh = s.conference_location_zh || "中国·济南"
   return (
     <footer className="bg-zinc-950 border-t border-zinc-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -37,8 +52,8 @@ export function Footer({ locale }: { locale: Locale }) {
           <div>
             <h4 className="text-zinc-300 text-sm font-medium mb-3">{locale === "zh" ? "联系" : "Contact"}</h4>
             <div className="space-y-2">
-              <p className="text-sm text-zinc-500">conference@how2027.org</p>
-              <p className="text-sm text-zinc-500">{locale === "zh" ? "中国·济南" : "Jinan, China"}</p>
+              <p className="text-sm text-zinc-500">{email}</p>
+              <p className="text-sm text-zinc-500">{locale === "zh" ? locationZh : location}</p>
             </div>
           </div>
         </div>

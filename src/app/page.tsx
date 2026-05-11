@@ -7,20 +7,41 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle, ArrowRight, Calendar, MapPin, Users, Mic } from "lucide-react"
 
+async function getSettings() {
+  try {
+    const { createServerSupabase } = await import("@/lib/supabase/server")
+    const supabase = await createServerSupabase()
+    const { data } = await supabase.from("site_settings").select("*")
+    const map: Record<string, string> = {}
+    data?.forEach((s: any) => (map[s.key] = s.value))
+    return map
+  } catch { return {} }
+}
+
 export default async function HomePage() {
   const cookieStore = await cookies()
   const locale = getLocale(cookieStore.get("lang")?.value)
+  const settings = await getSettings()
+
+  const heroTitle = settings.hero_title || home.heroTitle[locale]
+  const heroTitleZh = settings.hero_title_zh || home.heroTitle["zh"]
+  const heroSub = settings.hero_subtitle || home.heroSubtitle[locale]
+  const heroSubZh = settings.hero_subtitle_zh || home.heroSubtitle["zh"]
+  const date = settings.conference_date || "2027 — Jinan, China"
+  const dateZh = settings.conference_date || "2027 年 — 中国·济南"
+  const location = settings.conference_location || "Jinan"
+  const locationZh = settings.conference_location_zh || "济南"
+  const venueLine = settings.conference_location_zh || locale === "zh" ? "山东济南 · 舜耕国际会议中心区" : "Jinan, Shandong — Shungeng International Convention Center"
 
   const stats = [
     { icon: Mic, label: locale === "zh" ? "演讲" : "Sessions", value: "18" },
     { icon: Users, label: locale === "zh" ? "参会者" : "Attendees", value: "500+" },
-    { icon: MapPin, label: locale === "zh" ? "地点" : "Location", value: locale === "zh" ? "济南" : "Jinan" },
+    { icon: MapPin, label: locale === "zh" ? "地点" : "Location", value: locale === "zh" ? locationZh : location },
     { icon: Calendar, label: locale === "zh" ? "天数" : "Days", value: "2" },
   ]
 
   return (
     <div>
-      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/50 via-zinc-950 to-zinc-950" />
         <div className="absolute inset-0 opacity-20">
@@ -33,14 +54,14 @@ export default async function HomePage() {
               HOW 2027
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              {home.heroTitle[locale]}
+              {locale === "zh" ? heroTitleZh : heroTitle}
               <br />
               <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                {home.heroSubtitle[locale]}
+                {locale === "zh" ? heroSubZh : heroSub}
               </span>
             </h1>
             <p className="text-lg sm:text-xl text-zinc-400 mb-8 max-w-xl">
-              {home.heroDate[locale]}
+              {locale === "zh" ? dateZh : date}
             </p>
             <div className="flex flex-wrap gap-4">
               <Link href="/register">
@@ -58,7 +79,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Stats */}
       <section className="relative -mt-16 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {stats.map((stat) => (
@@ -73,20 +93,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* About */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-              {home.aboutTitle[locale]}
-            </h2>
-            <p className="text-zinc-400 text-lg leading-relaxed mb-6">
-              {home.aboutDesc[locale]}
-            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-6">{home.aboutTitle[locale]}</h2>
+            <p className="text-zinc-400 text-lg leading-relaxed mb-6">{home.aboutDesc[locale]}</p>
             <p className="text-zinc-500 leading-relaxed">
               {locale === "zh"
                 ? "HOW 2027 将再次回到充满活力的济南，汇聚来自全球的 PostgreSQL 专家、开发者及社区成员。敬请关注大会日期、讲者及议程等更多详情，我们将继续打造难忘的会议体验。"
-                : "This premier open-source database event will return to the vibrant city of Jinan in 2027, bringing together PostgreSQL experts, developers, and community members from around the world. Stay tuned for more details on the dates, speakers, and program highlights as we continue to build another unforgettable conference experience."}
+                : "This premier open-source database event will return to the vibrant city of Jinan in 2027, bringing together PostgreSQL experts, developers, and community members from around the world."}
             </p>
             <Link href="/about" className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 mt-4">
               {locale === "zh" ? "了解更多" : "Learn more"} <ArrowRight className="h-4 w-4" />
@@ -95,47 +110,34 @@ export default async function HomePage() {
           <div className="relative">
             <div className="aspect-square rounded-2xl bg-gradient-to-br from-emerald-900/40 to-cyan-900/40 border border-zinc-800 flex items-center justify-center">
               <div className="text-center p-8">
-                <div className="text-8xl font-black bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent mb-4">
-                  HOW
-                </div>
+                <div className="text-8xl font-black bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent mb-4">HOW</div>
                 <div className="text-4xl font-bold text-white">2027</div>
-                <div className="text-zinc-400 mt-2">{locale === "zh" ? "济南" : "Jinan"}</div>
+                <div className="text-zinc-400 mt-2">{locale === "zh" ? locationZh : location}</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Highlights */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-zinc-800">
         <h2 className="text-3xl font-bold text-center mb-12">{home.highlightsTitle[locale]}</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {home.highlights[locale].map((h, i) => (
             <Card key={i} className="bg-zinc-900/50 border-zinc-800 hover:border-emerald-800/50 transition-colors">
-              <CardContent className="p-6">
-                <CheckCircle className="h-5 w-5 text-emerald-400 mb-4" />
-                <p className="text-sm text-zinc-300">{h}</p>
-              </CardContent>
+              <CardContent className="p-6"><CheckCircle className="h-5 w-5 text-emerald-400 mb-4" /><p className="text-sm text-zinc-300">{h}</p></CardContent>
             </Card>
           ))}
         </div>
       </section>
 
-      {/* CTA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-emerald-900/30 to-cyan-900/30 border border-zinc-800 p-12 text-center">
           <div className="absolute top-10 left-10 w-40 h-40 bg-emerald-500 rounded-full blur-[80px] opacity-20" />
           <div className="absolute bottom-10 right-10 w-40 h-40 bg-cyan-500 rounded-full blur-[80px] opacity-20" />
           <h2 className="relative text-3xl font-bold mb-4">{home.ctaTitle[locale]}</h2>
-          <p className="relative text-zinc-400 mb-8 max-w-md mx-auto">
-            {locale === "zh"
-              ? "山东济南 · 舜耕国际会议中心区"
-              : "Jinan, Shandong — Shungeng International Convention Center"}
-          </p>
+          <p className="relative text-zinc-400 mb-8 max-w-md mx-auto">{venueLine}</p>
           <Link href="/register">
-            <Button size="lg" className="relative bg-emerald-600 hover:bg-emerald-500">
-              {home.registerNow[locale]}
-            </Button>
+            <Button size="lg" className="relative bg-emerald-600 hover:bg-emerald-500">{home.registerNow[locale]}</Button>
           </Link>
         </div>
       </section>
