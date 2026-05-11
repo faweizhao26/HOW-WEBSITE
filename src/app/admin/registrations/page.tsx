@@ -152,7 +152,7 @@ export default function AdminRegistrationsPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-xs text-zinc-600 hidden sm:inline">{new Date(reg.created_at).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US")}</span>
                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
+                  <AlertDialogTrigger>
                     <Button size="sm" variant="ghost" className="h-8 text-zinc-500 hover:text-red-400">
                       {reg.status === "cancelled" ? <RotateCcw className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                     </Button>

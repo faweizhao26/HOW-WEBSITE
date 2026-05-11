@@ -350,7 +350,7 @@ export default function ProfilePage() {
                               </p>
                             </div>
                             <AlertDialog>
-                              <AlertDialogTrigger asChild>
+                              <AlertDialogTrigger>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400 shrink-0">
                                   {reg.status === "cancelled" ? <RotateCcw className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                                 </Button>
