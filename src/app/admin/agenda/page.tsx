@@ -136,12 +136,17 @@ export default function AdminAgendaPage() {
   function undoDelete() {
     if (!lastDeleted) return
     setSlots(prev => {
-      const restored = [...prev, lastDeleted].sort((a, b) => a.sort_order - b.sort_order)
-      return restored
+      return [...prev, lastDeleted].sort((a, b) => a.sort_order - b.sort_order)
     })
+    const restored = lastDeleted
     setLastDeleted(null)
     toast.success(locale === "zh" ? "已撤回" : "Undone")
     if (isMockMode()) return
+    try {
+      const supabase = createClient()
+      const { id, sessions, ...rest } = restored as any
+      supabase.from("agenda_slots").insert({ ...rest }).then(() => loadData())
+    } catch {}
   }
 
   async function assignSession(slotId: string, sessionId: string | null) {
