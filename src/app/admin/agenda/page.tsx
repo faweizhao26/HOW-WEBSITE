@@ -171,12 +171,19 @@ export default function AdminAgendaPage() {
           <p className="mb-4">{adminT.noAgendaSlots[locale]}</p>
           <div className="flex items-center justify-center gap-4">
             <Input type="date" id="new-day-date" className="w-48" defaultValue={new Date().toISOString().split("T")[0]} />
-            <Button onClick={() => {
+            <Button onClick={async () => {
+              const d = (document.getElementById("new-day-date") as HTMLInputElement)?.value || new Date().toISOString().split("T")[0]
               if (isMockMode()) {
-                const d = (document.getElementById("new-day-date") as HTMLInputElement)?.value || "2027-04-26"
                 setSlots([{ id: "new-1", date: d, start_time: "09:00", end_time: "10:00", label: "Opening", label_zh: "开幕", type: "opening", session_id: null, room: "Main Hall", sort_order: 0 }])
                 toast.success(adminT.firstSlotCreated[locale])
+                return
               }
+              try {
+                const supabase = createClient()
+                await supabase.from("agenda_slots").insert({ date: d, start_time: "09:00", end_time: "10:00", label: "Opening", type: "opening", room: "Main Hall", sort_order: 0 })
+                toast.success(adminT.firstSlotCreated[locale])
+                loadData()
+              } catch (e: any) { toast.error(e.message) }
             }}>{adminT.startBuilding[locale]}</Button>
           </div>
         </div>
