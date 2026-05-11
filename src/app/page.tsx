@@ -56,7 +56,7 @@ export default async function HomePage() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
               {locale === "zh" ? heroTitleZh : heroTitle}
               <br />
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent whitespace-nowrap text-2xl sm:text-4xl lg:text-6xl">
                 {locale === "zh" ? heroSubZh : heroSub}
               </span>
             </h1>
