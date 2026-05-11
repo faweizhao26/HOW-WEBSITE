@@ -16,8 +16,9 @@ import { Avatar } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import {
   User, Mail, Phone, Building, Edit3, Camera, Mic, Calendar, LogOut,
-  ChevronRight, Copy, Check, Shield, Key,
+  ChevronRight, Copy, Check, Shield, Key, XCircle, RotateCcw,
 } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
 function getLocaleFromCookie(): "en" | "zh" {
   if (typeof document === "undefined") return "en"
@@ -125,6 +126,14 @@ export default function ProfilePage() {
     await supabase.auth.signOut()
     router.push("/")
     router.refresh()
+  }
+
+  async function cancelRegistration(regId: string, currentStatus: string) {
+    const supabase = createClient()
+    const newStatus = currentStatus === "cancelled" ? "confirmed" : "cancelled"
+    await supabase.from("registrations").update({ status: newStatus }).eq("id", regId)
+    setRegistrations(prev => prev.map(r => r.id === regId ? { ...r, status: newStatus } : r))
+    toast.success(newStatus === "cancelled" ? (locale === "zh" ? "已取消报名" : "Registration cancelled") : (locale === "zh" ? "已恢复报名" : "Registration restored"))
   }
 
   function copyId() {
@@ -321,13 +330,14 @@ export default function ProfilePage() {
                   ) : (
                     <div className="space-y-3">
                       {registrations.map(reg => (
-                        <div key={reg.id} className="p-3 rounded-lg border border-emerald-800/50 bg-emerald-950/10">
+                        <div key={reg.id} className={`p-3 rounded-lg border ${reg.status === "cancelled" ? "border-red-900/30 bg-red-950/10 opacity-70" : "border-emerald-800/50 bg-emerald-950/10"}`}>
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge className="bg-emerald-900/50 text-emerald-300 border-emerald-800">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <Badge className={reg.status === "cancelled" ? "bg-red-900/50 text-red-300 border-red-800" : "bg-emerald-900/50 text-emerald-300 border-emerald-800"}>
                                   {locale === "zh" && reg.ticket_types?.name_zh ? reg.ticket_types.name_zh : reg.ticket_types?.name || (locale === "zh" ? "报名" : "Registered")}
                                 </Badge>
+                                {reg.status === "cancelled" && <Badge variant="destructive" className="text-[10px]">{locale === "zh" ? "已取消" : "Cancelled"}</Badge>}
                                 {reg.checked_in && <Badge variant="outline" className="text-[10px] text-cyan-400 border-cyan-800">{locale === "zh" ? "已签到" : "Checked in"}</Badge>}
                               </div>
                               <div className="text-xs text-zinc-500 space-y-0.5">
@@ -339,6 +349,33 @@ export default function ProfilePage() {
                                 {new Date(reg.created_at).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "long", day: "numeric" })}
                               </p>
                             </div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400 shrink-0">
+                                  {reg.status === "cancelled" ? <RotateCcw className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-zinc-900 border-zinc-800">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    {reg.status === "cancelled"
+                                      ? (locale === "zh" ? "恢复报名？" : "Restore registration?")
+                                      : (locale === "zh" ? "确认取消？" : "Confirm cancellation?")}
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {reg.status === "cancelled"
+                                      ? (locale === "zh" ? "您的报名将被恢复" : "Your registration will be restored.")
+                                      : (locale === "zh" ? "您的报名将被取消" : "Your registration will be cancelled.")}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="border-zinc-700">{locale === "zh" ? "返回" : "Back"}</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => cancelRegistration(reg.id, reg.status)} className={reg.status === "cancelled" ? "bg-emerald-600" : "bg-red-600"}>
+                                    {reg.status === "cancelled" ? (locale === "zh" ? "恢复" : "Restore") : (locale === "zh" ? "取消" : "Cancel")}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                       ))}
