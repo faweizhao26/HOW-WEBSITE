@@ -39,6 +39,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [sessions, setSessions] = useState<any[]>([])
+  const [registrations, setRegistrations] = useState<any[]>([])
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -74,6 +75,10 @@ export default function ProfilePage() {
 
     const { data: sessions } = await supabase.from("sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
     setSessions(sessions || [])
+
+    const { data: regs } = await supabase.from("registrations").select("*, ticket_types(name, name_zh)").eq("user_id", user.id).order("created_at", { ascending: false })
+    setRegistrations(regs || [])
+
     setLoading(false)
   }
 
@@ -265,6 +270,7 @@ export default function ProfilePage() {
                   <TabsTrigger value="registration">
                     <Calendar className="h-4 w-4 mr-1" />
                     {locale === "zh" ? "大会报名" : "Registration"}
+                    <span className="ml-2 text-xs bg-zinc-700 px-2 py-0.5 rounded-full">{registrations.length}</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -302,15 +308,42 @@ export default function ProfilePage() {
                 </TabsContent>
 
                 <TabsContent value="registration">
-                  <div className="text-center py-8 text-zinc-500">
-                    <Calendar className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">{locale === "zh" ? "报名通道尚未开启" : "Registration not yet open"}</p>
-                    <Link href="/register">
-                      <Button size="sm" variant="outline" className="mt-3 border-emerald-800 text-emerald-400">
-                        {locale === "zh" ? "查看报名" : "View Registration"} <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
+                  {registrations.length === 0 ? (
+                    <div className="text-center py-8 text-zinc-500">
+                      <Calendar className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">{locale === "zh" ? "还没有报名记录" : "No registration records"}</p>
+                      <Link href="/register">
+                        <Button size="sm" variant="outline" className="mt-3 border-emerald-800 text-emerald-400">
+                          {locale === "zh" ? "去报名" : "Register Now"} <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {registrations.map(reg => (
+                        <div key={reg.id} className="p-3 rounded-lg border border-emerald-800/50 bg-emerald-950/10">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge className="bg-emerald-900/50 text-emerald-300 border-emerald-800">
+                                  {locale === "zh" && reg.ticket_types?.name_zh ? reg.ticket_types.name_zh : reg.ticket_types?.name || (locale === "zh" ? "报名" : "Registered")}
+                                </Badge>
+                                {reg.checked_in && <Badge variant="outline" className="text-[10px] text-cyan-400 border-cyan-800">{locale === "zh" ? "已签到" : "Checked in"}</Badge>}
+                              </div>
+                              <div className="text-xs text-zinc-500 space-y-0.5">
+                                <p>{reg.email}</p>
+                                {reg.phone && <p>{reg.phone}</p>}
+                                {reg.company && <p>{reg.company}{reg.position && ` · ${reg.position}`}</p>}
+                              </div>
+                              <p className="text-xs text-zinc-600 mt-1">
+                                {new Date(reg.created_at).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "long", day: "numeric" })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
