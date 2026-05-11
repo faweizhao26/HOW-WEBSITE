@@ -4,32 +4,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "lucide-react"
 import { getNews } from "@/lib/mock-data"
 
+async function fetchNews() {
+  try {
+    const { createServerSupabase } = await import("@/lib/supabase/server")
+    const supabase = await createServerSupabase()
+    const { data, error } = await supabase.from("news_posts").select("*").order("published_at", { ascending: false })
+    if (data && data.length > 0) return data
+  } catch {}
+  return getNews()
+}
+
 export default async function UpdatesPage() {
   const cookieStore = await cookies()
   const locale = getLocale(cookieStore.get("lang")?.value)
-
-  const posts = getNews()
+  const posts = (await fetchNews()) as any[]
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-4xl font-bold mb-8">
-        {locale === "zh" ? "会议动态" : "Conference Updates"}
-      </h1>
-
+      <h1 className="text-4xl font-bold mb-8">{locale === "zh" ? "会议动态" : "Conference Updates"}</h1>
       <div className="space-y-6">
-        {posts.map((post) => (
+        {posts.map((post: any) => (
           <Card key={post.id} className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-colors">
             <CardHeader>
               <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2">
                 <Calendar className="h-4 w-4" />
-                {new Date(post.published_at).toLocaleDateString(
-                  locale === "zh" ? "zh-CN" : "en-US",
-                  { year: "numeric", month: "long", day: "numeric" }
-                )}
+                {new Date(post.published_at).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "long", day: "numeric" })}
               </div>
-              <CardTitle className="text-white text-xl">
-                {locale === "zh" && post.title_zh ? post.title_zh : post.title}
-              </CardTitle>
+              <CardTitle className="text-white text-xl">{locale === "zh" && post.title_zh ? post.title_zh : post.title}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-zinc-400 whitespace-pre-line leading-relaxed">

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getLocale } from "@/lib/i18n/utils"
+import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { ExternalLink } from "lucide-react"
 import { getSponsors } from "@/lib/mock-data"
@@ -20,8 +20,17 @@ export default function SponsorsPage() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setSponsors(getSponsors())
-    setMounted(true)
+    async function load() {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase.from("sponsors").select("*").order("sort_order")
+        if (data && data.length > 0) { setSponsors(data); setMounted(true); return }
+      } catch {}
+      // Fallback to localStorage mock data
+      setSponsors(getSponsors())
+      setMounted(true)
+    }
+    load()
   }, [])
 
   const tiers = ["diamond", "gold", "silver", "bronze"] as const
