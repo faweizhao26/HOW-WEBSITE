@@ -7,9 +7,9 @@ export function Countdown({ target, locale }: { target: string; locale: string }
 
   useEffect(() => {
     // Parse: "2027.4.26" or "2027-04-26" -> Date
-    const raw = target || "2027-04-26"
+    const raw = target || "2027-04-14"
     const nums = raw.split(/[.\-/]/).map(Number).filter(n => !isNaN(n))
-    let targetMs = Date.UTC(2027, 3, 26) // fallback
+    let targetMs = Date.UTC(2027, 3, 14) // fallback April 14, 2027
     if (nums.length >= 3) {
       targetMs = Date.UTC(nums[0], nums[1] - 1, nums[2])
     }

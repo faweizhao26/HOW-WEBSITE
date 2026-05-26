@@ -38,7 +38,7 @@ export default async function HomePage() {
     { icon: Mic, label: locale === "zh" ? "演讲" : "Sessions", value: "18" },
     { icon: Users, label: locale === "zh" ? "参会者" : "Attendees", value: "500+" },
     { icon: MapPin, label: locale === "zh" ? "地点" : "Location", value: locale === "zh" ? locationZh : location },
-    { icon: Calendar, label: locale === "zh" ? "天数" : "Days", value: "2" },
+    { icon: Calendar, label: locale === "zh" ? "天数" : "Days", value: "4" },
   ]
 
   return (
@@ -77,7 +77,7 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            <Countdown target={settings.conference_date || "2027-04-26"} locale={locale} />
+            <Countdown target={settings.conference_date || "2027-04-14"} locale={locale} />
           </div>
         </div>
       </section>

@@ -26,7 +26,7 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     const defaults: Record<string, string> = {
       conference_name: "HOW 2027",
-      conference_date: "2027.4.26-4.28",
+      conference_date: "2027.4.14-4.18",
       conference_location: "Jinan, China",
       conference_location_zh: "中国·济南",
       cfp_deadline: "2027-02-27",
@@ -83,7 +83,7 @@ export default function AdminSettingsPage() {
         <CardContent className="space-y-4">
           {[
             { key: "conference_name", label: adminT.conferenceName[locale] },
-            { key: "conference_date", label: adminT.conferenceDate[locale], placeholder: "2027.4.26-4.28" },
+            { key: "conference_date", label: adminT.conferenceDate[locale], placeholder: "2027.4.14-4.18" },
             { key: "conference_location", label: adminT.locationEn[locale] },
             { key: "conference_location_zh", label: adminT.locationZh[locale] },
             { key: "cfp_deadline", label: adminT.cfpDeadline[locale], type: "date" },
