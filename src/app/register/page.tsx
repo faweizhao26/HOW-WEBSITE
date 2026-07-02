@@ -107,6 +107,10 @@ export default function RegisterPage() {
       toast.error(locale === "zh" ? "该票种需要渠道码" : "This ticket requires a channel code")
       return
     }
+    if (channelCode && channelValid !== true) {
+      toast.error(locale === "zh" ? "请使用有效的渠道码" : "Please use a valid channel code")
+      return
+    }
 
     setSubmitting(true)
     const supabase = createClient()

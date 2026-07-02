@@ -78,7 +78,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
       setAuthorized(true)
     } catch {
-      setAuthorized(true)
+      setAuthorized(false)
+      setLoading(false)
+      router.push("/auth/login")
+      return
     }
     setLoading(false)
   }
@@ -107,7 +110,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-4 flex items-center justify-between">
           {!collapsed && (
             <Link href="/" className="text-sm font-semibold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              {adminLabels.how2027Admin?.[locale] || locale === "zh" ? "HOW 2027 管理后台" : "HOW 2027 Admin"}
+              {(adminLabels.how2027Admin?.[locale]) || (locale === "zh" ? "HOW 2027 管理后台" : "HOW 2027 Admin")}
             </Link>
           )}
           <Button

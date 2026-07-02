@@ -32,7 +32,7 @@ export default async function HomePage() {
   const dateZh = settings.conference_date || "2027 年 — 中国·济南"
   const location = settings.conference_location || "Jinan"
   const locationZh = settings.conference_location_zh || "济南"
-  const venueLine = settings.conference_location_zh || locale === "zh" ? "山东济南 · 舜耕国际会议中心区" : "Jinan, Shandong — Shungeng International Convention Center"
+  const venueLine = settings.conference_location_zh || (locale === "zh" ? "山东济南 · 舜耕国际会议中心区" : "Jinan, Shandong — Shungeng International Convention Center")
 
   const stats = [
     { icon: Mic, label: locale === "zh" ? "演讲" : "Sessions", value: "18" },
