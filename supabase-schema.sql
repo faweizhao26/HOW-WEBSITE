@@ -10,6 +10,9 @@ CREATE TABLE public.profiles (
   company TEXT,
   bio TEXT,
   bio_zh TEXT,
+  avatar_url TEXT,
+  phone TEXT,
+  wechat TEXT,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -76,6 +79,47 @@ CREATE TABLE public.site_settings (
   value TEXT NOT NULL
 );
 
+-- Ticket types
+CREATE TABLE public.ticket_types (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  name_zh TEXT,
+  description TEXT,
+  description_zh TEXT,
+  is_free BOOLEAN NOT NULL DEFAULT true,
+  requires_code BOOLEAN NOT NULL DEFAULT false,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Channel codes for invite/VIP registration links
+CREATE TABLE public.channel_codes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  ticket_type_id UUID REFERENCES public.ticket_types(id) ON DELETE SET NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Conference registrations
+CREATE TABLE public.registrations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  ticket_type_id UUID REFERENCES public.ticket_types(id) ON DELETE SET NULL,
+  channel_code TEXT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  company TEXT,
+  position TEXT,
+  status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled')),
+  checked_in BOOLEAN NOT NULL DEFAULT false,
+  checked_in_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- --- Row Level Security ---
 
 -- Profiles: users can read all, update only own
@@ -127,6 +171,98 @@ CREATE POLICY "Admins can manage settings" ON public.site_settings FOR ALL USING
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+-- Ticket types: active tickets are public, admin manages all
+ALTER TABLE public.ticket_types ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Active ticket types are viewable by everyone" ON public.ticket_types FOR SELECT USING (is_active = true);
+CREATE POLICY "Admins can manage ticket types" ON public.ticket_types FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+) WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Channel codes: active codes can be checked by the registration form, admin manages all
+ALTER TABLE public.channel_codes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Active channel codes are checkable by everyone" ON public.channel_codes FOR SELECT USING (is_active = true);
+CREATE POLICY "Admins can manage channel codes" ON public.channel_codes FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+) WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Registrations: users manage own registration, admin manages all
+ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own registrations" ON public.registrations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create own valid registrations" ON public.registrations FOR INSERT WITH CHECK (
+  auth.uid() = user_id
+  AND status = 'confirmed'
+  AND checked_in = false
+  AND (
+    ticket_type_id IS NULL
+    OR EXISTS (
+      SELECT 1
+      FROM public.ticket_types t
+      WHERE t.id = ticket_type_id
+        AND t.is_active = true
+        AND (
+          (
+            t.requires_code = false
+            AND (
+              channel_code IS NULL
+              OR EXISTS (
+                SELECT 1
+                FROM public.channel_codes c
+                WHERE c.code = channel_code
+                  AND c.is_active = true
+                  AND (c.ticket_type_id IS NULL OR c.ticket_type_id = t.id)
+              )
+            )
+          )
+          OR (
+            t.requires_code = true
+            AND channel_code IS NOT NULL
+            AND EXISTS (
+              SELECT 1
+              FROM public.channel_codes c
+              WHERE c.code = channel_code
+                AND c.is_active = true
+                AND (c.ticket_type_id IS NULL OR c.ticket_type_id = t.id)
+            )
+          )
+        )
+    )
+  )
+);
+CREATE POLICY "Users can update own registrations" ON public.registrations FOR UPDATE USING (
+  auth.uid() = user_id
+) WITH CHECK (
+  auth.uid() = user_id
+);
+CREATE POLICY "Admins can manage registrations" ON public.registrations FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+) WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Explicit Data API grants for newer Supabase projects.
+GRANT SELECT ON public.profiles TO anon, authenticated;
+GRANT UPDATE ON public.profiles TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sessions TO authenticated;
+GRANT SELECT ON public.sessions TO anon;
+GRANT SELECT ON public.agenda_slots TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.agenda_slots TO authenticated;
+GRANT SELECT ON public.sponsors TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.sponsors TO authenticated;
+GRANT SELECT ON public.news_posts TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.news_posts TO authenticated;
+GRANT SELECT ON public.site_settings TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.site_settings TO authenticated;
+GRANT SELECT ON public.ticket_types TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.ticket_types TO authenticated;
+GRANT SELECT ON public.channel_codes TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.channel_codes TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.registrations TO authenticated;
+GRANT DELETE ON public.registrations TO authenticated;
+
 -- --- Trigger: auto-create profile on signup ---
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -148,6 +284,11 @@ CREATE TRIGGER on_auth_user_created
 
 -- Storage RLS
 -- CREATE POLICY "Public read access" ON storage.objects FOR SELECT USING (bucket_id = 'conference-media');
+-- CREATE POLICY "User avatar upload access" ON storage.objects FOR INSERT WITH CHECK (
+--   bucket_id = 'conference-media' AND
+--   auth.uid()::text = (storage.foldername(name))[2] AND
+--   (storage.foldername(name))[1] = 'avatars'
+-- );
 -- CREATE POLICY "Admin upload access" ON storage.objects FOR INSERT WITH CHECK (
 --   bucket_id = 'conference-media' AND
 --   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')

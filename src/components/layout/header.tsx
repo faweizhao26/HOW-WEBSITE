@@ -120,9 +120,11 @@ export function Header({ locale }: { locale: Locale }) {
                   {navigation.cfp[locale]}
                 </Link>
                 {user ? (
-                  <Link href="#" onClick={() => {}} className="text-sm text-zinc-400">
-                    {navigation.logout[locale]}
-                  </Link>
+                  <form action="/auth/signout" method="post">
+                    <button type="submit" className="text-sm text-zinc-400">
+                      {navigation.logout[locale]}
+                    </button>
+                  </form>
                 ) : (
                   <Link href="/auth/login" className="text-sm text-zinc-400">
                     {navigation.login[locale]}

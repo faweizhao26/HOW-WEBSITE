@@ -31,6 +31,21 @@ export interface Database {
         Insert: SiteSettingInsert
         Update: SiteSettingUpdate
       }
+      ticket_types: {
+        Row: TicketType
+        Insert: TicketTypeInsert
+        Update: TicketTypeUpdate
+      }
+      channel_codes: {
+        Row: ChannelCode
+        Insert: ChannelCodeInsert
+        Update: ChannelCodeUpdate
+      }
+      registrations: {
+        Row: Registration
+        Insert: RegistrationInsert
+        Update: RegistrationUpdate
+      }
     }
   }
 }
@@ -122,3 +137,50 @@ export type SiteSetting = {
 
 export type SiteSettingInsert = SiteSetting
 export type SiteSettingUpdate = Partial<SiteSetting>
+
+export type TicketType = {
+  id: string
+  name: string
+  name_zh: string | null
+  description: string | null
+  description_zh: string | null
+  is_free: boolean
+  requires_code: boolean
+  is_active: boolean
+  sort_order: number
+  created_at: string
+}
+
+export type TicketTypeInsert = Omit<TicketType, "id" | "created_at">
+export type TicketTypeUpdate = Partial<Omit<TicketType, "id" | "created_at">>
+
+export type ChannelCode = {
+  id: string
+  code: string
+  name: string
+  ticket_type_id: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export type ChannelCodeInsert = Omit<ChannelCode, "id" | "created_at">
+export type ChannelCodeUpdate = Partial<Omit<ChannelCode, "id" | "created_at">>
+
+export type Registration = {
+  id: string
+  user_id: string
+  ticket_type_id: string | null
+  channel_code: string | null
+  name: string
+  email: string
+  phone: string
+  company: string | null
+  position: string | null
+  status: "confirmed" | "cancelled"
+  checked_in: boolean
+  checked_in_at: string | null
+  created_at: string
+}
+
+export type RegistrationInsert = Omit<Registration, "id" | "checked_in" | "checked_in_at" | "created_at">
+export type RegistrationUpdate = Partial<Omit<Registration, "id" | "user_id" | "created_at">>

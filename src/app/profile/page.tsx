@@ -87,16 +87,11 @@ export default function ProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
     const supabase = createClient()
-    const { error: uploadError } = await supabase.storage.from("conference-media").upload(`avatars/${user.id}/${Date.now()}`, file)
+    const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-")
+    const path = `avatars/${user.id}/${Date.now()}-${cleanName}`
+    const { error: uploadError } = await supabase.storage.from("conference-media").upload(path, file, { upsert: true })
     if (uploadError) { toast.error(uploadError.message); return }
-    const { data: urlData } = supabase.storage.from("conference-media").getPublicUrl(`avatars/${user.id}/${Date.now()}`)
-    // Fix: get the actual uploaded URL
-    const { data: existing } = supabase.storage.from("conference-media").getPublicUrl(`avatars/${user.id}/${Date.now()}`)
-    // Re-upload with proper path
-    const cleanPath = `avatars/${user.id}/${Date.now()}-${file.name}`
-    const { error: reErr } = await supabase.storage.from("conference-media").upload(cleanPath, file, { upsert: true })
-    if (reErr) { toast.error(reErr.message); return }
-    const { data } = supabase.storage.from("conference-media").getPublicUrl(cleanPath)
+    const { data } = supabase.storage.from("conference-media").getPublicUrl(path)
     setAvatarUrl(data.publicUrl)
     await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id)
     toast.success(locale === "zh" ? "头像已更新" : "Avatar updated")

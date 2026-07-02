@@ -6,8 +6,7 @@ function isMockMode() {
   return !url || url.includes("placeholder")
 }
 
-export async function middleware(request: NextRequest) {
-  // In mock/demo mode, skip all auth checks
+export async function proxy(request: NextRequest) {
   if (isMockMode()) {
     return NextResponse.next()
   }
@@ -23,7 +22,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
@@ -39,7 +38,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protect /admin routes
   if (request.nextUrl.pathname.startsWith("/admin")) {
     if (!user) {
       return NextResponse.redirect(new URL("/auth/login", request.url))
@@ -56,7 +54,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Protect /cfp route
   if (request.nextUrl.pathname.startsWith("/cfp")) {
     if (!user) {
       return NextResponse.redirect(
