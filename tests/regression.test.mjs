@@ -87,6 +87,18 @@ test("Public site has a persistent day and night theme toggle", () => {
   assert.match(toggle, /document\.cookie = `theme=\$\{nextTheme\}/)
 })
 
+test("Home page has explicit sharp light-mode styling", () => {
+  const home = read("src/app/page.tsx")
+  const countdown = read("src/components/countdown.tsx")
+
+  assert.match(home, /bg-white dark:bg-zinc-900\/80/)
+  assert.match(home, /text-zinc-950 dark:text-white/)
+  assert.match(home, /border-zinc-200 dark:border-zinc-800/)
+  assert.match(home, /from-white via-emerald-50 to-cyan-50/)
+  assert.doesNotMatch(home, /blur-\[128px\]/)
+  assert.match(countdown, /from-zinc-950 to-zinc-700 dark:from-white dark:to-zinc-300/)
+})
+
 test("Sponsor recruitment contact is visible on public sponsor surfaces", () => {
   const sponsors = read("src/app/sponsors/page.tsx")
   const attend = read("src/app/attend/page.tsx")

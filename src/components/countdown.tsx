@@ -38,7 +38,7 @@ export function Countdown({ target, locale }: { target: string; locale: string }
       {[{ v: time.days, l: labels[0] }, { v: time.hours, l: labels[1] }, { v: time.minutes, l: labels[2] }, { v: time.seconds, l: labels[3] }].map((item, i) => (
         <div key={i} className="flex items-center gap-2 sm:gap-4">
           <div className="flex flex-col items-center">
-            <span className="text-3xl sm:text-4xl lg:text-5xl font-black tabular-nums bg-gradient-to-b from-white to-zinc-300 bg-clip-text text-transparent">
+            <span className="text-3xl sm:text-4xl lg:text-5xl font-black tabular-nums bg-gradient-to-b from-zinc-950 to-zinc-700 dark:from-white dark:to-zinc-300 bg-clip-text text-transparent">
               {String(item.v).padStart(2, "0")}
             </span>
             <span className="text-[10px] sm:text-xs uppercase tracking-widest text-zinc-500 mt-1">{item.l}</span>
