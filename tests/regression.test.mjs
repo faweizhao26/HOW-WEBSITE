@@ -75,6 +75,8 @@ test("Public site has a persistent day and night theme toggle", () => {
   assert.match(header, /import \{ ThemeToggle \} from "\.\/theme-toggle"/)
   assert.match(header, /<ThemeToggle initialTheme=\{initialTheme\} \/>/)
   assert.match(styles, /\.light \.bg-zinc-950/)
+  assert.match(styles, /\.light \.bg-emerald-600\.text-white/)
+  assert.match(styles, /\.light \.bg-gradient-to-br \.text-white/)
   assert.match(toggle, /localStorage\.setItem\("theme", nextTheme\)/)
   assert.match(toggle, /document\.cookie = `theme=\$\{nextTheme\}/)
 })
