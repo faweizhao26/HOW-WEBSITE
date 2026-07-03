@@ -46,3 +46,17 @@ test("Locale-sensitive labels use explicit fallback grouping", () => {
   assert.match(home, /settings\.conference_location_zh \|\| \(locale === "zh"/)
   assert.match(adminLayout, /\(adminLabels\.how2027Admin\?\.\[locale\]\) \|\| \(locale === "zh"/)
 })
+
+test("Attend placeholder content is wired into the public site", () => {
+  assert.equal(existsSync(new URL("../src/app/attend/page.tsx", import.meta.url)), true)
+
+  const translations = read("src/lib/i18n/translations.ts")
+  const header = read("src/components/layout/header.tsx")
+  const footer = read("src/components/layout/footer.tsx")
+  const home = read("src/app/page.tsx")
+
+  assert.match(translations, /attend: \{ en: "Attend", zh: "参会指南" \}/)
+  assert.match(header, /href: "\/attend", key: "attend"/)
+  assert.match(footer, /href="\/attend"/)
+  assert.match(home, /href="\/attend"/)
+})

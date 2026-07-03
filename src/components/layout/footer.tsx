@@ -37,6 +37,7 @@ export async function Footer({ locale }: { locale: Locale }) {
             <div className="space-y-2">
               <Link href="/about" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.about[locale]}</Link>
               <Link href="/schedule" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.schedule[locale]}</Link>
+              <Link href="/attend" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.attend[locale]}</Link>
               <Link href="/sponsors" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.sponsors[locale]}</Link>
               <Link href="/venue" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.venue[locale]}</Link>
             </div>

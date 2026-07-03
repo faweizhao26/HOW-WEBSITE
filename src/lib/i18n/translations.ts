@@ -16,6 +16,7 @@ export const navigation = {
   codeOfConduct: { en: "Code of Conduct", zh: "行为准则" },
   updates: { en: "Updates", zh: "动态" },
   schedule: { en: "Schedule", zh: "议程" },
+  attend: { en: "Attend", zh: "参会指南" },
   register: { en: "Register", zh: "报名" },
   cfp: { en: "Submit Talk", zh: "投递演讲" },
   login: { en: "Login", zh: "登录" },
