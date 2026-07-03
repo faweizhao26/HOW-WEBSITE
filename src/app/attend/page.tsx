@@ -47,8 +47,8 @@ const sections = [
     icon: HandHeart,
     title: { en: "Volunteer and Sponsor Notes", zh: "志愿者与赞助说明" },
     body: {
-      en: "Volunteer roles, sponsor logistics, booth setup, job board, and community office-hour details will live here before the conference.",
-      zh: "志愿者岗位、赞助商物料、展位搭建、招聘信息和社区 Office Hour 说明会在会前集中放在这里。",
+      en: "Volunteer roles, sponsor logistics, booth setup, job board, and community office-hour details will live here before the conference. Sponsor inquiries: faweizhao26@gmail.com.",
+      zh: "志愿者岗位、赞助商物料、展位搭建、招聘信息和社区 Office Hour 说明会在会前集中放在这里。赞助咨询：faweizhao26@gmail.com。",
     },
     items: {
       en: ["Volunteer roles", "Sponsor logistics", "Community office hours"],

@@ -60,3 +60,30 @@ test("Attend placeholder content is wired into the public site", () => {
   assert.match(footer, /href="\/attend"/)
   assert.match(home, /href="\/attend"/)
 })
+
+test("Public site has a persistent day and night theme toggle", () => {
+  assert.equal(existsSync(new URL("../src/components/layout/theme-toggle.tsx", import.meta.url)), true)
+
+  const layout = read("src/app/layout.tsx")
+  const header = read("src/components/layout/header.tsx")
+  const styles = read("src/app/globals.css")
+  const toggle = read("src/components/layout/theme-toggle.tsx")
+
+  assert.match(layout, /theme = cookieStore\.get\("theme"\)\?\.value === "light" \? "light" : "dark"/)
+  assert.match(layout, /className=\{theme\}/)
+  assert.match(layout, /<Header locale=\{locale\} initialTheme=\{theme\} \/>/)
+  assert.match(header, /import \{ ThemeToggle \} from "\.\/theme-toggle"/)
+  assert.match(header, /<ThemeToggle initialTheme=\{initialTheme\} \/>/)
+  assert.match(styles, /\.light \.bg-zinc-950/)
+  assert.match(toggle, /localStorage\.setItem\("theme", nextTheme\)/)
+  assert.match(toggle, /document\.cookie = `theme=\$\{nextTheme\}/)
+})
+
+test("Sponsor recruitment contact is visible on public sponsor surfaces", () => {
+  const sponsors = read("src/app/sponsors/page.tsx")
+  const attend = read("src/app/attend/page.tsx")
+
+  assert.match(sponsors, /faweizhao26@gmail\.com/)
+  assert.match(sponsors, /mailto:faweizhao26@gmail\.com/)
+  assert.match(attend, /faweizhao26@gmail\.com/)
+})
