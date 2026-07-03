@@ -50,8 +50,8 @@ const content = {
     {
       title: { en: "6. Contact", zh: "6. 联系方式" },
       body: {
-        en: "If you have questions about this privacy policy, please contact us at conference@how2027.org.",
-        zh: "如对本隐私条款有疑问，请联系 conference@how2027.org。",
+        en: "If you have questions about this privacy policy, please contact us at faweizhao26@gmail.com.",
+        zh: "如对本隐私条款有疑问，请联系 faweizhao26@gmail.com。",
       },
     },
   ],

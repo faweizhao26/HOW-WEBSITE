@@ -261,7 +261,6 @@ GRANT INSERT, UPDATE, DELETE ON public.ticket_types TO authenticated;
 GRANT SELECT ON public.channel_codes TO anon, authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.channel_codes TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.registrations TO authenticated;
-GRANT DELETE ON public.registrations TO authenticated;
 
 -- --- Trigger: auto-create profile on signup ---
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -271,7 +270,9 @@ BEGIN
   VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data ->> 'full_name', NEW.email), 'user');
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -283,7 +284,7 @@ CREATE TRIGGER on_auth_user_created
 -- INSERT INTO storage.buckets (id, name, public) VALUES ('conference-media', 'conference-media', true);
 
 -- Storage RLS
--- CREATE POLICY "Public read access" ON storage.objects FOR SELECT USING (bucket_id = 'conference-media');
+-- Public buckets can serve uploaded files by URL without a broad storage.objects SELECT policy.
 -- CREATE POLICY "User avatar upload access" ON storage.objects FOR INSERT WITH CHECK (
 --   bucket_id = 'conference-media' AND
 --   auth.uid()::text = (storage.foldername(name))[2] AND
@@ -305,7 +306,10 @@ BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+REVOKE EXECUTE ON FUNCTION public.update_updated_at() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
 
 DROP TRIGGER IF EXISTS sessions_updated_at ON public.sessions;
 CREATE TRIGGER sessions_updated_at

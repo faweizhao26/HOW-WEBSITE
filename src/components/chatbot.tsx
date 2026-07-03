@@ -13,6 +13,8 @@ function getLocaleFromCookie(): "en" | "zh" {
 
 type QA = { q: RegExp; a: { en: string; zh: string } }
 
+const contactEmail = "faweizhao26@gmail.com"
+
 const qa: QA[] = [
   { q: /time|date|schedule|when|举办时间|时间|日期|什么时候|agenda|议程/, a: { en: "HOW 2027 will be held in April 2027 in Jinan, China. The exact dates will be announced soon. Check the Schedule page for the agenda.", zh: "HOW 2027 将于 2027 年 4 月在中国济南举办，具体日期即将公布。请查看议程页面了解详情。" } },
   { q: /venue|location|where|place|address|地点|哪里|在哪|地址|会场/, a: { en: "The conference will be held at Jinan Shandong Hotel (Shungeng International Convention Center), at 2-1 Ma'anshan Road, Shizhong District, Jinan, Shandong.", zh: "会议将在济南山东大厦（舜耕国际会议中心）举办，地址：山东省济南市市中区马鞍山路2-1号。" } },
@@ -20,10 +22,10 @@ const qa: QA[] = [
   { q: /cfp|submit|proposal|speak|talk|session|议题|投递|演讲|提交|投稿/, a: { en: "You can submit your talk proposal on the CFP page. You'll need to register and login first. Submissions include title, abstract, duration, and type (talk/workshop/panel).", zh: "您可以在投递演讲页面提交提案。需要先注册登录。提交内容包括标题、摘要、时长和类型（演讲/工作坊/圆桌）。" } },
   { q: /price|cost|free|paid|费用|价格|多少钱|收费|免费/, a: { en: "Community Pass is FREE for everyone. VIP Pass and Speaker Pass require a channel code from our partners.", zh: "社区票对所有人免费。贵宾票和讲者票需要使用合作伙伴提供的渠道码。" } },
   { q: /coc|conduct|行为|准则|规范|code/, a: { en: "HOW 2027 follows a Code of Conduct to ensure a safe, respectful environment for all participants. Harassment of any form is not tolerated. See the Code of Conduct page for details.", zh: "HOW 2027 遵循行为准则，确保为所有参会者提供安全、互相尊重的环境。不容忍任何形式的骚扰。详见行为准则页面。" } },
-  { q: /contact|email|联系|邮件|问题|help|support/, a: { en: "For any questions, please contact us at conference@how2027.org", zh: "如有任何问题，请发送邮件至 conference@how2027.org。" } },
-  { q: /speaker|讲者|讲师|嘉宾|谁.*来|who.*speak/, a: { en: "We have amazing speakers from IvorySQL, Supabase, Alibaba Cloud, AWS, GitLab, ByteDance, and more. Check the Schedule page for the full list.", zh: "我们有来自 IvorySQL、Supabase、阿里云、AWS、GitLab、字节跳动等公司的优秀讲者。查看议程页面获取完整列表。" } },
+  { q: /contact|email|联系|邮件|问题|help|support/, a: { en: `For any questions, please contact us at ${contactEmail}`, zh: `如有任何问题，请发送邮件至 ${contactEmail}。` } },
+  { q: /speaker|讲者|讲师|嘉宾|谁.*来|who.*speak/, a: { en: "The speaker lineup is still being confirmed. Program details are provisional and will be updated once speakers are announced.", zh: "讲者阵容仍在确认中。当前议程内容为占位示例，确认后会及时更新。" } },
   { q: /stream|online|live|直播|线上|远程|看直播/, a: { en: "HOW 2027 is an in-person conference in Jinan. Online streaming details will be announced closer to the event.", zh: "HOW 2027 是在济南举办的线下会议。线上直播详情将在临近会议时公布。" } },
-  { q: /cancel|refund|退票|取消|退款/, a: { en: "You can cancel your registration from your Profile page. For refund questions, please contact conference@how2027.org.", zh: "您可以在个人中心页面取消报名。退款相关问题请联系 conference@how2027.org。" } },
+  { q: /cancel|refund|退票|取消|退款/, a: { en: `You can cancel your registration from your Profile page. For refund questions, please contact ${contactEmail}.`, zh: `您可以在个人中心页面取消报名。退款相关问题请联系 ${contactEmail}。` } },
   { q: /hotel|酒店|住宿|accommodation/, a: { en: "The venue is Jinan Shandong Hotel. Nearby hotels include Sheraton Jinan and Hyatt Regency. We recommend booking early.", zh: "会场是济南山东大厦。附近酒店有济南喜来登和凯悦酒店。建议尽早预订。" } },
   { q: /transport|交通|地铁|机场|how.*get/, a: { en: "Jinan Yaoqiang International Airport is about 40 minutes from the venue by taxi. Jinan Railway Station is 15 minutes away.", zh: "济南遥墙国际机场打车到会场约 40 分钟，济南火车站约 15 分钟。" } },
   { q: /food|meal|lunch|dinner|吃饭|用餐|午餐|晚餐/, a: { en: "Lunch and coffee breaks are provided for all attendees during the conference days.", zh: "会议期间为所有参会者提供午餐和茶歇。" } },
@@ -36,8 +38,8 @@ function getAnswer(question: string, locale: "en" | "zh"): string {
     if (item.q.test(q)) return item.a[locale]
   }
   return locale === "zh"
-    ? "抱歉，我没有找到关于这个问题的信息。建议您查看相关页面或发送邮件至 conference@how2027.org 咨询。"
-    : "Sorry, I couldn't find information about that. Please check the relevant page or email conference@how2027.org for assistance."
+    ? `抱歉，我没有找到关于这个问题的信息。建议您查看相关页面或发送邮件至 ${contactEmail} 咨询。`
+    : `Sorry, I couldn't find information about that. Please check the relevant page or email ${contactEmail} for assistance.`
 }
 
 export function ChatbotWidget() {

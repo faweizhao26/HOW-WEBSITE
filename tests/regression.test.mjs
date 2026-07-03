@@ -20,6 +20,12 @@ test("Supabase schema supports registration and profile fields used by the app",
   assert.match(sql, /Admins can manage registrations/)
   assert.match(sql, /GRANT SELECT ON public\.ticket_types TO anon, authenticated/)
   assert.match(sql, /GRANT SELECT, INSERT, UPDATE ON public\.registrations TO authenticated/)
+  assert.doesNotMatch(sql, /GRANT .*DELETE.*ON public\.registrations TO authenticated/)
+  assert.doesNotMatch(sql, /GRANT .*INSERT.*ON public\.ticket_types TO anon/)
+  assert.doesNotMatch(sql, /GRANT .*UPDATE.*ON public\.channel_codes TO anon/)
+  assert.match(sql, /SECURITY DEFINER\s+SET search_path = public, auth/)
+  assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.handle_new_user\(\) FROM PUBLIC, anon, authenticated/)
+  assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.rls_auto_enable\(\) FROM PUBLIC, anon, authenticated/)
 })
 
 test("Next 16 uses proxy instead of deprecated middleware for route protection", () => {
@@ -84,8 +90,29 @@ test("Public site has a persistent day and night theme toggle", () => {
 test("Sponsor recruitment contact is visible on public sponsor surfaces", () => {
   const sponsors = read("src/app/sponsors/page.tsx")
   const attend = read("src/app/attend/page.tsx")
+  const chatbot = read("src/components/chatbot.tsx")
+  const footer = read("src/components/layout/footer.tsx")
+  const conduct = read("src/app/code-of-conduct/page.tsx")
+  const privacy = read("src/app/privacy/page.tsx")
+  const settings = read("src/app/admin/settings/page.tsx")
 
   assert.match(sponsors, /faweizhao26@gmail\.com/)
   assert.match(sponsors, /mailto:faweizhao26@gmail\.com/)
   assert.match(attend, /faweizhao26@gmail\.com/)
+  for (const source of [chatbot, footer, conduct, privacy, settings]) {
+    assert.match(source, /faweizhao26@gmail\.com/)
+    assert.doesNotMatch(source, /conference@how2027\.org/)
+  }
+})
+
+test("Placeholder conference content is clearly labeled", () => {
+  const schedule = read("src/app/schedule/page.tsx")
+  const chatbot = read("src/components/chatbot.tsx")
+  const updates = read("src/app/updates/page.tsx")
+
+  assert.match(schedule, /Program details are provisional/)
+  assert.match(schedule, /议程内容为占位示例/)
+  assert.match(chatbot, /speaker lineup is still being confirmed/)
+  assert.doesNotMatch(chatbot, /IvorySQL, Supabase, Alibaba Cloud, AWS, GitLab, ByteDance/)
+  assert.match(updates, /planning updates will appear here/i)
 })

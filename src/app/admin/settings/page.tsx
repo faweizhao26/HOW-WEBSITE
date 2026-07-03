@@ -31,7 +31,7 @@ export default function AdminSettingsPage() {
       conference_location_zh: "中国·济南",
       cfp_deadline: "2027-02-27",
       register_url: "",
-      contact_email: "conference@how2027.org",
+      contact_email: "faweizhao26@gmail.com",
       hero_title: "Linking the World with Open Source",
       hero_title_zh: "开源互联世界",
       hero_subtitle: "HOW2027: PostgreSQL Eco Conference",
@@ -48,7 +48,7 @@ export default function AdminSettingsPage() {
       const map: Record<string, string> = {
         conference_name: "HOW 2027", conference_date: "", conference_location: "Jinan, China",
         conference_location_zh: "中国·济南", cfp_deadline: "", register_url: "",
-        contact_email: "conference@how2027.org", hero_title: "Linking the World with Open Source",
+        contact_email: "faweizhao26@gmail.com", hero_title: "Linking the World with Open Source",
         hero_title_zh: "开源互联世界", hero_subtitle: "HOW2027: PostgreSQL Eco Conference",
         hero_subtitle_zh: "HOW2027：PostgreSQL 生态大会",
       }

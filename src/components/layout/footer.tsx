@@ -15,7 +15,7 @@ async function getSettings() {
 
 export async function Footer({ locale }: { locale: Locale }) {
   const s = await getSettings()
-  const email = s.contact_email || "conference@how2027.org"
+  const email = s.contact_email || "faweizhao26@gmail.com"
   const location = s.conference_location || "Jinan, China"
   const locationZh = s.conference_location_zh || "中国·济南"
   return (

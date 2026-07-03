@@ -37,8 +37,8 @@ export default async function CodeOfConductPage() {
         </h2>
         <p className="text-zinc-400">
           {locale === "zh"
-            ? "如果您经历或目睹了任何违规行为，请联系大会工作人员或发送邮件至 conference@how2027.org。"
-            : "If you experience or witness any violations, please contact conference staff or email conference@how2027.org."}
+            ? "如果您经历或目睹了任何违规行为，请联系大会工作人员或发送邮件至 faweizhao26@gmail.com。"
+            : "If you experience or witness any violations, please contact conference staff or email faweizhao26@gmail.com."}
         </p>
       </div>
     </div>

@@ -212,7 +212,17 @@ export default async function SchedulePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-4xl font-bold mb-8">{sched.title[locale]}</h1>
+      <h1 className="text-4xl font-bold mb-4">{sched.title[locale]}</h1>
+      <div className="mb-8 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+        <p className="font-medium">
+          {locale === "zh" ? "议程内容为占位示例" : "Program details are provisional"}
+        </p>
+        <p className="mt-1 text-amber-800 dark:text-amber-100/80">
+          {locale === "zh"
+            ? "讲者、时间段和分论坛安排仍在确认中，后续会替换为正式信息。"
+            : "Speakers, time slots, and track details are still being confirmed and will be replaced with official information later."}
+        </p>
+      </div>
 
       <Tabs defaultValue={days[0]} className="w-full">
         <TabsList className="bg-zinc-900 border border-zinc-800 flex-wrap h-auto gap-1 p-1 mb-8">
