@@ -57,6 +57,23 @@ export default function SponsorsPage() {
           ? "感谢所有赞助商对 HOW 2027 的支持！"
           : "Thank you to all sponsors for supporting HOW 2027!"}
       </p>
+      <div className="mb-12 rounded-lg border border-emerald-900/50 bg-emerald-950/20 p-5">
+        <h2 className="text-lg font-semibold text-white mb-2">
+          {locale === "zh" ? "赞助商招募中" : "Sponsor recruitment is open"}
+        </h2>
+        <p className="text-sm text-zinc-400 leading-relaxed">
+          {locale === "zh"
+            ? "如果你的团队希望支持 HOW 2027 或了解赞助方案，请联系 "
+            : "If your team would like to support HOW 2027 or learn about sponsorship options, contact "}
+          <a
+            href="mailto:faweizhao26@gmail.com"
+            className="font-medium text-emerald-400 hover:text-emerald-300"
+          >
+            faweizhao26@gmail.com
+          </a>
+          {locale === "zh" ? "。" : "."}
+        </p>
+      </div>
 
       {!mounted ? (
         <div className="text-center py-20 text-zinc-500">{locale === "zh" ? "加载中..." : "Loading..."}</div>

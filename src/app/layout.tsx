@@ -19,11 +19,12 @@ export default async function RootLayout({
 }) {
   const cookieStore = await cookies()
   const locale = getLocale(cookieStore.get("lang")?.value)
+  const theme = cookieStore.get("theme")?.value === "light" ? "light" : "dark"
 
   return (
-    <html lang={locale} className="dark">
+    <html lang={locale} className={theme} suppressHydrationWarning>
       <body className="font-sans bg-background text-foreground antialiased min-h-screen flex flex-col">
-        <Header locale={locale} />
+        <Header locale={locale} initialTheme={theme} />
         <main className="flex-1 pt-16">{children}</main>
         <Footer locale={locale} />
         <ChatbotWidget />

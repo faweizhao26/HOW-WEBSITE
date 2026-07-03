@@ -8,12 +8,14 @@ import { createClient } from "@/lib/supabase/client"
 import { Locale } from "@/lib/i18n/utils"
 import { navigation } from "@/lib/i18n/translations"
 import { LanguageSwitcher } from "./language-switcher"
+import { ThemeToggle } from "./theme-toggle"
 import { Button } from "@/components/ui/button"
 
 const navLinks = [
   { href: "/", key: "home" },
   { href: "/about", key: "about" },
   { href: "/schedule", key: "schedule" },
+  { href: "/attend", key: "attend" },
   { href: "/sponsors", key: "sponsors" },
   { href: "/venue", key: "venue" },
   { href: "/updates", key: "updates" },
@@ -21,7 +23,7 @@ const navLinks = [
   { href: "/register", key: "register" },
 ] as const
 
-export function Header({ locale }: { locale: Locale }) {
+export function Header({ locale, initialTheme }: { locale: Locale; initialTheme: "dark" | "light" }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const pathname = usePathname()
@@ -60,6 +62,7 @@ export function Header({ locale }: { locale: Locale }) {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle initialTheme={initialTheme} />
             <LanguageSwitcher locale={locale} />
             <Link href="/cfp">
               <Button variant="outline" size="sm" className="border-emerald-800 text-emerald-400 hover:bg-emerald-950/50 hover:text-emerald-300">
@@ -114,7 +117,10 @@ export function Header({ locale }: { locale: Locale }) {
             ))}
             <hr className="border-zinc-800 my-2" />
             <div className="flex items-center justify-between px-3">
-              <LanguageSwitcher locale={locale} />
+              <div className="flex items-center gap-3">
+                <ThemeToggle initialTheme={initialTheme} />
+                <LanguageSwitcher locale={locale} />
+              </div>
               <div className="flex items-center gap-3">
                 <Link href="/cfp" className="text-sm text-emerald-400 font-medium">
                   {navigation.cfp[locale]}

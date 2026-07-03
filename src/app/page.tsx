@@ -133,6 +133,31 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-zinc-800">
+        <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-8 items-center">
+          <div>
+            <Badge variant="outline" className="mb-4 text-cyan-300 border-cyan-900">
+              {locale === "zh" ? "参会信息" : "Attendee Guide"}
+            </Badge>
+            <h2 className="text-3xl font-bold mb-4">
+              {locale === "zh" ? "提前规划你的 HOW 2027 之行" : "Plan your HOW 2027 trip"}
+            </h2>
+            <p className="text-zinc-400 leading-relaxed max-w-2xl">
+              {locale === "zh"
+                ? "交通住宿、现场指南、社区活动和志愿者信息会随着筹备推进陆续更新。"
+                : "Travel, stay, on-site logistics, community socials, and volunteer notes will be updated as conference planning progresses."}
+            </p>
+          </div>
+          <div className="md:text-right">
+            <Link href="/attend">
+              <Button size="lg" variant="outline" className="border-zinc-700 text-zinc-300">
+                {locale === "zh" ? "查看参会指南" : "View Attend Guide"} <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-emerald-900/30 to-cyan-900/30 border border-zinc-800 p-12 text-center">
           <div className="absolute top-10 left-10 w-40 h-40 bg-emerald-500 rounded-full blur-[80px] opacity-20" />
