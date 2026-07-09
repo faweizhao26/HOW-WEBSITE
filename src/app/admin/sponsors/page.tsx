@@ -91,7 +91,11 @@ function SponsorForm({ sponsor, setSponsors, locale }: { sponsor?: Sponsor; setS
           <div className="space-y-2"><Label>{adminT.website[locale]}</Label><Input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://..." /></div>
           <div className="space-y-2"><Label>Logo</Label>
             <Input type="file" accept="image/*" onChange={handleLogoPick} />
-            {logoPreview && <img src={logoPreview} alt="Preview" className="w-20 h-20 object-contain rounded border border-zinc-700 mt-2" />}
+            {logoPreview && (
+              <div className="sponsor-logo-surface mt-2 flex h-20 w-20 items-center justify-center rounded overflow-hidden">
+                <img src={logoPreview} alt="Preview" className="sponsor-logo-image max-h-full max-w-full object-contain p-2" />
+              </div>
+            )}
           </div>
           <Button type="submit" disabled={saving} className="w-full bg-emerald-600 hover:bg-emerald-500">{saving ? adminT.saving[locale] : sponsor ? adminT.update[locale] : adminT.add[locale]}</Button>
         </form>
@@ -131,8 +135,8 @@ export default function AdminSponsorsPage() {
               {ts.map(s => (
                 <Card key={s.id} className="bg-zinc-900/50 border-zinc-800">
                   <CardContent className="p-4">
-                    <div className="w-full h-20 bg-zinc-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                      {s.logo_url ? <img src={s.logo_url} alt={s.name} className="max-w-full max-h-full object-contain p-2" /> : <span className="text-zinc-600 text-sm">{s.name}</span>}
+                    <div className="sponsor-logo-surface w-full h-20 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                      {s.logo_url ? <img src={s.logo_url} alt={s.name} className="sponsor-logo-image max-w-full max-h-full object-contain p-2" /> : <span className="text-zinc-700 text-sm">{s.name}</span>}
                     </div>
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-medium text-white truncate">{s.name}</h3>

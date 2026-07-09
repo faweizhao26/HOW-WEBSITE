@@ -95,15 +95,15 @@ export default function SponsorsPage() {
                 {tierSponsors.map((sponsor) => (
                   <Card key={sponsor.id} className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-600 transition-all hover:scale-[1.02] group">
                     <CardContent className="p-6 flex flex-col items-center text-center">
-                      <div className="w-full h-24 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-lg mb-4 flex items-center justify-center overflow-hidden border border-zinc-700/50 group-hover:border-zinc-600 transition-colors">
+                      <div className="sponsor-logo-surface w-full h-24 rounded-lg mb-4 flex items-center justify-center overflow-hidden transition-colors">
                         {sponsor.logo_url ? (
                           <img
                             src={sponsor.logo_url}
                             alt={sponsor.name}
-                            className="max-w-full max-h-full object-contain p-3"
+                            className="sponsor-logo-image max-w-full max-h-full object-contain p-3"
                           />
                         ) : (
-                          <span className="text-zinc-200 font-bold text-lg tracking-tight">
+                          <span className="text-zinc-800 font-bold text-lg tracking-tight">
                             {sponsor.name}
                           </span>
                         )}

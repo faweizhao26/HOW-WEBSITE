@@ -117,6 +117,20 @@ test("Sponsor recruitment contact is visible on public sponsor surfaces", () => 
   }
 })
 
+test("Sponsor logos render on a theme-neutral safe surface", () => {
+  const sponsors = read("src/app/sponsors/page.tsx")
+  const adminSponsors = read("src/app/admin/sponsors/page.tsx")
+  const styles = read("src/app/globals.css")
+
+  for (const source of [sponsors, adminSponsors]) {
+    assert.match(source, /sponsor-logo-surface/)
+    assert.match(source, /sponsor-logo-image/)
+  }
+  assert.match(styles, /\.sponsor-logo-surface/)
+  assert.match(styles, /\.sponsor-logo-image/)
+  assert.match(styles, /drop-shadow\(0 1px 1px rgb\(0 0 0 \/ 0\.45\)\)/)
+})
+
 test("Placeholder conference content is clearly labeled", () => {
   const schedule = read("src/app/schedule/page.tsx")
   const chatbot = read("src/components/chatbot.tsx")
