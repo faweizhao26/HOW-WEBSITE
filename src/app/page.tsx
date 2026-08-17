@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle, ArrowRight, Calendar, MapPin, Users, Mic } from "lucide-react"
 import { Countdown } from "@/components/countdown"
+import { HeroMotion } from "@/components/home/hero-motion"
 
 async function getSettings() {
   try {
@@ -43,22 +44,24 @@ export default async function HomePage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-white via-emerald-50 to-cyan-50 dark:from-emerald-950/50 dark:via-zinc-950 dark:to-zinc-950" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent dark:via-emerald-900/50" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 lg:py-40">
+      <section className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden bg-slate-50 text-zinc-950 dark:bg-zinc-950 dark:text-white">
+        <HeroMotion />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(248_250_252_/_0.95)_0%,rgb(248_250_252_/_0.78)_42%,rgb(248_250_252_/_0.22)_100%)] dark:bg-[linear-gradient(90deg,rgb(2_6_23_/_0.88)_0%,rgb(2_6_23_/_0.62)_42%,rgb(2_6_23_/_0.16)_100%)]" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-300 to-transparent dark:via-emerald-800/70" />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 lg:py-40">
           <div className="max-w-3xl">
-            <Badge className="mb-6 bg-white text-emerald-700 border-emerald-200 shadow-sm hover:bg-white dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 dark:hover:bg-emerald-950/50">
+            <Badge className="mb-6 bg-white/80 text-emerald-700 border-emerald-200 shadow-sm backdrop-blur hover:bg-white/90 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 dark:hover:bg-emerald-950/50">
               HOW 2027
             </Badge>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-zinc-950 dark:text-white">
               {locale === "zh" ? heroTitleZh : heroTitle}
               <br />
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent whitespace-nowrap text-2xl sm:text-4xl lg:text-6xl">
+              <span className="block bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent text-3xl sm:text-4xl lg:text-6xl">
                 {locale === "zh" ? heroSubZh : heroSub}
               </span>
             </h1>
-            <p className="text-lg sm:text-xl text-zinc-700 dark:text-zinc-400 mb-8 max-w-xl">
+            <p className="text-lg sm:text-xl text-zinc-700 dark:text-zinc-300 mb-8 max-w-xl">
               {locale === "zh" ? dateZh : date}
             </p>
             <div className="flex flex-wrap gap-4">

@@ -94,9 +94,23 @@ test("Home page has explicit sharp light-mode styling", () => {
   assert.match(home, /bg-white dark:bg-zinc-900\/80/)
   assert.match(home, /text-zinc-950 dark:text-white/)
   assert.match(home, /border-zinc-200 dark:border-zinc-800/)
-  assert.match(home, /from-white via-emerald-50 to-cyan-50/)
+  assert.match(home, /bg-slate-50 text-zinc-950 dark:bg-zinc-950 dark:text-white/)
   assert.doesNotMatch(home, /blur-\[128px\]/)
   assert.match(countdown, /from-zinc-950 to-zinc-700 dark:from-white dark:to-zinc-300/)
+})
+
+test("Home page uses an interactive motion hero background", () => {
+  assert.equal(existsSync(new URL("../src/components/home/hero-motion.tsx", import.meta.url)), true)
+
+  const home = read("src/app/page.tsx")
+  const motion = read("src/components/home/hero-motion.tsx")
+
+  assert.match(home, /import \{ HeroMotion \} from "@\/components\/home\/hero-motion"/)
+  assert.match(home, /<HeroMotion \/>/)
+  assert.match(motion, /<canvas/)
+  assert.match(motion, /requestAnimationFrame/)
+  assert.match(motion, /pointermove/)
+  assert.match(motion, /prefers-reduced-motion/)
 })
 
 test("Sponsor recruitment contact is visible on public sponsor surfaces", () => {
