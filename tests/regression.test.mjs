@@ -109,7 +109,12 @@ test("Home page uses an interactive motion hero background", () => {
   assert.match(home, /<HeroMotion \/>/)
   assert.match(motion, /<canvas/)
   assert.match(motion, /requestAnimationFrame/)
-  assert.match(motion, /pointermove/)
+  assert.match(motion, /window\.addEventListener\("pointermove"/)
+  assert.match(motion, /pointer-events-none/)
+  assert.match(motion, /targetX/)
+  assert.match(motion, /glowRef/)
+  assert.match(motion, /translate3d/)
+  assert.match(motion, /mix-blend-screen/)
   assert.match(motion, /prefers-reduced-motion/)
 })
 

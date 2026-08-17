@@ -46,7 +46,7 @@ export default async function HomePage() {
     <div>
       <section className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden bg-slate-50 text-zinc-950 dark:bg-zinc-950 dark:text-white">
         <HeroMotion />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(248_250_252_/_0.95)_0%,rgb(248_250_252_/_0.78)_42%,rgb(248_250_252_/_0.22)_100%)] dark:bg-[linear-gradient(90deg,rgb(2_6_23_/_0.88)_0%,rgb(2_6_23_/_0.62)_42%,rgb(2_6_23_/_0.16)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(248_250_252_/_0.88)_0%,rgb(248_250_252_/_0.6)_42%,rgb(248_250_252_/_0.12)_100%)] dark:bg-[linear-gradient(90deg,rgb(2_6_23_/_0.74)_0%,rgb(2_6_23_/_0.38)_42%,rgb(2_6_23_/_0.06)_100%)]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-300 to-transparent dark:via-emerald-800/70" />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 lg:py-40">

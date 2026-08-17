@@ -22,15 +22,18 @@ function makeDots(width: number, height: number) {
 
 export function HeroMotion() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const glowRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
+    const glow = glowRef.current
     const ctx = canvas?.getContext("2d")
-    if (!canvas || !ctx) return
+    if (!canvas || !glow || !ctx) return
     const canvasElement = canvas
+    const glowElement = glow
     const context = ctx
 
-    const pointer = { x: -1000, y: -1000, active: false }
+    const pointer = { x: -1000, y: -1000, targetX: -1000, targetY: -1000, active: false }
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     let animationFrame = 0
     let tick = 0
@@ -79,10 +82,10 @@ export function HeroMotion() {
         const dy = dot.y - pointer.y
         const distance = Math.hypot(dx, dy)
 
-        if (distance > 0 && distance < 190) {
-          const force = 1 - distance / 190
-          dot.x += (dx / distance) * force * 0.8
-          dot.y += (dy / distance) * force * 0.8
+        if (distance > 0 && distance < 240) {
+          const force = 1 - distance / 240
+          dot.x += (dx / distance) * force * 1.6
+          dot.y += (dy / distance) * force * 1.6
         }
       }
 
@@ -96,6 +99,10 @@ export function HeroMotion() {
       const isLight = document.documentElement.classList.contains("light")
       const base = context.createLinearGradient(0, 0, width, height)
       tick += reducedMotion ? 0 : 1
+      if (pointer.active) {
+        pointer.x += (pointer.targetX - pointer.x) * 0.18
+        pointer.y += (pointer.targetY - pointer.y) * 0.18
+      }
 
       base.addColorStop(0, isLight ? "#f8fafc" : "#020617")
       base.addColorStop(0.48, isLight ? "#ecfdf5" : "#042f2e")
@@ -137,11 +144,29 @@ export function HeroMotion() {
       }
 
       if (pointer.active) {
-        const light = context.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, 260)
-        light.addColorStop(0, isLight ? "rgba(6, 182, 212, 0.2)" : "rgba(45, 212, 191, 0.25)")
+        const light = context.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, 340)
+        light.addColorStop(0, isLight ? "rgba(6, 182, 212, 0.38)" : "rgba(45, 212, 191, 0.42)")
+        light.addColorStop(0.34, isLight ? "rgba(16, 185, 129, 0.18)" : "rgba(34, 211, 238, 0.18)")
         light.addColorStop(1, "rgba(45, 212, 191, 0)")
         context.fillStyle = light
-        context.fillRect(pointer.x - 260, pointer.y - 260, 520, 520)
+        context.fillRect(pointer.x - 340, pointer.y - 340, 680, 680)
+
+        context.lineWidth = 1.4
+        for (const dot of dots) {
+          const distance = Math.hypot(dot.x - pointer.x, dot.y - pointer.y)
+          if (distance > 260) continue
+          const alpha = (1 - distance / 260) * 0.62
+          context.strokeStyle = isLight ? `rgba(8, 145, 178, ${alpha})` : `rgba(125, 249, 255, ${alpha})`
+          context.beginPath()
+          context.moveTo(pointer.x, pointer.y)
+          context.lineTo(dot.x, dot.y)
+          context.stroke()
+        }
+
+        context.strokeStyle = isLight ? "rgba(8, 145, 178, 0.55)" : "rgba(94, 234, 212, 0.7)"
+        context.beginPath()
+        context.arc(pointer.x, pointer.y, 18 + Math.sin(tick / 12) * 4, 0, Math.PI * 2)
+        context.stroke()
       }
 
       if (!reducedMotion) animationFrame = requestAnimationFrame(render)
@@ -149,29 +174,54 @@ export function HeroMotion() {
 
     function movePointer(event: PointerEvent) {
       const rect = canvasElement.getBoundingClientRect()
-      pointer.x = event.clientX - rect.left
-      pointer.y = event.clientY - rect.top
-      pointer.active = true
+      const x = event.clientX - rect.left
+      const y = event.clientY - rect.top
+      const active = x >= 0 && x <= rect.width && y >= 0 && y <= rect.height
+
+      pointer.active = active
+      glowElement.style.opacity = active ? "1" : "0"
+      if (!active) return
+      pointer.targetX = x
+      pointer.targetY = y
+      glowElement.style.transform = `translate3d(${x - 160}px, ${y - 160}px, 0)`
+      if (pointer.x < 0 || pointer.y < 0) {
+        pointer.x = x
+        pointer.y = y
+      }
     }
 
     function leavePointer() {
       pointer.active = false
+      glowElement.style.opacity = "0"
     }
 
     resize()
     render()
 
     window.addEventListener("resize", resize)
-    canvasElement.addEventListener("pointermove", movePointer)
-    canvasElement.addEventListener("pointerleave", leavePointer)
+    window.addEventListener("pointermove", movePointer)
+    window.addEventListener("pointerleave", leavePointer)
 
     return () => {
       cancelAnimationFrame(animationFrame)
       window.removeEventListener("resize", resize)
-      canvasElement.removeEventListener("pointermove", movePointer)
-      canvasElement.removeEventListener("pointerleave", leavePointer)
+      window.removeEventListener("pointermove", movePointer)
+      window.removeEventListener("pointerleave", leavePointer)
     }
   }, [])
 
-  return <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full" />
+  return (
+    <>
+      <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 h-full w-full" />
+      <div
+        ref={glowRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-0 z-[2] h-80 w-80 rounded-full opacity-0 blur-2xl mix-blend-screen transition-opacity duration-150 will-change-transform"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(34, 211, 238, 0.58) 0%, rgba(16, 185, 129, 0.3) 36%, rgba(16, 185, 129, 0) 70%)",
+        }}
+      />
+    </>
+  )
 }
