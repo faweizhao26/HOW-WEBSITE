@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, MapPin, User, Coffee, X } from "lucide-react"
 import { mockSlots, mockProducers } from "@/lib/mock-data"
+import { conference } from "@/lib/conference"
 
 type Profile = { full_name: string; company: string | null; bio: string; bio_zh: string; photo_url: string }
 type SessionDetail = { id: string; title: string; title_zh: string | null; abstract: string; abstract_zh: string; duration: number; type: string; profiles: Profile }
@@ -208,7 +209,7 @@ export default async function SchedulePage() {
   const locale = getLocale(cookieStore.get("lang")?.value)
 
   const slots = mockSlots as Slot[]
-  const days = [...new Set(slots.map((s) => s.date))]
+  const days = [...conference.days]
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -225,9 +226,9 @@ export default async function SchedulePage() {
       </div>
 
       <Tabs defaultValue={days[0]} className="w-full">
-        <TabsList className="bg-zinc-900 border border-zinc-800 flex-wrap h-auto gap-1 p-1 mb-8">
+        <TabsList className="mb-8 grid h-auto w-full grid-cols-1 gap-1 border border-zinc-800 bg-zinc-900 p-1 sm:grid-cols-3">
           {days.map((day, i) => (
-            <TabsTrigger key={day} value={day} className="data-[state=active]:bg-emerald-950/50 data-[state=active]:text-emerald-400 px-5">
+            <TabsTrigger key={day} value={day} className="w-full px-2 data-[state=active]:bg-emerald-950/50 data-[state=active]:text-emerald-400 sm:px-5">
               {`${locale === "zh" ? "第" : "Day "}${i + 1}${locale === "zh" ? "天" : ""}`}
               <span className="ml-2 text-xs text-zinc-500 font-normal">{day}</span>
             </TabsTrigger>
@@ -341,9 +342,10 @@ function SessionGrid({ rooms, daySlots, locale }: { rooms: string[]; daySlots: S
   }
 
   return (
-    <div>
-      {/* Room column headers */}
-      <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: `repeat(${rooms.length}, 1fr)` }}>
+    <div className="max-w-full overflow-x-auto overscroll-x-contain pb-2">
+      <div className="min-w-[720px] md:min-w-0">
+        {/* Room column headers */}
+        <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: `repeat(${rooms.length}, minmax(0, 1fr))` }}>
         {rooms.map(r => {
           const key = getRoomColorKey(r)
           const display = roomColorsDisplay[key]
@@ -382,16 +384,16 @@ function SessionGrid({ rooms, daySlots, locale }: { rooms: string[]; daySlots: S
             </div>
           )
         })}
-      </div>
+        </div>
 
-      {/* Time grid */}
-      {timeSlotSet.map((time) => {
+        {/* Time grid */}
+        {timeSlotSet.map((time) => {
         const refSlot = sessionsOnly.find(s => s.start_time === time)
         const endTime = refSlot?.end_time || ""
         return (
           <div key={time} className="mb-3">
             <div className="text-[11px] text-zinc-500 font-mono mb-1 pl-1">{time} — {endTime}</div>
-            <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${rooms.length}, 1fr)` }}>
+            <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${rooms.length}, minmax(0, 1fr))` }}>
               {rooms.map(r => {
                 const cellSlot = sessionsOnly.find(s => s.room === r && s.start_time === time)
                 return (
@@ -407,10 +409,10 @@ function SessionGrid({ rooms, daySlots, locale }: { rooms: string[]; daySlots: S
             </div>
           </div>
         )
-      })}
+        })}
 
-      {/* Breaks */}
-      {(() => {
+        {/* Breaks */}
+        {(() => {
         const seen = new Set<string>()
         const uniqueBreaks = breaks.filter(b => {
           const key = `${b.start_time}-${b.end_time}-${b.label}`
@@ -421,7 +423,8 @@ function SessionGrid({ rooms, daySlots, locale }: { rooms: string[]; daySlots: S
         return uniqueBreaks.map(slot => (
           <SessionCell key={slot.id} slot={slot} locale={locale} />
         ))
-      })()}
+        })()}
+      </div>
     </div>
   )
 }

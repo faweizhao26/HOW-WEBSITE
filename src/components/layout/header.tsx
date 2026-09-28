@@ -10,6 +10,7 @@ import { navigation } from "@/lib/i18n/translations"
 import { LanguageSwitcher } from "./language-switcher"
 import { ThemeToggle } from "./theme-toggle"
 import { Button } from "@/components/ui/button"
+import { isMockMode } from "@/lib/utils"
 
 const navLinks = [
   { href: "/", key: "home" },
@@ -29,14 +30,24 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
   const pathname = usePathname()
 
   useEffect(() => {
+    if (isMockMode()) return
+
+    let cancelled = false
+
     try {
       const supabase = createClient()
-      supabase.auth.getUser().then(({ data }) => setUser(data.user)).catch(() => {})
+      supabase.auth.getUser().then(({ data }) => {
+        if (!cancelled) setUser(data.user)
+      }).catch(() => {})
     } catch {}
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80 dark:shadow-none dark:backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
@@ -52,8 +63,8 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
                 href={href}
                 className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                   pathname === href
-                    ? "text-white bg-zinc-800"
-                    : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                    ? "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-white"
+                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-white"
                 }`}
               >
                 {navigation[key][locale]}
@@ -65,7 +76,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
             <ThemeToggle initialTheme={initialTheme} />
             <LanguageSwitcher locale={locale} />
             <Link href="/cfp">
-              <Button variant="outline" size="sm" className="border-emerald-800 text-emerald-400 hover:bg-emerald-950/50 hover:text-emerald-300">
+              <Button variant="outline" size="sm" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300">
                 {navigation.cfp[locale]}
               </Button>
             </Link>
@@ -92,7 +103,8 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
           </div>
 
           <button
-            className="md:hidden p-2 text-zinc-400"
+            className="md:hidden p-2 text-zinc-600 dark:text-zinc-400"
+            aria-label={mobileOpen ? (locale === "zh" ? "关闭菜单" : "Close menu") : (locale === "zh" ? "打开菜单" : "Open menu")}
             onClick={() => setMobileOpen(!mobileOpen)}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -101,7 +113,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-zinc-800 bg-zinc-950">
+        <div className="border-t border-zinc-200 bg-white md:hidden dark:border-zinc-800 dark:bg-zinc-950">
           <div className="px-4 py-3 space-y-1">
             {navLinks.map(({ href, key }) => (
               <Link
@@ -109,13 +121,13 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
                 href={href}
                 onClick={() => setMobileOpen(false)}
                 className={`block px-3 py-2 rounded-lg text-sm ${
-                  pathname === href ? "text-white bg-zinc-800" : "text-zinc-400"
+                  pathname === href ? "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-white" : "text-zinc-600 dark:text-zinc-400"
                 }`}
               >
                 {navigation[key][locale]}
               </Link>
             ))}
-            <hr className="border-zinc-800 my-2" />
+            <hr className="my-2 border-zinc-200 dark:border-zinc-800" />
             <div className="flex items-center justify-between px-3">
               <div className="flex items-center gap-3">
                 <ThemeToggle initialTheme={initialTheme} />

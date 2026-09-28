@@ -1,12 +1,5 @@
-"use client"
-
-import { useState } from "react"
-
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  const match = document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)
-  return match?.[1] === "zh" ? "zh" : "en"
-}
+import { cookies } from "next/headers"
+import { getLocale } from "@/lib/i18n/utils"
 
 const content = {
   title: { en: "Privacy Policy", zh: "隐私条款" },
@@ -57,8 +50,9 @@ const content = {
   ],
 }
 
-export default function PrivacyPage() {
-  const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
+export default async function PrivacyPage() {
+  const cookieStore = await cookies()
+  const locale = getLocale(cookieStore.get("lang")?.value)
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

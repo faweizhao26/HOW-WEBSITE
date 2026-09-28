@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { MessageCircle, X, Send, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { conference } from "@/lib/conference"
 
 function getLocaleFromCookie(): "en" | "zh" {
   if (typeof document === "undefined") return "en"
@@ -16,8 +17,8 @@ type QA = { q: RegExp; a: { en: string; zh: string } }
 const contactEmail = "faweizhao26@gmail.com"
 
 const qa: QA[] = [
-  { q: /time|date|schedule|when|举办时间|时间|日期|什么时候|agenda|议程/, a: { en: "HOW 2027 will be held in April 2027 in Jinan, China. The exact dates will be announced soon. Check the Schedule page for the agenda.", zh: "HOW 2027 将于 2027 年 4 月在中国济南举办，具体日期即将公布。请查看议程页面了解详情。" } },
-  { q: /venue|location|where|place|address|地点|哪里|在哪|地址|会场/, a: { en: "The conference will be held at Jinan Shandong Hotel (Shungeng International Convention Center), at 2-1 Ma'anshan Road, Shizhong District, Jinan, Shandong.", zh: "会议将在济南山东大厦（舜耕国际会议中心）举办，地址：山东省济南市市中区马鞍山路2-1号。" } },
+  { q: /time|date|schedule|when|举办时间|时间|日期|什么时候|agenda|议程/, a: { en: "HOW 2027 will be held in Jinan, China, from April 16–18, 2027. Check the Schedule page for the provisional agenda.", zh: "HOW 2027 将于 2027 年 4 月 16 日至 18 日在中国济南举办。当前议程为占位信息，请关注后续更新。" } },
+  { q: /venue|location|where|place|address|地点|哪里|在哪|地址|会场/, a: { en: `The conference will be held at ${conference.venue.en}, ${conference.address.en}.`, zh: `会议将在${conference.venue.zh}举办，地址：${conference.address.zh}。` } },
   { q: /register|sign.?up|ticket|报名|注册|票|参加|参会/, a: { en: "You can register on the Register page. We offer Community Pass (free), VIP Pass (requires channel code), and Speaker Pass. Login is required to register.", zh: "您可以在报名页面注册。我们提供社区票（免费）、贵宾票（需渠道码）和讲者票。需要登录后才能报名。" } },
   { q: /cfp|submit|proposal|speak|talk|session|议题|投递|演讲|提交|投稿/, a: { en: "You can submit your talk proposal on the CFP page. You'll need to register and login first. Submissions include title, abstract, duration, and type (talk/workshop/panel).", zh: "您可以在投递演讲页面提交提案。需要先注册登录。提交内容包括标题、摘要、时长和类型（演讲/工作坊/圆桌）。" } },
   { q: /price|cost|free|paid|费用|价格|多少钱|收费|免费/, a: { en: "Community Pass is FREE for everyone. VIP Pass and Speaker Pass require a channel code from our partners.", zh: "社区票对所有人免费。贵宾票和讲者票需要使用合作伙伴提供的渠道码。" } },
@@ -26,7 +27,7 @@ const qa: QA[] = [
   { q: /speaker|讲者|讲师|嘉宾|谁.*来|who.*speak/, a: { en: "The speaker lineup is still being confirmed. Program details are provisional and will be updated once speakers are announced.", zh: "讲者阵容仍在确认中。当前议程内容为占位示例，确认后会及时更新。" } },
   { q: /stream|online|live|直播|线上|远程|看直播/, a: { en: "HOW 2027 is an in-person conference in Jinan. Online streaming details will be announced closer to the event.", zh: "HOW 2027 是在济南举办的线下会议。线上直播详情将在临近会议时公布。" } },
   { q: /cancel|refund|退票|取消|退款/, a: { en: `You can cancel your registration from your Profile page. For refund questions, please contact ${contactEmail}.`, zh: `您可以在个人中心页面取消报名。退款相关问题请联系 ${contactEmail}。` } },
-  { q: /hotel|酒店|住宿|accommodation/, a: { en: "The venue is Jinan Shandong Hotel. Nearby hotels include Sheraton Jinan and Hyatt Regency. We recommend booking early.", zh: "会场是济南山东大厦。附近酒店有济南喜来登和凯悦酒店。建议尽早预订。" } },
+  { q: /hotel|酒店|住宿|accommodation/, a: { en: `The venue is ${conference.venue.en}. Recommended hotel information will be published in the attendee guide once confirmed.`, zh: `会场是${conference.venue.zh}。推荐酒店信息确认后会在参会指南中发布。` } },
   { q: /transport|交通|地铁|机场|how.*get/, a: { en: "Jinan Yaoqiang International Airport is about 40 minutes from the venue by taxi. Jinan Railway Station is 15 minutes away.", zh: "济南遥墙国际机场打车到会场约 40 分钟，济南火车站约 15 分钟。" } },
   { q: /food|meal|lunch|dinner|吃饭|用餐|午餐|晚餐/, a: { en: "Lunch and coffee breaks are provided for all attendees during the conference days.", zh: "会议期间为所有参会者提供午餐和茶歇。" } },
   { q: /social|wechat|weixin|微信群|群聊|社区|community/, a: { en: "Join our community! Follow us on social media for updates. Check the Updates page for the latest news.", zh: "加入我们的社区！关注社交媒体获取最新动态。查看动态页面了解最新消息。" } },

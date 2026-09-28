@@ -1,15 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { conference } from "@/lib/conference"
 
 export function Countdown({ target, locale }: { target: string; locale: string }) {
   const [time, setTime] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null)
 
   useEffect(() => {
     // Parse: "2027.4.26" or "2027-04-26" -> Date
-    const raw = target || "2027-04-14"
+    const raw = target || conference.startDate
     const nums = raw.split(/[.\-/]/).map(Number).filter(n => !isNaN(n))
-    let targetMs = Date.UTC(2027, 3, 14) // fallback April 14, 2027
+    let targetMs = Date.UTC(2027, 3, 16)
     if (nums.length >= 3) {
       targetMs = Date.UTC(nums[0], nums[1] - 1, nums[2])
     }

@@ -8,8 +8,12 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle, ArrowRight, Calendar, MapPin, Users, Mic } from "lucide-react"
 import { Countdown } from "@/components/countdown"
 import { HeroMotion } from "@/components/home/hero-motion"
+import { conference, formatConferenceDateRange, getConferenceStartDate } from "@/lib/conference"
+import { isMockMode } from "@/lib/utils"
 
 async function getSettings() {
+  if (isMockMode()) return {}
+
   try {
     const { createServerSupabase } = await import("@/lib/supabase/server")
     const supabase = await createServerSupabase()
@@ -29,17 +33,16 @@ export default async function HomePage() {
   const heroTitleZh = settings.hero_title_zh || home.heroTitle["zh"]
   const heroSub = settings.hero_subtitle || home.heroSubtitle[locale]
   const heroSubZh = settings.hero_subtitle_zh || home.heroSubtitle["zh"]
-  const date = settings.conference_date || "2027 — Jinan, China"
-  const dateZh = settings.conference_date || "2027 年 — 中国·济南"
+  const date = formatConferenceDateRange(settings.conference_date || conference.settingDate, locale)
   const location = settings.conference_location || "Jinan"
   const locationZh = settings.conference_location_zh || "济南"
-  const venueLine = settings.conference_location_zh || (locale === "zh" ? "山东济南 · 舜耕国际会议中心区" : "Jinan, Shandong — Shungeng International Convention Center")
+  const venueLine = conference.venue[locale]
 
   const stats = [
     { icon: Mic, label: locale === "zh" ? "演讲" : "Sessions", value: "18" },
     { icon: Users, label: locale === "zh" ? "参会者" : "Attendees", value: "500+" },
     { icon: MapPin, label: locale === "zh" ? "地点" : "Location", value: locale === "zh" ? locationZh : location },
-    { icon: Calendar, label: locale === "zh" ? "天数" : "Days", value: "4" },
+    { icon: Calendar, label: locale === "zh" ? "天数" : "Days", value: String(conference.dayCount) },
   ]
 
   return (
@@ -62,7 +65,7 @@ export default async function HomePage() {
               </span>
             </h1>
             <p className="text-lg sm:text-xl text-zinc-700 dark:text-zinc-300 mb-8 max-w-xl">
-              {locale === "zh" ? dateZh : date}
+              {date}
             </p>
             <div className="flex flex-wrap gap-4">
               <Link href="/register">
@@ -77,7 +80,7 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            <Countdown target={settings.conference_date || "2027-04-14"} locale={locale} />
+            <Countdown target={getConferenceStartDate(settings.conference_date || conference.settingDate)} locale={locale} />
           </div>
         </div>
       </section>

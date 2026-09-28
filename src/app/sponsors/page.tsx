@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { ExternalLink } from "lucide-react"
 import { getSponsors } from "@/lib/mock-data"
+import { isMockMode } from "@/lib/utils"
 
 type Sponsor = { id: string; name: string; logo_url: string; tier: string; website_url: string | null; sort_order: number }
 
@@ -14,12 +15,19 @@ function getLocaleFromCookie(): "en" | "zh" {
   return match?.[1] === "zh" ? "zh" : "en"
 }
 
+function subscribeLocale() {
+  return () => {}
+}
+
 export default function SponsorsPage() {
-  const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
-  const [sponsors, setSponsors] = useState<Sponsor[]>([])
-  const [mounted, setMounted] = useState(false)
+  const locale = useSyncExternalStore<"en" | "zh">(subscribeLocale, getLocaleFromCookie, () => "en")
+  const mockMode = isMockMode()
+  const [sponsors, setSponsors] = useState<Sponsor[]>(() => mockMode ? getSponsors() : [])
+  const [mounted, setMounted] = useState(mockMode)
 
   useEffect(() => {
+    if (mockMode) return
+
     async function load() {
       try {
         const supabase = createClient()
@@ -31,7 +39,7 @@ export default function SponsorsPage() {
       setMounted(true)
     }
     load()
-  }, [])
+  }, [mockMode])
 
   const tiers = ["diamond", "gold", "silver", "bronze"] as const
   const tierLabels: Record<string, { en: string; zh: string }> = {

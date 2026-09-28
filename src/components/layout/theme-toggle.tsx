@@ -27,7 +27,7 @@ export function ThemeToggle({ initialTheme }: { initialTheme: Theme }) {
       onClick={toggleTheme}
       aria-label={theme === "dark" ? "Switch to day mode" : "Switch to night mode"}
       title={theme === "dark" ? "Day mode" : "Night mode"}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-white"
     >
       {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>

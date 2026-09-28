@@ -49,8 +49,39 @@ test("Locale-sensitive labels use explicit fallback grouping", () => {
   const home = read("src/app/page.tsx")
   const adminLayout = read("src/app/admin/layout.tsx")
 
-  assert.match(home, /settings\.conference_location_zh \|\| \(locale === "zh"/)
+  assert.match(home, /formatConferenceDateRange\(settings\.conference_date \|\| conference\.settingDate, locale\)/)
+  assert.match(home, /const venueLine = conference\.venue\[locale\]/)
   assert.match(adminLayout, /\(adminLabels\.how2027Admin\?\.\[locale\]\) \|\| \(locale === "zh"/)
+})
+
+test("Conference dates and venue come from one canonical source", () => {
+  const conference = read("src/lib/conference.ts")
+  const home = read("src/app/page.tsx")
+  const schedule = read("src/app/schedule/page.tsx")
+  const countdown = read("src/components/countdown.tsx")
+  const venue = read("src/app/venue/page.tsx")
+  const chatbot = read("src/components/chatbot.tsx")
+
+  assert.match(conference, /startDate: "2027-04-16"/)
+  assert.match(conference, /endDate: "2027-04-18"/)
+  assert.match(conference, /settingDate: "2027\.4\.16-4\.18"/)
+  assert.match(conference, /dayCount: 3/)
+  assert.match(conference, /济南山东大厦（舜耕国际会议中心）/)
+  assert.match(schedule, /const days = \[\.\.\.conference\.days\]/)
+  assert.match(countdown, /conference\.startDate/)
+  assert.match(conference, /export function getConferenceStartDate/)
+  assert.match(home, /getConferenceStartDate\(settings\.conference_date \|\| conference\.settingDate\)/)
+  assert.match(venue, /conference\.venue/)
+  assert.match(chatbot, /conference\.venue/)
+  assert.doesNotMatch([conference, schedule, countdown, venue, chatbot].join("\n"), /2027-04-1[45]/)
+})
+
+test("Privacy page reads locale on the server to avoid hydration mismatch", () => {
+  const privacy = read("src/app/privacy/page.tsx")
+
+  assert.match(privacy, /import \{ cookies \} from "next\/headers"/)
+  assert.match(privacy, /const locale = getLocale\(cookieStore\.get\("lang"\)\?\.value\)/)
+  assert.doesNotMatch(privacy, /getLocaleFromCookie|useState/)
 })
 
 test("Attend placeholder content is wired into the public site", () => {
@@ -113,6 +144,7 @@ test("Home page uses an interactive motion hero background", () => {
   assert.match(motion, /pointer-events-none/)
   assert.match(motion, /targetX/)
   assert.match(motion, /glowRef/)
+  assert.match(motion, /data-testid="hero-pointer-glow"/)
   assert.match(motion, /translate3d/)
   assert.match(motion, /mix-blend-screen/)
   assert.match(motion, /prefers-reduced-motion/)

@@ -147,14 +147,14 @@
   .light .bg-zinc-950\/40,
   .light .bg-zinc-950\/50,
   .light .bg-zinc-950\/80 {
-    background-color: rgb(250 250 250 / 0.96) !important;
+    background-color: rgb(250 250 250) !important;
   }
 
   .light .bg-zinc-900,
   .light .bg-zinc-900\/30,
   .light .bg-zinc-900\/50,
   .light .bg-zinc-900\/80 {
-    background-color: rgb(255 255 255 / 0.92) !important;
+    background-color: rgb(255 255 255) !important;
   }
 
   .light .bg-zinc-800,
@@ -162,18 +162,26 @@
   .light .bg-zinc-800\/50,
   .light .bg-zinc-800\/70,
   .light .hover\:bg-zinc-800\/50:hover {
-    background-color: rgb(244 244 245 / 0.9) !important;
+    background-color: rgb(244 244 245) !important;
   }
 
   .light .bg-zinc-700,
   .light .bg-zinc-700\/50 {
-    background-color: rgb(228 228 231 / 0.9) !important;
+    background-color: rgb(228 228 231) !important;
   }
 
   .light .bg-emerald-950\/20,
   .light .bg-emerald-950\/50,
   .light .hover\:bg-emerald-950\/50:hover {
-    background-color: rgb(236 253 245 / 0.85) !important;
+    background-color: rgb(236 253 245) !important;
+  }
+
+  .light .bg-emerald-600 {
+    background-color: rgb(4 120 87) !important;
+  }
+
+  .light .hover\:bg-emerald-500:hover {
+    background-color: rgb(5 150 105) !important;
   }
 
   .light .text-white,
@@ -210,12 +218,21 @@
   .light .text-emerald-300,
   .light .text-emerald-400,
   .light .hover\:text-emerald-300:hover {
-    color: rgb(5 150 105) !important;
+    color: rgb(4 120 87) !important;
   }
 
   .light .text-cyan-300,
   .light .text-cyan-400 {
-    color: rgb(8 145 178) !important;
+    color: rgb(14 116 144) !important;
+  }
+
+  .light .text-amber-300,
+  .light .text-amber-400 {
+    color: rgb(180 83 9) !important;
+  }
+
+  .light .text-red-400 {
+    color: rgb(220 38 38) !important;
   }
 
   .light .border-zinc-800,

@@ -216,6 +216,7 @@ export function HeroMotion() {
       <div
         ref={glowRef}
         aria-hidden="true"
+        data-testid="hero-pointer-glow"
         className="pointer-events-none absolute left-0 top-0 z-[2] h-80 w-80 rounded-full opacity-0 blur-2xl mix-blend-screen transition-opacity duration-150 will-change-transform"
         style={{
           background:

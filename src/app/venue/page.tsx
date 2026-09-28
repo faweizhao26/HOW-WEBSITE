@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { getLocale } from "@/lib/i18n/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { MapPin } from "lucide-react"
+import { conference } from "@/lib/conference"
 
 export default async function VenuePage() {
   const cookieStore = await cookies()
@@ -18,12 +19,10 @@ export default async function VenuePage() {
             <MapPin className="h-6 w-6 text-emerald-400 mt-1 shrink-0" />
             <div>
               <h2 className="text-xl font-semibold text-white">
-                {locale === "zh" ? "济南舜耕国际会议中心" : "Jinan Shungeng International Convention Center"}
+                {conference.venue[locale]}
               </h2>
               <p className="text-zinc-400 mt-2">
-                {locale === "zh"
-                  ? "中国·山东·济南市中区马鞍山路2-1号"
-                  : "2-1 Ma'anshan Road, Shizhong District, Jinan, Shandong, China"}
+                {conference.address[locale]}
               </p>
               <p className="text-zinc-500 mt-2 text-sm">
                 {locale === "zh"
