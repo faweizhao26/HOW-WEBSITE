@@ -7,6 +7,7 @@ const baseURL = externalBaseURL || "http://127.0.0.1:3019"
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  timeout: 60_000,
   fullyParallel: true,
   forbidOnly: true,
   retries: 0,

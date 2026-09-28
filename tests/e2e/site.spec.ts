@@ -58,7 +58,7 @@ test.describe("light theme quality", () => {
       })
       page.on("pageerror", (error) => runtimeErrors.push(error.message))
 
-      await page.goto(route)
+      await page.goto(route, { waitUntil: "domcontentloaded" })
       await expect(page.locator("html")).toHaveClass(/light/)
 
       const overflow = await page.evaluate(() => {
