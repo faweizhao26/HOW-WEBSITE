@@ -145,6 +145,7 @@ test("Home page uses an interactive motion hero background", () => {
   assert.match(motion, /targetX/)
   assert.match(motion, /glowRef/)
   assert.match(motion, /data-testid="hero-pointer-glow"/)
+  assert.match(motion, /dataset\.motionReady = "true"/)
   assert.match(motion, /translate3d/)
   assert.match(motion, /mix-blend-screen/)
   assert.match(motion, /prefers-reduced-motion/)

@@ -201,12 +201,14 @@ export function HeroMotion() {
     window.addEventListener("resize", resize)
     window.addEventListener("pointermove", movePointer)
     window.addEventListener("pointerleave", leavePointer)
+    glowElement.dataset.motionReady = "true"
 
     return () => {
       cancelAnimationFrame(animationFrame)
       window.removeEventListener("resize", resize)
       window.removeEventListener("pointermove", movePointer)
       window.removeEventListener("pointerleave", leavePointer)
+      delete glowElement.dataset.motionReady
     }
   }, [])
 

@@ -196,6 +196,7 @@ test("desktop pointer movement visibly updates the hero effect", async ({ page }
   await page.goto("/", { waitUntil: "domcontentloaded" })
   const glow = page.locator("[data-testid='hero-pointer-glow']")
   await expect(glow).toBeAttached({ timeout: 20_000 })
+  await expect(glow).toHaveAttribute("data-motion-ready", "true", { timeout: 20_000 })
 
   const before = await glow.evaluate((element) => getComputedStyle(element).transform)
   await page.mouse.move(900, 280)
