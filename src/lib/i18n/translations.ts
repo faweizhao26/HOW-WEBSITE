@@ -11,6 +11,7 @@ export const siteName = {
 export const navigation = {
   home: { en: "Home", zh: "首页" },
   about: { en: "About", zh: "关于" },
+  speakers: { en: "Speakers", zh: "讲者" },
   venue: { en: "Venue", zh: "会场" },
   sponsors: { en: "Sponsors", zh: "赞助商" },
   codeOfConduct: { en: "Code of Conduct", zh: "行为准则" },

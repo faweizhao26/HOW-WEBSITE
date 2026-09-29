@@ -39,6 +39,7 @@ export async function Footer({ locale }: { locale: Locale }) {
             <h4 className="mb-3 text-sm font-medium text-zinc-900 dark:text-zinc-300">{locale === "zh" ? "导航" : "Navigate"}</h4>
             <div className="space-y-2">
               <Link href="/about" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.about[locale]}</Link>
+              <Link href="/speakers" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.speakers[locale]}</Link>
               <Link href="/schedule" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.schedule[locale]}</Link>
               <Link href="/attend" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.attend[locale]}</Link>
               <Link href="/sponsors" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.sponsors[locale]}</Link>

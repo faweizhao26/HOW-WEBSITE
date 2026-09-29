@@ -15,6 +15,7 @@ import { isMockMode } from "@/lib/utils"
 const navLinks = [
   { href: "/", key: "home" },
   { href: "/about", key: "about" },
+  { href: "/speakers", key: "speakers" },
   { href: "/schedule", key: "schedule" },
   { href: "/attend", key: "attend" },
   { href: "/sponsors", key: "sponsors" },

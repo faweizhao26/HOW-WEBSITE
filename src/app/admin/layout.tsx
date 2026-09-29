@@ -9,6 +9,7 @@ import { admin as adminLabels, common } from "@/lib/i18n/translations"
 import {
   LayoutDashboard,
   Mic,
+  ContactRound,
   CalendarDays,
   Star,
   Newspaper,
@@ -24,6 +25,7 @@ import { Button } from "@/components/ui/button"
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, key: "dashboard" },
   { href: "/admin/sessions", icon: Mic, key: "sessions" },
+  { href: "/admin/speakers", icon: ContactRound, key: "speakers" },
   { href: "/admin/agenda", icon: CalendarDays, key: "agenda" },
   { href: "/admin/registrations", icon: Users, key: "registrations" },
   { href: "/admin/checkin", icon: UserCheck, key: "checkin" },

@@ -66,3 +66,90 @@ test("legacy mock helper delegates to the shared content mode", () => {
   assert.match(source, /import \{ getContentMode \} from ["']@\/lib\/content\/mode["']/)
   assert.match(source, /return getContentMode\(\) === "mock"/)
 })
+
+test("publication actions authenticate administrators and revalidate affected routes", () => {
+  const guardPath = new URL("src/lib/auth/require-admin.ts", root)
+  const actionsPath = new URL("src/app/admin/actions/publication.ts", root)
+  assert.equal(existsSync(guardPath), true, "admin guard must exist")
+  assert.equal(existsSync(actionsPath), true, "publication actions must exist")
+
+  const guard = read("src/lib/auth/require-admin.ts")
+  assert.match(guard, /^import "server-only"/)
+  assert.match(guard, /auth\.getUser\(\)/)
+  assert.match(guard, /from\("profiles"\)/)
+  assert.match(guard, /profile\?\.role !== "admin"/)
+  assert.doesNotMatch(guard, /raw_user_meta_data|user_metadata/)
+
+  const actions = read("src/app/admin/actions/publication.ts")
+  assert.match(actions, /^["']use server["']/)
+  assert.match(actions, /export type PublicationActionResult/)
+  assert.match(actions, /requireAdmin\(\)/)
+  for (const action of [
+    "publishSpeaker",
+    "unpublishSpeaker",
+    "publishSession",
+    "unpublishSession",
+    "publishSponsor",
+    "unpublishSponsor",
+    "publishNewsPost",
+    "unpublishNewsPost",
+    "publishAgenda",
+    "rollbackAgenda",
+    "publishSiteSettings",
+    "rollbackSiteSettings",
+  ]) {
+    assert.match(actions, new RegExp(`export async function ${action}\\(`))
+  }
+  assert.match(actions, /["']\/speakers["']/)
+  assert.match(actions, /["']\/schedule["']/)
+  assert.match(actions, /["']\/sponsors["']/)
+  assert.match(actions, /["']\/updates["']/)
+  assert.match(actions, /paths\.forEach\(\(path\) => revalidatePath\(path\)\)/)
+})
+
+test("shared publication controls expose status, pending state, and confirmation", () => {
+  for (const path of [
+    "src/components/admin/publication-badge.tsx",
+    "src/components/admin/publication-actions.tsx",
+  ]) {
+    assert.equal(existsSync(new URL(path, root)), true, `${path} must exist`)
+  }
+
+  const badge = read("src/components/admin/publication-badge.tsx")
+  assert.match(badge, /Published, changes pending/)
+  assert.match(badge, /已发布，有待发布更改/)
+  assert.match(badge, /publishedAt.*updatedAt|updatedAt.*publishedAt/s)
+
+  const actions = read("src/components/admin/publication-actions.tsx")
+  assert.match(actions, /^["']use client["']/)
+  assert.match(actions, /useTransition\(/)
+  assert.match(actions, /AlertDialog/)
+  assert.match(actions, /disabled=\{isPending\}/)
+})
+
+test("speaker lifecycle is available in admin and public navigation", () => {
+  const adminPath = new URL("src/app/admin/speakers/page.tsx", root)
+  const publicPath = new URL("src/app/speakers/page.tsx", root)
+  assert.equal(existsSync(adminPath), true, "admin speaker page must exist")
+  assert.equal(existsSync(publicPath), true, "public speaker page must exist")
+
+  const adminPage = read("src/app/admin/speakers/page.tsx")
+  assert.match(adminPage, /from\("speakers"\)/)
+  assert.match(adminPage, /PublicationBadge/)
+  assert.match(adminPage, /PublicationActions/)
+  assert.match(adminPage, /profile_id/)
+  assert.match(adminPage, /sort_order/)
+  assert.match(adminPage, /avatar_url/)
+
+  const publicPage = read("src/app/speakers/page.tsx")
+  assert.match(publicPage, /getPublishedSpeakers\(\)/)
+  assert.match(publicPage, /result\.status === "error"/)
+  assert.match(publicPage, /result\.status === "empty"/)
+
+  const header = read("src/components/layout/header.tsx")
+  const footer = read("src/components/layout/footer.tsx")
+  const adminLayout = read("src/app/admin/layout.tsx")
+  assert.match(header, /href:\s*"\/speakers"/)
+  assert.match(footer, /href="\/speakers"/)
+  assert.match(adminLayout, /href:\s*"\/admin\/speakers"/)
+})

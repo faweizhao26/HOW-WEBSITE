@@ -57,7 +57,7 @@ export default function AdminDashboard() {
     { title: adminT.totalProposals[locale], value: stats.totalSessions, icon: Mic, color: "text-blue-400", href: "/admin/sessions" },
     { title: adminT.pendingReview[locale], value: stats.pending, icon: Clock, color: "text-yellow-400", href: "/admin/sessions" },
     { title: adminT.approved[locale], value: stats.approved, icon: CheckCircle, color: "text-emerald-400", href: "/admin/sessions" },
-    { title: adminT.speakers[locale], value: stats.speakers, icon: Users, color: "text-purple-400", href: "/admin/sessions" },
+    { title: adminT.speakers[locale], value: stats.speakers, icon: Users, color: "text-purple-400", href: "/admin/speakers" },
   ]
 
   return (
