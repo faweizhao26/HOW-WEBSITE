@@ -3,7 +3,7 @@ import { isMockMode } from "@/lib/utils"
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { admin as adminT, cfp as cfpT, common } from "@/lib/i18n/translations"
+import { admin as adminT } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,13 +15,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { CheckCircle, XCircle, FileText, Video, Eye, Search, Filter } from "lucide-react"
+import { unpublishSession } from "@/app/admin/actions/publication"
+import { PublicationActions } from "@/components/admin/publication-actions"
+import { PublicationBadge } from "@/components/admin/publication-badge"
 
 type SessionWithProfile = {
   id: string; user_id: string; title: string; title_zh: string | null; abstract: string; abstract_zh: string | null
   duration: number; type: string; status: string; admin_feedback: string | null; slides_url: string | null
-  video_url: string | null; created_at: string
+  video_url: string | null; created_at: string; updated_at?: string
+  speaker_id?: string | null; publication_status?: "draft" | "published"; published_at?: string | null
   profiles?: { full_name: string; company: string | null }
 }
+
+type PublishedSpeakerOption = {
+  id: string
+  name: string
+  name_zh: string | null
+  publication_status: "published"
+}
+
+const mockPublishedSpeakers: PublishedSpeakerOption[] = [
+  { id: "mock-speaker-1", name: "Digoal", name_zh: "德哥", publication_status: "published" },
+  { id: "mock-speaker-2", name: "Zhou Fei", name_zh: "周飞", publication_status: "published" },
+]
 
 const mockSessions: SessionWithProfile[] = [
   { id: "ms1", user_id: "u1", title: "High-Performance JSON Queries in PostgreSQL 18", title_zh: "PostgreSQL 18 高性能 JSON 查询", abstract: "Exploring the new JSON optimizations in PostgreSQL 18, including parallel index scans and improved JSONPath performance.", abstract_zh: "探索 PostgreSQL 18 中新的 JSON 优化，包括并行索引扫描和改进的 JSONPath 性能。", duration: 45, type: "talk", status: "pending", admin_feedback: null, slides_url: null, video_url: null, created_at: "2027-01-15", profiles: { full_name: "Li Wei", company: "Independent" } },
@@ -52,6 +68,7 @@ function statusBadge(status: string, locale: "en" | "zh") {
 export default function AdminSessionsPage() {
   const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
   const [sessions, setSessions] = useState<SessionWithProfile[]>([])
+  const [publishedSpeakers, setPublishedSpeakers] = useState<PublishedSpeakerOption[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending")
   const [search, setSearch] = useState("")
@@ -60,35 +77,77 @@ export default function AdminSessionsPage() {
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
-    if (isMockMode()) { setSessions(mockSessions); setLoading(false); return }
+    if (isMockMode()) {
+      setSessions(mockSessions.map((session) => session.status === "approved"
+        ? { ...session, speaker_id: "mock-speaker-1", publication_status: "draft", published_at: null }
+        : { ...session, speaker_id: null, publication_status: "draft", published_at: null }))
+      setPublishedSpeakers(mockPublishedSpeakers)
+      setLoading(false)
+      return
+    }
     loadSessions()
   }, [])
 
   async function loadSessions() {
     try {
       const supabase = createClient()
-      const { data } = await supabase.from("sessions").select("*, profiles(full_name, company)").order("created_at", { ascending: false })
+      const [{ data }, { data: speakers }] = await Promise.all([
+        supabase.from("sessions").select("*, profiles(full_name, company)").order("created_at", { ascending: false }),
+        supabase.from("speakers").select("id, name, name_zh, publication_status").eq("publication_status", "published").order("sort_order"),
+      ])
       setSessions((data as SessionWithProfile[]) || [])
+      setPublishedSpeakers((speakers as PublishedSpeakerOption[]) || [])
     } catch {}
     setLoading(false)
   }
 
   async function updateStatus(id: string, status: string, feedbackText?: string) {
     if (isMockMode()) {
-      setSessions(prev => prev.map(s => s.id === id ? { ...s, status, admin_feedback: feedbackText ?? s.admin_feedback } : s))
+      setSessions(prev => prev.map(s => s.id === id ? {
+        ...s,
+        status,
+        admin_feedback: feedbackText ?? s.admin_feedback,
+        ...(status === "approved" ? {} : { speaker_id: null, publication_status: "draft", published_at: null }),
+      } : s))
       toast.success(status === "approved" ? adminT.sessionApprovedMsg[locale] : adminT.sessionRejectedMsg[locale])
       setSelectedSession(null)
       return
     }
     try {
       const supabase = createClient()
-      const update: any = { status }
+      const current = sessions.find((session) => session.id === id)
+      if (status !== "approved" && current?.publication_status === "published") {
+        const result = await unpublishSession(id)
+        if (!result.ok) throw new Error(result.message)
+      }
+      const update: Record<string, string | null> = { status }
       if (feedbackText !== undefined) update.admin_feedback = feedbackText
-      await supabase.from("sessions").update(update).eq("id", id)
+      if (status !== "approved") update.speaker_id = null
+      const { error } = await supabase.from("sessions").update(update).eq("id", id)
+      if (error) throw error
       toast.success(status === "approved" ? adminT.sessionApprovedMsg[locale] : adminT.sessionRejectedMsg[locale])
       loadSessions()
       setSelectedSession(null)
     } catch (e: any) { toast.error(e.message) }
+  }
+
+  async function assignSpeaker(sessionId: string, speakerId: string) {
+    const value = speakerId === "unassigned" ? null : speakerId
+    if (isMockMode()) {
+      setSessions((current) => current.map((session) => session.id === sessionId
+        ? { ...session, speaker_id: value, updated_at: new Date().toISOString() }
+        : session))
+      return
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase.from("sessions").update({ speaker_id: value }).eq("id", sessionId)
+    if (error) {
+      toast.error(locale === "zh" ? "讲者绑定失败" : "Unable to assign speaker")
+      return
+    }
+    toast.success(locale === "zh" ? "讲者绑定已保存" : "Speaker assignment saved")
+    loadSessions()
   }
 
   async function uploadMedia(id: string, file: File, type: "slides" | "video") {
@@ -162,6 +221,12 @@ export default function AdminSessionsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
                       {statusBadge(session.status, locale)}
+                      <PublicationBadge
+                        status={session.publication_status ?? "draft"}
+                        publishedAt={session.published_at ?? null}
+                        updatedAt={session.updated_at ?? session.created_at}
+                        locale={locale}
+                      />
                       <Badge variant="outline" className="text-zinc-400 border-zinc-700">{session.duration}min · {session.type}</Badge>
                     </div>
                     <h3 className="font-medium text-white text-lg mb-1">{session.title}</h3>
@@ -172,6 +237,49 @@ export default function AdminSessionsPage() {
                       <div className="mt-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
                         <p className="text-xs text-zinc-500 mb-1">{adminT.adminFeedback[locale]}:</p>
                         <p className="text-sm text-zinc-300">{session.admin_feedback}</p>
+                      </div>
+                    )}
+
+                    {session.status === "approved" && (
+                      <div className="mt-4 border-t border-zinc-800 pt-4">
+                        <p className="mb-3 text-xs font-medium uppercase text-zinc-500">
+                          {adminT.websitePublication[locale]}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Select value={session.speaker_id ?? "unassigned"} onValueChange={(value) => assignSpeaker(session.id, value ?? "unassigned")}>
+                            <SelectTrigger className="w-full sm:w-64">
+                              <SelectValue placeholder={adminT.assignPublishedSpeaker[locale]}>
+                                {session.speaker_id
+                                  ? (() => {
+                                      const speaker = publishedSpeakers.find((item) => item.id === session.speaker_id)
+                                      if (!speaker) return adminT.assignPublishedSpeaker[locale]
+                                      return locale === "zh" ? (speaker.name_zh ?? speaker.name) : speaker.name
+                                    })()
+                                  : adminT.noPublishedSpeaker[locale]}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unassigned">{adminT.noPublishedSpeaker[locale]}</SelectItem>
+                              {publishedSpeakers.map((speaker) => (
+                                <SelectItem key={speaker.id} value={speaker.id}>
+                                  {locale === "zh" ? (speaker.name_zh ?? speaker.name) : speaker.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {session.speaker_id ? (
+                            <PublicationActions
+                              id={session.id}
+                              locale={locale}
+                              kind="session"
+                              status={session.publication_status ?? "draft"}
+                              hasPendingChanges={session.publication_status === "published" && Boolean(session.published_at && (session.updated_at ?? session.created_at) > session.published_at)}
+                              onCompleted={loadSessions}
+                            />
+                          ) : (
+                            <span className="text-sm text-zinc-500">{adminT.publishRequiresSpeaker[locale]}</span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

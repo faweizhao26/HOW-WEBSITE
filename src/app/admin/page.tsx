@@ -4,7 +4,7 @@ import { isMockMode } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { admin as adminT, common } from "@/lib/i18n/translations"
+import { admin as adminT } from "@/lib/i18n/translations"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mic, CheckCircle, Clock, Users, ArrowRight } from "lucide-react"
 
@@ -36,16 +36,16 @@ export default function AdminDashboard() {
     setLoading(true)
     try {
       const supabase = createClient()
-      const { data: sessions } = await supabase.from("sessions").select("status, user_id")
+      const { data: sessions } = await supabase.from("sessions").select("status")
+      const { count: speakerCount } = await supabase.from("speakers").select("*", { count: "exact", head: true })
       const { count: slotCount } = await supabase.from("agenda_slots").select("*", { count: "exact", head: true })
       if (sessions) {
-        const uniqueSpeakers = new Set(sessions.map((s) => s.user_id))
         setStats({
           totalSessions: sessions.length,
           pending: sessions.filter((s) => s.status === "pending").length,
           approved: sessions.filter((s) => s.status === "approved").length,
           rejected: sessions.filter((s) => s.status === "rejected").length,
-          speakers: uniqueSpeakers.size,
+          speakers: speakerCount || 0,
           agendaSlots: slotCount || 0,
         })
       }

@@ -107,32 +107,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!authorized) return null
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
-      <aside className={`${collapsed ? "w-16" : "w-60"} border-r border-zinc-800 bg-zinc-950/50 flex flex-col transition-all duration-200`}>
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col md:flex-row">
+      <aside className={`w-full ${collapsed ? "md:w-16" : "md:w-60"} shrink-0 border-b border-zinc-800 bg-zinc-950/50 transition-all duration-200 md:flex md:flex-col md:border-b-0 md:border-r`}>
         <div className="p-4 flex items-center justify-between">
-          {!collapsed && (
-            <Link href="/" className="text-sm font-semibold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              {(adminLabels.how2027Admin?.[locale]) || (locale === "zh" ? "HOW 2027 管理后台" : "HOW 2027 Admin")}
-            </Link>
-          )}
+          <Link href="/" className={`${collapsed ? "md:hidden" : ""} text-sm font-semibold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent`}>
+            {(adminLabels.how2027Admin?.[locale]) || (locale === "zh" ? "HOW 2027 管理后台" : "HOW 2027 Admin")}
+          </Link>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setCollapsed(!collapsed)}
-            className="h-8 w-8 text-zinc-400"
+            className="hidden h-8 w-8 text-zinc-400 md:inline-flex"
           >
             <ChevronLeft className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
           </Button>
         </div>
 
-        <nav className="flex-1 px-2 space-y-1">
+        <nav className="flex gap-1 overflow-x-auto px-2 pb-3 md:flex-1 md:flex-col md:space-y-1 md:overflow-visible md:pb-0">
           {navItems.map(({ href, icon: Icon, key }) => {
             const isActive = pathname === href || (href !== "/admin" && pathname.startsWith(href))
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                className={`flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                   isActive
                     ? "bg-emerald-950/50 text-emerald-400 border border-emerald-900/50"
                     : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
@@ -140,13 +138,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 title={collapsed ? adminLabels[key][locale] : undefined}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span>{adminLabels[key][locale]}</span>}
+                <span className={collapsed ? "md:hidden" : undefined}>{adminLabels[key][locale]}</span>
               </Link>
             )
           })}
+          <button
+            onClick={handleLogout}
+            className="flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300 md:hidden"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>{adminLabels.logout?.[locale] || (locale === "zh" ? "退出登录" : "Logout")}</span>
+          </button>
         </nav>
 
-        <div className="p-4 border-t border-zinc-800">
+        <div className="hidden border-t border-zinc-800 p-4 md:block">
           <button
             onClick={handleLogout}
             className={`flex items-center gap-3 text-sm text-zinc-500 hover:text-zinc-300 w-full ${
@@ -159,7 +164,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto p-6 lg:p-8">
+      <main className="min-w-0 flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         {children}
       </main>
     </div>

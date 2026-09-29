@@ -76,7 +76,7 @@ export default function CFPPage() {
     if (user) {
       const { data } = await supabase
         .from("sessions")
-        .select("*")
+        .select("id, title, title_zh, abstract, duration, type, status, admin_feedback, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
       setSessions(data || [])

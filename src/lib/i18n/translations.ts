@@ -130,6 +130,10 @@ export const admin = {
   sessionApproved: { en: "Session approved", zh: "提案已通过" },
   sessionRejected: { en: "Session rejected", zh: "提案已拒绝" },
   adminFeedback: { en: "Admin Feedback", zh: "管理员反馈" },
+  websitePublication: { en: "Website publication", zh: "网站发布" },
+  assignPublishedSpeaker: { en: "Assign a published speaker", zh: "绑定已发布讲者" },
+  noPublishedSpeaker: { en: "No speaker assigned", zh: "未绑定讲者" },
+  publishRequiresSpeaker: { en: "Assign a published speaker before publishing.", zh: "发布前需要先绑定已发布讲者。" },
   // Agenda
   agendaManagement: { en: "Agenda Management", zh: "议程管理" },
   noAgendaSlots: { en: "No agenda slots yet. Create your first day:", zh: "还没有议程时段。创建第一天：" },

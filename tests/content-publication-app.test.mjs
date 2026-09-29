@@ -153,3 +153,28 @@ test("speaker lifecycle is available in admin and public navigation", () => {
   assert.match(footer, /href="\/speakers"/)
   assert.match(adminLayout, /href:\s*"\/admin\/speakers"/)
 })
+
+test("session review remains separate from website publication", () => {
+  const adminSessions = read("src/app/admin/sessions/page.tsx")
+  const cfpPage = read("src/app/cfp/page.tsx")
+  const profilePage = read("src/app/profile/page.tsx")
+  const dashboard = read("src/app/admin/page.tsx")
+  const adminLayout = read("src/app/admin/layout.tsx")
+
+  assert.match(adminSessions, /from\("speakers"\)/)
+  assert.match(adminSessions, /publication_status.*published|published.*publication_status/s)
+  assert.match(adminSessions, /speaker_id/)
+  assert.match(adminSessions, /PublicationBadge/)
+  assert.match(adminSessions, /PublicationActions/)
+  assert.match(adminSessions, /session\.status === "approved"/)
+
+  for (const submitterPage of [cfpPage, profilePage]) {
+    assert.doesNotMatch(submitterPage, /PublicationBadge|PublicationActions|published_sessions/)
+    assert.match(submitterPage, /statusBadge\(/)
+  }
+
+  assert.match(dashboard, /from\("speakers"\)/)
+  assert.doesNotMatch(dashboard, /new Set\(sessions\.map\(\(s\) => s\.user_id\)\)/)
+  assert.match(adminLayout, /flex-col md:flex-row/)
+  assert.match(adminLayout, /overflow-x-auto/)
+})

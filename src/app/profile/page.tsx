@@ -74,7 +74,11 @@ export default function ProfilePage() {
     setWechat(profile?.wechat || "")
     setAvatarUrl(profile?.avatar_url || "")
 
-    const { data: sessions } = await supabase.from("sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+    const { data: sessions } = await supabase
+      .from("sessions")
+      .select("id, title, duration, type, status, admin_feedback, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
     setSessions(sessions || [])
 
     const { data: regs } = await supabase.from("registrations").select("*, ticket_types(name, name_zh)").eq("user_id", user.id).order("created_at", { ascending: false })
