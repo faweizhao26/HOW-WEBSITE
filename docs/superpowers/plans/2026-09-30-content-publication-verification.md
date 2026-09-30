@@ -109,9 +109,15 @@ file permissions; `.env.local` was not modified.
 
 ## Publication Status
 
-No production migration or deployment was performed. The user authorized
-committing and pushing the verified feature branch after visual review.
-GitHub SSH authentication and the commit identity both verified as
-`faweizhao26`; the remote is `faweizhao26/HOW-WEBSITE`. The push result is
-reported separately after completion. Production migration and deployment
-remain outside this authorization.
+After visual approval and the feature-branch push, the user explicitly
+authorized the main-branch merge, production database migration, and
+Production deployment on September 30, 2026. These actions are complete.
+GitHub SSH authentication and commit identity verified as `faweizhao26`;
+the remote is `faweizhao26/HOW-WEBSITE`.
+
+The production application release is `f39579e`, including `9c5951d` and a
+follow-up dark-mode logout contrast fix. Vercel reports `READY` with the
+public alias https://how-website.vercel.app. The production ego-lite matrix
+passed all 40 combinations. Existing business records and backend settings
+were preserved. See [Production Rollout](2026-09-30-production-rollout.md)
+for deployment, migration, data-state, and remaining advisory evidence.
