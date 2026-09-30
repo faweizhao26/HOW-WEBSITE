@@ -83,7 +83,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
                   </Button>
                 </Link>
                 <form action="/auth/signout" method="post">
-                  <Button type="submit" variant="ghost" size="sm" className="text-zinc-500">
+                  <Button type="submit" variant="ghost" size="sm" className="text-zinc-400">
                     {navigation.logout[locale]}
                   </Button>
                 </form>
