@@ -9,33 +9,23 @@ import { CheckCircle, ArrowRight, Calendar, MapPin, Users, Mic } from "lucide-re
 import { Countdown } from "@/components/countdown"
 import { HeroMotion } from "@/components/home/hero-motion"
 import { conference, formatConferenceDateRange, getConferenceStartDate } from "@/lib/conference"
-import { isMockMode } from "@/lib/utils"
-
-async function getSettings() {
-  if (isMockMode()) return {}
-
-  try {
-    const { createServerSupabase } = await import("@/lib/supabase/server")
-    const supabase = await createServerSupabase()
-    const { data } = await supabase.from("site_settings").select("*")
-    const map: Record<string, string> = {}
-    data?.forEach((s: any) => (map[s.key] = s.value))
-    return map
-  } catch { return {} }
-}
+import { getPublishedSettings } from "@/lib/content/public"
+import { defaultSiteSettings } from "@/lib/content/settings"
 
 export default async function HomePage() {
   const cookieStore = await cookies()
   const locale = getLocale(cookieStore.get("lang")?.value)
-  const settings = await getSettings()
+  const result = await getPublishedSettings()
+  if (result.status === "error") return <div className="mx-auto min-h-[50vh] max-w-7xl px-4 py-16 sm:px-6 lg:px-8"><h1 className="mb-6 text-4xl font-bold">HOW 2027</h1><p className="text-muted-foreground">{locale === "zh" ? "大会信息暂时无法加载，请稍后再试。" : "Conference information is temporarily unavailable. Please try again later."}</p></div>
+  const settings = result.status === "empty" ? defaultSiteSettings : result.data
 
-  const heroTitle = settings.hero_title || home.heroTitle[locale]
-  const heroTitleZh = settings.hero_title_zh || home.heroTitle["zh"]
-  const heroSub = settings.hero_subtitle || home.heroSubtitle[locale]
-  const heroSubZh = settings.hero_subtitle_zh || home.heroSubtitle["zh"]
-  const date = formatConferenceDateRange(settings.conference_date || conference.settingDate, locale)
-  const location = settings.conference_location || "Jinan"
-  const locationZh = settings.conference_location_zh || "济南"
+  const heroTitle = settings.hero_title
+  const heroTitleZh = settings.hero_title_zh
+  const heroSub = settings.hero_subtitle
+  const heroSubZh = settings.hero_subtitle_zh
+  const date = formatConferenceDateRange(settings.conference_date, locale)
+  const location = settings.conference_location
+  const locationZh = settings.conference_location_zh
   const venueLine = conference.venue[locale]
 
   const stats = [
@@ -55,7 +45,7 @@ export default async function HomePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 lg:py-40">
           <div className="max-w-3xl">
             <Badge className="mb-6 bg-white/80 text-emerald-700 border-emerald-200 shadow-sm backdrop-blur hover:bg-white/90 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 dark:hover:bg-emerald-950/50">
-              HOW 2027
+              {settings.conference_name}
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-zinc-950 dark:text-white">
               {locale === "zh" ? heroTitleZh : heroTitle}
@@ -80,7 +70,7 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            <Countdown target={getConferenceStartDate(settings.conference_date || conference.settingDate)} locale={locale} />
+            <Countdown target={getConferenceStartDate(settings.conference_date)} locale={locale} />
           </div>
         </div>
       </section>

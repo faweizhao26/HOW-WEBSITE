@@ -4,7 +4,7 @@ create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 grant usage on schema extensions to anon, authenticated;
 grant execute on all functions in schema extensions to anon, authenticated;
-select plan(63);
+select plan(75);
 
 select has_table('public', 'speakers', 'speaker drafts exist');
 select has_table('public', 'published_speakers', 'public speaker projection exists');
@@ -228,6 +228,27 @@ select lives_ok($$select public.rollback_agenda_release((select id from first_ag
 select results_eq($$select id, payload from public.agenda_releases where is_current$$, $$select id, payload from first_agenda$$, 'rollback restores exactly the original release and payload');
 select throws_ok($$select public.rollback_agenda_release('ffffffff-ffff-ffff-ffff-ffffffffffff')$$::text, 'P0002'::char(5), null::text, 'unknown agenda rollback target is rejected'::text);
 select results_eq($$select id, payload from public.agenda_releases where is_current$$, $$select id, payload from first_agenda$$, 'failed rollback leaves exactly one unchanged current release');
+
+create temporary table first_settings as select id, payload from public.site_settings_releases where is_current;
+update public.site_settings set value = '  ' where key = 'hero_title_zh';
+select throws_ok($$select public.publish_site_settings()$$::text, 23514, null::text, 'blank required setting cannot publish'::text);
+select results_eq($$select id, payload from public.site_settings_releases where is_current$$, $$select id, payload from first_settings$$, 'missing settings preserve current release and payload');
+update public.site_settings set value = (select payload->>'hero_title_zh' from first_settings) where key = 'hero_title_zh';
+delete from public.site_settings where key = 'conference_name';
+select throws_ok($$select public.publish_site_settings()$$::text, 23514, null::text, 'absent required key cannot publish'::text);
+insert into public.site_settings (key, value) select 'conference_name', payload->>'conference_name' from first_settings;
+update public.site_settings set value = '2027.4.31-4.32' where key = 'conference_date';
+select throws_ok($$select public.publish_site_settings()$$::text, 23514, null::text, 'impossible conference dates cannot publish'::text);
+select results_eq($$select id, payload from public.site_settings_releases where is_current$$, $$select id, payload from first_settings$$, 'invalid date preserves current settings release');
+update public.site_settings set value = '2027.4.16-4.18' where key = 'conference_date';
+update public.site_settings set value = 'New published hero' where key = 'hero_title';
+select lives_ok($$select public.publish_site_settings()$$, 'valid complete settings can publish');
+select is((select count(*) from public.site_settings_releases where is_current), 1::bigint, 'exactly one settings release is current');
+select is((select payload->>'hero_title' from public.site_settings_releases where is_current), 'New published hero', 'new release contains the saved settings draft');
+select results_eq($$select payload from public.site_settings_releases where id = (select id from first_settings)$$, $$select payload from first_settings$$, 'historical settings payload stays immutable');
+select lives_ok($$select public.rollback_site_settings_release((select id from first_settings))$$, 'administrator can roll back site settings');
+select results_eq($$select id, payload from public.site_settings_releases where is_current$$, $$select id, payload from first_settings$$, 'rollback restores exactly the original settings release');
+select throws_ok($$select public.rollback_site_settings_release('ffffffff-ffff-ffff-ffff-ffffffffffff')$$::text, 'P0002'::char(5), null::text, 'unknown settings rollback target is rejected'::text);
 reset role;
 
 select * from finish();

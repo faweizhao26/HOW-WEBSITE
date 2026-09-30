@@ -221,3 +221,18 @@ test("agenda uses complete releases and never displays production mock content",
   assert.doesNotMatch(schedule, /mockSlots|mockProducers|from\("agenda_slots"\)/)
   assert.doesNotMatch(chatbot, /provisional agenda|占位信息|占位示例/)
 })
+test("site settings publish complete releases and public consumers preserve errors", () => {
+  const adminSettings = read("src/app/admin/settings/page.tsx")
+  const home = read("src/app/page.tsx")
+  const footer = read("src/components/layout/footer.tsx")
+  assert.match(adminSettings, /publishSiteSettings\(/)
+  assert.match(adminSettings, /site_settings_releases/)
+  assert.match(adminSettings, /kind="settings-release"/)
+  assert.match(adminSettings, /hasSettingsChanges/)
+  for (const source of [home, footer]) {
+    assert.match(source, /getPublishedSettings\(\)/)
+    assert.match(source, /result.status === "error"/)
+    assert.match(source, /result.status === "empty"/)
+    assert.doesNotMatch(source, /from\("site_settings"\)|catch.*return \{\}/)
+  }
+})

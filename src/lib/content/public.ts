@@ -12,6 +12,7 @@ import type {
 } from "@/lib/content/types"
 import { getPublishedMockNews, getPublishedMockSponsors, mockSlots } from "@/lib/mock-data"
 import { createServerSupabase } from "@/lib/supabase/server"
+import { defaultSiteSettings } from "@/lib/content/settings"
 
 const CONTENT_UNAVAILABLE = "Published content is temporarily unavailable."
 const MOCK_PUBLISHED_AT = "2026-09-29T00:00:00.000Z"
@@ -130,22 +131,8 @@ function getMockAgenda(): AgendaReleasePayload {
   }) as AgendaReleasePayload
 }
 
-function getMockSettings(): PublishedSiteSettings {
-  return {
-    conference_name: "HOW 2027",
-    conference_date: "2027.4.16-4.18",
-    conference_location: "Jinan, China",
-    conference_location_zh: "中国·济南",
-    contact_email: "faweizhao26@gmail.com",
-    hero_title: "Linking the World with Open Source",
-    hero_title_zh: "开源互联世界",
-    hero_subtitle: "HOW2027: PostgreSQL Eco Conference",
-    hero_subtitle_zh: "HOW2027：PostgreSQL 生态大会",
-  }
-}
-
 export async function getPublishedSettings(): Promise<PublicContentResult<PublishedSiteSettings>> {
-  if (getContentMode() === "mock") return { status: "ready", data: getMockSettings() }
+  if (getContentMode() === "mock") return { status: "ready", data: { ...defaultSiteSettings } }
 
   try {
     const supabase = await createServerSupabase()

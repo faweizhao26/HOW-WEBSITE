@@ -49,7 +49,7 @@ test("Locale-sensitive labels use explicit fallback grouping", () => {
   const home = read("src/app/page.tsx")
   const adminLayout = read("src/app/admin/layout.tsx")
 
-  assert.match(home, /formatConferenceDateRange\(settings\.conference_date \|\| conference\.settingDate, locale\)/)
+  assert.match(home, /formatConferenceDateRange\(settings\.conference_date, locale\)/)
   assert.match(home, /const venueLine = conference\.venue\[locale\]/)
   assert.match(adminLayout, /\(adminLabels\.how2027Admin\?\.\[locale\]\) \|\| \(locale === "zh"/)
 })
@@ -70,7 +70,7 @@ test("Conference dates and venue come from one canonical source", () => {
   assert.match(schedule, /const days = \[\.\.\.conference\.days\]/)
   assert.match(countdown, /conference\.startDate/)
   assert.match(conference, /export function getConferenceStartDate/)
-  assert.match(home, /getConferenceStartDate\(settings\.conference_date \|\| conference\.settingDate\)/)
+  assert.match(home, /getConferenceStartDate\(settings\.conference_date\)/)
   assert.match(venue, /conference\.venue/)
   assert.match(chatbot, /conference\.venue/)
   assert.doesNotMatch([conference, schedule, countdown, venue, chatbot].join("\n"), /2027-04-1[45]/)
@@ -163,10 +163,11 @@ test("Sponsor recruitment contact is visible on public sponsor surfaces", () => 
   assert.match(sponsors, /faweizhao26@gmail\.com/)
   assert.match(sponsors, /mailto:faweizhao26@gmail\.com/)
   assert.match(attend, /faweizhao26@gmail\.com/)
-  for (const source of [chatbot, footer, conduct, privacy, settings]) {
+  for (const source of [chatbot, conduct, privacy, settings, read("src/lib/content/settings.ts")]) {
     assert.match(source, /faweizhao26@gmail\.com/)
     assert.doesNotMatch(source, /conference@how2027\.org/)
   }
+  assert.match(footer, /settings\.contact_email/)
 })
 
 test("Sponsor logos render on a theme-neutral safe surface", () => {
