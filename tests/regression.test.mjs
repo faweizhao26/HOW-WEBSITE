@@ -183,14 +183,15 @@ test("Sponsor logos render on a theme-neutral safe surface", () => {
   assert.match(styles, /drop-shadow\(0 1px 1px rgb\(0 0 0 \/ 0\.45\)\)/)
 })
 
-test("Placeholder conference content is clearly labeled", () => {
+test("Unannounced content is honest without calling published content fictional", () => {
   const schedule = read("src/app/schedule/page.tsx")
   const chatbot = read("src/components/chatbot.tsx")
   const updates = read("src/app/updates/page.tsx")
 
-  assert.match(schedule, /Program details are provisional/)
-  assert.match(schedule, /议程内容为占位示例/)
-  assert.match(chatbot, /speaker lineup is still being confirmed/)
+  assert.match(schedule, /The program will be announced once confirmed/)
+  assert.match(schedule, /正式议程将在确认后公布/)
+  assert.match(chatbot, /The Speakers page lists announced speakers/)
+  assert.doesNotMatch(chatbot, /provisional agenda|占位信息|占位示例/)
   assert.doesNotMatch(chatbot, /IvorySQL, Supabase, Alibaba Cloud, AWS, GitLab, ByteDance/)
   assert.match(updates, /planning updates will appear here/i)
 })

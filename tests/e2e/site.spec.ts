@@ -6,6 +6,7 @@ const publicRoutes = [
   "/",
   "/about",
   "/schedule",
+  "/speakers",
   "/attend",
   "/sponsors",
   "/venue",
@@ -45,6 +46,22 @@ test.describe("official conference facts", () => {
     await page.goto("/")
     await expect(page.getByText("济南山东大厦（舜耕国际会议中心）")).toBeVisible()
   })
+})
+
+test.describe("published content in night mode", () => {
+  for (const route of ["/schedule", "/speakers", "/sponsors", "/updates"]) {
+    test(`${route} renders without overflow or runtime errors`, async ({ page }) => {
+      await page.context().addCookies([{ name: "theme", value: "dark", url: baseURL }])
+      const errors: string[] = []
+      page.on("pageerror", (error) => errors.push(error.message))
+      page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()) })
+      await page.goto(route)
+      await expect(page.locator("html")).toHaveClass(/dark/)
+      await expect(page.locator("main h1")).toBeVisible()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      expect(errors).toEqual([])
+    })
+  }
 })
 
 test.describe("light theme quality", () => {

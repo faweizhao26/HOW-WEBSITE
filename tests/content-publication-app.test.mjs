@@ -206,3 +206,18 @@ test("sponsor and news drafts publish through public projections", () => {
   assert.match(adminUpdates, /from\("news_posts"\)/)
   assert.doesNotMatch(adminUpdates, /insert\([^)]*published_at/s)
 })
+
+test("agenda uses complete releases and never displays production mock content", () => {
+  const adminAgenda = read("src/app/admin/agenda/page.tsx")
+  const schedule = read("src/app/schedule/page.tsx")
+  const chatbot = read("src/components/chatbot.tsx")
+  assert.match(adminAgenda, /publishAgenda\(/)
+  assert.match(adminAgenda, /agenda_releases/)
+  assert.match(adminAgenda, /kind="agenda-release"/)
+  assert.match(adminAgenda, /published_sessions/)
+  assert.match(schedule, /getPublishedAgenda\(\)/)
+  assert.match(schedule, /result\.status === "empty"/)
+  assert.match(schedule, /result\.status === "error"/)
+  assert.doesNotMatch(schedule, /mockSlots|mockProducers|from\("agenda_slots"\)/)
+  assert.doesNotMatch(chatbot, /provisional agenda|占位信息|占位示例/)
+})

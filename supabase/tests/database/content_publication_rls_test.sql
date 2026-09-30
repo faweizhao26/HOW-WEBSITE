@@ -4,7 +4,7 @@ create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 grant usage on schema extensions to anon, authenticated;
 grant execute on all functions in schema extensions to anon, authenticated;
-select plan(42);
+select plan(63);
 
 select has_table('public', 'speakers', 'speaker drafts exist');
 select has_table('public', 'published_speakers', 'public speaker projection exists');
@@ -191,6 +191,43 @@ select lives_ok($$select public.publish_news_post('50000000-0000-0000-0000-00000
 select is((select title from public.published_news_posts where id = '50000000-0000-0000-0000-000000000001'), 'Edited news', 'republish updates public news');
 select lives_ok($$select public.unpublish_news_post('50000000-0000-0000-0000-000000000001')$$, 'administrator can withdraw news');
 select is((select count(*) from public.published_news_posts where id = '50000000-0000-0000-0000-000000000001'), 0::bigint, 'withdrawn news is hidden');
+
+delete from public.agenda_slots;
+select throws_ok($$select public.publish_agenda()$$::text, 23514, null::text, 'empty agenda cannot publish'::text);
+insert into public.agenda_slots (id, date, start_time, end_time, label, type, session_id, room)
+values ('60000000-0000-0000-0000-000000000001', '2027-04-16', '09:00', '09:30', '', 'session', '20000000-0000-0000-0000-000000000001', 'Room A');
+select lives_ok($$select public.publish_agenda()$$, 'valid complete agenda can publish');
+create temporary table first_agenda as select id, payload from public.agenda_releases where is_current;
+select is((select count(*) from public.agenda_releases where is_current), 1::bigint, 'exactly one agenda release is current');
+select is((select payload->0->'session'->>'title' from first_agenda), 'Pending', 'agenda embeds the published session not its edited draft');
+select is((select payload->0->'session'->'speaker'->>'name' from first_agenda), 'Published test speaker', 'agenda embeds the published speaker');
+
+update public.agenda_slots set date = '2027-04-19';
+select throws_ok($$select public.publish_agenda()$$::text, 23514, null::text, 'dates outside conference range cannot publish'::text);
+select results_eq($$select id, payload from public.agenda_releases where is_current$$, $$select id, payload from first_agenda$$, 'invalid date preserves current release and payload');
+update public.agenda_slots set date = '2027-04-16', end_time = start_time;
+select throws_ok($$select public.publish_agenda()$$::text, 23514, null::text, 'nonpositive slot duration cannot publish'::text);
+select results_eq($$select id, payload from public.agenda_releases where is_current$$, $$select id, payload from first_agenda$$, 'invalid time preserves current release and payload');
+update public.agenda_slots set end_time = '09:30', type = 'break', session_id = null, label = '  ';
+select throws_ok($$select public.publish_agenda()$$::text, 23514, null::text, 'unbound slots require a nonblank label'::text);
+select results_eq($$select id, payload from public.agenda_releases where is_current$$, $$select id, payload from first_agenda$$, 'missing label preserves current release and payload');
+update public.agenda_slots set type = 'session';
+select throws_ok($$select public.publish_agenda()$$::text, 23514, null::text, 'session slots require a session reference'::text);
+update public.agenda_slots set session_id = '20000000-0000-0000-0000-000000000001';
+select throws_ok($$select public.unpublish_speaker('30000000-0000-0000-0000-000000000001')$$::text, 23503, null::text, 'published session prevents withdrawal of its speaker'::text);
+select public.unpublish_session('20000000-0000-0000-0000-000000000001');
+select public.unpublish_speaker('30000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.publish_agenda()$$::text, 23503, null::text, 'unpublished session and speaker cannot enter a new agenda'::text);
+select results_eq($$select id, payload from public.agenda_releases where is_current$$, $$select id, payload from first_agenda$$, 'withdrawn references leave the existing agenda snapshot intact');
+select public.publish_speaker('30000000-0000-0000-0000-000000000001');
+select public.publish_session('20000000-0000-0000-0000-000000000001');
+update public.agenda_slots set date = '2027-04-18', room = 'Room B';
+select lives_ok($$select public.publish_agenda()$$, 'revised complete agenda creates a new release');
+select results_eq($$select payload from public.agenda_releases where id = (select id from first_agenda)$$, $$select payload from first_agenda$$, 'historical agenda payload stays immutable');
+select lives_ok($$select public.rollback_agenda_release((select id from first_agenda))$$, 'administrator can roll back the agenda');
+select results_eq($$select id, payload from public.agenda_releases where is_current$$, $$select id, payload from first_agenda$$, 'rollback restores exactly the original release and payload');
+select throws_ok($$select public.rollback_agenda_release('ffffffff-ffff-ffff-ffff-ffffffffffff')$$::text, 'P0002'::char(5), null::text, 'unknown agenda rollback target is rejected'::text);
+select results_eq($$select id, payload from public.agenda_releases where is_current$$, $$select id, payload from first_agenda$$, 'failed rollback leaves exactly one unchanged current release');
 reset role;
 
 select * from finish();
