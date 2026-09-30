@@ -7,7 +7,6 @@ export function Countdown({ target, locale }: { target: string; locale: string }
   const [time, setTime] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null)
 
   useEffect(() => {
-    // Parse: "2027.4.26" or "2027-04-26" -> Date
     const raw = target || conference.startDate
     const nums = raw.split(/[.\-/]/).map(Number).filter(n => !isNaN(n))
     let targetMs = Date.UTC(2027, 3, 16)
@@ -42,9 +41,9 @@ export function Countdown({ target, locale }: { target: string; locale: string }
             <span className="text-3xl sm:text-4xl lg:text-5xl font-black tabular-nums bg-gradient-to-b from-zinc-950 to-zinc-700 dark:from-white dark:to-zinc-300 bg-clip-text text-transparent">
               {String(item.v).padStart(2, "0")}
             </span>
-            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-zinc-500 mt-1">{item.l}</span>
+            <span className="text-[10px] sm:text-xs uppercase text-zinc-600 dark:text-zinc-400 mt-1">{item.l}</span>
           </div>
-          {i < 3 && <span className="text-xl sm:text-2xl text-zinc-800 font-light self-start mt-1">:</span>}
+          {i < 3 && <span className="text-xl sm:text-2xl text-zinc-700 dark:text-zinc-400 font-light self-start mt-1">:</span>}
         </div>
       ))}
     </div>

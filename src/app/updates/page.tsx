@@ -12,7 +12,7 @@ export default async function UpdatesPage() {
   const posts = result.status === "ready" ? result.data : []
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+    <div data-content-state={result.status} className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <h1 className="mb-8 text-4xl font-bold text-zinc-950 dark:text-white">
         {locale === "zh" ? "会议动态" : "Conference Updates"}
       </h1>
@@ -41,7 +41,7 @@ export default async function UpdatesPage() {
                 </div>
               )}
               <CardHeader>
-                <div className="mb-2 flex items-center gap-2 text-sm text-zinc-500">
+                <div className="mb-2 flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                   <Calendar className="size-4" />
                   {new Date(post.published_at).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "long", day: "numeric" })}
                 </div>

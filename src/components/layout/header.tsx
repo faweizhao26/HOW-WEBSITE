@@ -5,6 +5,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import type { User } from "@supabase/supabase-js"
+import { watchAuthUser } from "@/lib/auth/watch-auth-user"
 import { Locale } from "@/lib/i18n/utils"
 import { navigation } from "@/lib/i18n/translations"
 import { LanguageSwitcher } from "./language-switcher"
@@ -27,42 +29,34 @@ const navLinks = [
 
 export function Header({ locale, initialTheme }: { locale: Locale; initialTheme: "dark" | "light" }) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const pathname = usePathname()
 
   useEffect(() => {
     if (isMockMode()) return
 
-    let cancelled = false
-
     try {
       const supabase = createClient()
-      supabase.auth.getUser().then(({ data }) => {
-        if (!cancelled) setUser(data.user)
-      }).catch(() => {})
+      return watchAuthUser(supabase.auth, setUser)
     } catch {}
-
-    return () => {
-      cancelled = true
-    }
   }, [])
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80 dark:shadow-none dark:backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap">
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
               HOW 2027
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden xl:flex items-center gap-1">
             {navLinks.map(({ href, key }) => (
               <Link
                 key={href}
                 href={href}
-                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                className={`whitespace-nowrap px-2 py-2 rounded-lg text-sm transition-colors ${
                   pathname === href
                     ? "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-white"
                     : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-white"
@@ -73,7 +67,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
             ))}
           </nav>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden xl:flex shrink-0 items-center gap-3">
             <ThemeToggle initialTheme={initialTheme} />
             <LanguageSwitcher locale={locale} />
             <Link href="/cfp">
@@ -89,7 +83,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
                   </Button>
                 </Link>
                 <form action="/auth/signout" method="post">
-                  <Button variant="ghost" size="sm" className="text-zinc-500">
+                  <Button type="submit" variant="ghost" size="sm" className="text-zinc-500">
                     {navigation.logout[locale]}
                   </Button>
                 </form>
@@ -104,7 +98,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
           </div>
 
           <button
-            className="md:hidden p-2 text-zinc-600 dark:text-zinc-400"
+            className="xl:hidden p-2 text-zinc-600 dark:text-zinc-400"
             aria-label={mobileOpen ? (locale === "zh" ? "关闭菜单" : "Close menu") : (locale === "zh" ? "打开菜单" : "Open menu")}
             onClick={() => setMobileOpen(!mobileOpen)}
           >
@@ -114,7 +108,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-zinc-200 bg-white md:hidden dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-zinc-200 bg-white xl:hidden dark:border-zinc-800 dark:bg-zinc-950">
           <div className="px-4 py-3 space-y-1">
             {navLinks.map(({ href, key }) => (
               <Link

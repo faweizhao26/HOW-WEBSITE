@@ -1,7 +1,7 @@
 "use client"
 import { isMockMode } from "@/lib/utils"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { admin as adminT } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
@@ -31,7 +31,7 @@ type PublishedSpeakerOption = {
   id: string
   name: string
   name_zh: string | null
-  publication_status: "published"
+  publication_status?: "published"
 }
 
 const mockPublishedSpeakers: PublishedSpeakerOption[] = [
@@ -65,41 +65,52 @@ function statusBadge(status: string, locale: "en" | "zh") {
   }
 }
 
+async function fetchSessionData() {
+  const supabase = createClient()
+  const [proposals, speakers] = await Promise.all([
+    supabase.from("sessions").select("*, profiles!sessions_user_id_fkey(full_name, company)").order("created_at", { ascending: false }),
+    supabase.from("published_speakers").select("id, name, name_zh").order("sort_order"),
+  ])
+  if (proposals.error) throw proposals.error
+  if (speakers.error) throw speakers.error
+  return { sessions: (proposals.data as unknown as SessionWithProfile[]) || [], speakers: (speakers.data as PublishedSpeakerOption[]) || [] }
+}
+
 export default function AdminSessionsPage() {
+  const mock = isMockMode()
   const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
-  const [sessions, setSessions] = useState<SessionWithProfile[]>([])
-  const [publishedSpeakers, setPublishedSpeakers] = useState<PublishedSpeakerOption[]>([])
-  const [loading, setLoading] = useState(true)
+  const [sessions, setSessions] = useState<SessionWithProfile[]>(() => mock ? mockSessions.map((session) => ({ ...session, speaker_id: session.status === "approved" ? "mock-speaker-1" : null, publication_status: "draft", published_at: null })) : [])
+  const [publishedSpeakers, setPublishedSpeakers] = useState<PublishedSpeakerOption[]>(() => mock ? mockPublishedSpeakers : [])
+  const [loading, setLoading] = useState(!mock)
+  const [loadError, setLoadError] = useState(false)
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending")
   const [search, setSearch] = useState("")
-  const [selectedSession, setSelectedSession] = useState<SessionWithProfile | null>(null)
   const [feedback, setFeedback] = useState("")
   const [uploading, setUploading] = useState(false)
 
-  useEffect(() => {
-    if (isMockMode()) {
-      setSessions(mockSessions.map((session) => session.status === "approved"
-        ? { ...session, speaker_id: "mock-speaker-1", publication_status: "draft", published_at: null }
-        : { ...session, speaker_id: null, publication_status: "draft", published_at: null }))
-      setPublishedSpeakers(mockPublishedSpeakers)
-      setLoading(false)
-      return
-    }
-    loadSessions()
-  }, [])
-
-  async function loadSessions() {
+  const loadSessions = useCallback(async () => {
+    if (mock) return
     try {
-      const supabase = createClient()
-      const [{ data }, { data: speakers }] = await Promise.all([
-        supabase.from("sessions").select("*, profiles(full_name, company)").order("created_at", { ascending: false }),
-        supabase.from("speakers").select("id, name, name_zh, publication_status").eq("publication_status", "published").order("sort_order"),
-      ])
-      setSessions((data as SessionWithProfile[]) || [])
-      setPublishedSpeakers((speakers as PublishedSpeakerOption[]) || [])
-    } catch {}
+      const data = await fetchSessionData()
+      setSessions(data.sessions)
+      setPublishedSpeakers(data.speakers)
+      setLoadError(false)
+    } catch {
+      setLoadError(true)
+      toast.error(locale === "zh" ? "议题加载失败" : "Unable to load proposals")
+    }
     setLoading(false)
-  }
+  }, [locale, mock])
+
+  useEffect(() => {
+    if (mock) return
+    let cancelled = false
+    fetchSessionData()
+      .then((data) => { if (!cancelled) { setSessions(data.sessions); setPublishedSpeakers(data.speakers) } })
+      .catch(() => { if (!cancelled) setLoadError(true) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [mock])
 
   async function updateStatus(id: string, status: string, feedbackText?: string) {
     if (isMockMode()) {
@@ -110,7 +121,6 @@ export default function AdminSessionsPage() {
         ...(status === "approved" ? {} : { speaker_id: null, publication_status: "draft", published_at: null }),
       } : s))
       toast.success(status === "approved" ? adminT.sessionApprovedMsg[locale] : adminT.sessionRejectedMsg[locale])
-      setSelectedSession(null)
       return
     }
     try {
@@ -127,8 +137,7 @@ export default function AdminSessionsPage() {
       if (error) throw error
       toast.success(status === "approved" ? adminT.sessionApprovedMsg[locale] : adminT.sessionRejectedMsg[locale])
       loadSessions()
-      setSelectedSession(null)
-    } catch (e: any) { toast.error(e.message) }
+    } catch { toast.error(locale === "zh" ? "操作失败，请稍后重试" : "Action failed. Please try again.") }
   }
 
   async function assignSpeaker(sessionId: string, speakerId: string) {
@@ -180,8 +189,6 @@ export default function AdminSessionsPage() {
     return statusMatch && searchMatch
   })
 
-  const mock = isMockMode()
-
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -197,7 +204,7 @@ export default function AdminSessionsPage() {
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
           <Input placeholder={adminT.searchProposals[locale]} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
+        <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
           <SelectTrigger className="w-32"><Filter className="h-4 w-4 mr-1" /><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{adminT.all[locale]}</SelectItem>
@@ -210,6 +217,8 @@ export default function AdminSessionsPage() {
 
       {loading ? (
         <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full bg-zinc-800" />)}</div>
+      ) : loadError ? (
+        <div role="alert" className="flex flex-wrap items-center gap-3 py-12 text-muted-foreground"><p>{locale === "zh" ? "议题暂时无法加载" : "Proposals are temporarily unavailable"}</p><Button variant="outline" onClick={loadSessions}>{locale === "zh" ? "重试" : "Retry"}</Button></div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-zinc-500"><p>{adminT.noSessions[locale]}</p></div>
       ) : (
@@ -240,7 +249,7 @@ export default function AdminSessionsPage() {
                       </div>
                     )}
 
-                    {session.status === "approved" && (
+                    {(session.status === "approved" || session.publication_status === "published") && (
                       <div className="mt-4 border-t border-zinc-800 pt-4">
                         <p className="mb-3 text-xs font-medium uppercase text-zinc-500">
                           {adminT.websitePublication[locale]}
@@ -267,16 +276,18 @@ export default function AdminSessionsPage() {
                               ))}
                             </SelectContent>
                           </Select>
-                          {session.speaker_id ? (
+                          {!mock && (session.speaker_id || session.publication_status === "published") && (
                             <PublicationActions
                               id={session.id}
                               locale={locale}
                               kind="session"
                               status={session.publication_status ?? "draft"}
+                              publishDisabled={!session.speaker_id || session.status !== "approved"}
                               hasPendingChanges={session.publication_status === "published" && Boolean(session.published_at && (session.updated_at ?? session.created_at) > session.published_at)}
                               onCompleted={loadSessions}
                             />
-                          ) : (
+                          )}
+                          {!session.speaker_id && (
                             <span className="text-sm text-zinc-500">{adminT.publishRequiresSpeaker[locale]}</span>
                           )}
                         </div>
@@ -291,10 +302,8 @@ export default function AdminSessionsPage() {
                           <CheckCircle className="h-4 w-4 mr-1" /> {adminT.approve[locale]}
                         </Button>
                         <Dialog>
-                          <DialogTrigger>
-                            <Button size="sm" variant="outline" className="border-red-800 text-red-400 hover:bg-red-950/50" onClick={() => { setSelectedSession(session); setFeedback("") }}>
+                          <DialogTrigger render={<Button size="sm" variant="outline" className="border-red-800 text-red-400 hover:bg-red-950/50" />} onClick={() => setFeedback("")}>
                               <XCircle className="h-4 w-4 mr-1" /> {adminT.reject[locale]}
-                            </Button>
                           </DialogTrigger>
                           <DialogContent className="bg-zinc-900 border-zinc-800">
                             <DialogHeader><DialogTitle>{adminT.rejectProposal[locale]}</DialogTitle></DialogHeader>
@@ -309,10 +318,8 @@ export default function AdminSessionsPage() {
                     )}
 
                     <Dialog>
-                      <DialogTrigger>
-                        <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-white" onClick={() => { setSelectedSession(session); setFeedback(session.admin_feedback || "") }}>
+                      <DialogTrigger render={<Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-white" />} onClick={() => setFeedback(session.admin_feedback || "")}>
                           <Eye className="h-4 w-4 mr-1" /> {adminT.detail[locale]}
-                        </Button>
                       </DialogTrigger>
                       <DialogContent className="bg-zinc-900 border-zinc-800 max-w-lg">
                         <DialogHeader><DialogTitle>{session.title}</DialogTitle></DialogHeader>
@@ -334,11 +341,11 @@ export default function AdminSessionsPage() {
                             <h4 className="text-sm font-medium text-zinc-300 mb-3">{adminT.sessionMaterials[locale]}</h4>
                             <div className="flex flex-wrap gap-3">
                               <label className="cursor-pointer">
-                                <input type="file" accept=".pdf,.ppt,.pptx,.key" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadMedia(session.id, f, "slides") }} />
+                                <input type="file" accept=".pdf,.ppt,.pptx,.key" disabled={uploading} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadMedia(session.id, f, "slides") }} />
                                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-700 text-sm text-zinc-300 hover:bg-zinc-800"><FileText className="h-4 w-4" /> {adminT.uploadPpt[locale]}</span>
                               </label>
                               <label className="cursor-pointer">
-                                <input type="file" accept="video/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadMedia(session.id, f, "video") }} />
+                                <input type="file" accept="video/*" disabled={uploading} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadMedia(session.id, f, "video") }} />
                                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-700 text-sm text-zinc-300 hover:bg-zinc-800"><Video className="h-4 w-4" /> {adminT.uploadVideo[locale]}</span>
                               </label>
                             </div>

@@ -1,6 +1,5 @@
 import { defineConfig, devices } from "@playwright/test"
 
-const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 const projectRoot = __dirname
 const externalBaseURL = process.env.PLAYWRIGHT_BASE_URL
 const baseURL = externalBaseURL || "http://127.0.0.1:3019"
@@ -16,7 +15,7 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    launchOptions: { executablePath: chromePath },
+    launchOptions: process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : undefined,
   },
   projects: [
     { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },

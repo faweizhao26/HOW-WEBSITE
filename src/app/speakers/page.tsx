@@ -11,7 +11,7 @@ export default async function SpeakersPage() {
   const result = await getPublishedSpeakers()
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-18">
+    <div data-content-state={result.status} className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-18">
       <div className="mb-10 max-w-2xl">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400"><Mic2 className="size-4" />HOW 2027</div>
         <h1 className="text-3xl font-bold sm:text-4xl">{locale === "zh" ? "大会讲者" : "Conference Speakers"}</h1>

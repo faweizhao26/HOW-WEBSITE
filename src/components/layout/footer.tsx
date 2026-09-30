@@ -24,31 +24,31 @@ export async function Footer({ locale }: { locale: Locale }) {
           <div>
             <h4 className="mb-3 text-sm font-medium text-zinc-900 dark:text-zinc-300">{locale === "zh" ? "导航" : "Navigate"}</h4>
             <div className="space-y-2">
-              <Link href="/about" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.about[locale]}</Link>
-              <Link href="/speakers" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.speakers[locale]}</Link>
-              <Link href="/schedule" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.schedule[locale]}</Link>
-              <Link href="/attend" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.attend[locale]}</Link>
-              <Link href="/sponsors" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.sponsors[locale]}</Link>
-              <Link href="/venue" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.venue[locale]}</Link>
+              <Link href="/about" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.about[locale]}</Link>
+              <Link href="/speakers" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.speakers[locale]}</Link>
+              <Link href="/schedule" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.schedule[locale]}</Link>
+              <Link href="/attend" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.attend[locale]}</Link>
+              <Link href="/sponsors" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.sponsors[locale]}</Link>
+              <Link href="/venue" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.venue[locale]}</Link>
             </div>
           </div>
           <div>
             <h4 className="mb-3 text-sm font-medium text-zinc-900 dark:text-zinc-300">{locale === "zh" ? "参与" : "Participate"}</h4>
             <div className="space-y-2">
-              <Link href="/register" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.register[locale]}</Link>
-              <Link href="/cfp" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.cfp[locale]}</Link>
-              <Link href="/code-of-conduct" className="block text-sm text-zinc-500 hover:text-zinc-300">{navigation.codeOfConduct[locale]}</Link>
+              <Link href="/register" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.register[locale]}</Link>
+              <Link href="/cfp" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.cfp[locale]}</Link>
+              <Link href="/code-of-conduct" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.codeOfConduct[locale]}</Link>
             </div>
           </div>
           <div>
             <h4 className="mb-3 text-sm font-medium text-zinc-900 dark:text-zinc-300">{locale === "zh" ? "联系" : "Contact"}</h4>
             <div className="space-y-2">
-              {settings ? <><a href={`mailto:${settings.contact_email}`} className="block break-all text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300">{settings.contact_email}</a><p className="break-words text-sm text-zinc-500">{locale === "zh" ? settings.conference_location_zh : settings.conference_location}</p></> : <p className="text-sm text-muted-foreground">{locale === "zh" ? "联系信息暂时无法加载" : "Contact information is temporarily unavailable"}</p>}
+              {settings ? <><a href={`mailto:${settings.contact_email}`} className="block break-all text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{settings.contact_email}</a><p className="break-words text-sm text-zinc-600 dark:text-zinc-400">{locale === "zh" ? settings.conference_location_zh : settings.conference_location}</p></> : <p className="text-sm text-muted-foreground">{locale === "zh" ? "联系信息暂时无法加载" : "Contact information is temporarily unavailable"}</p>}
             </div>
           </div>
         </div>
-        <div className="mt-10 border-t border-zinc-200 pt-6 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-600">
-          <div className="flex items-center justify-center gap-4">
+        <div className="mt-10 border-t border-zinc-200 pt-6 text-center text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <span>&copy; {new Date().getFullYear()} HOW 2027. All rights reserved.</span>
             <Link href="/privacy" className="hover:text-zinc-400 transition-colors">
               {locale === "zh" ? "隐私条款" : "Privacy Policy"}

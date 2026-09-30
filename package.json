@@ -8,6 +8,9 @@
     "start": "next start",
     "test": "node --test tests/*.test.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:ego": "node scripts/verify-ego.mjs",
+    "test:publication:api": "node scripts/verify-publication-api.mjs",
+    "test:db:concurrency": "node scripts/verify-publication-concurrency.mjs",
     "lint": "eslint"
   },
   "dependencies": {

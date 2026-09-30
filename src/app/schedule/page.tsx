@@ -114,7 +114,7 @@ export default async function SchedulePage() {
   const days = [...conference.days]
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+    <div data-content-state={result.status} className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <h1 className="mb-8 text-4xl font-bold">{sched.title[locale]}</h1>
       {result.status === "error" && <div className="border-y py-12 text-muted-foreground">{locale === "zh" ? "议程暂时无法加载，请稍后再试。" : "The program is temporarily unavailable. Please try again later."}</div>}
       {result.status === "empty" && <div className="border-y py-12 text-muted-foreground">{locale === "zh" ? "正式议程将在确认后公布。会议时间为 2027 年 4 月 16 日至 18 日。" : "The program will be announced once confirmed. The conference runs April 16-18, 2027."}</div>}

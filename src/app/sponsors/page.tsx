@@ -28,7 +28,7 @@ export default async function SponsorsPage() {
   const sponsors = result.status === "ready" ? result.data : []
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
+    <div data-content-state={result.status} className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
       <h1 className="mb-4 text-4xl font-bold text-zinc-950 dark:text-white">
         {locale === "zh" ? "赞助商" : "Sponsors"}
       </h1>

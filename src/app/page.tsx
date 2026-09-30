@@ -16,7 +16,7 @@ export default async function HomePage() {
   const cookieStore = await cookies()
   const locale = getLocale(cookieStore.get("lang")?.value)
   const result = await getPublishedSettings()
-  if (result.status === "error") return <div className="mx-auto min-h-[50vh] max-w-7xl px-4 py-16 sm:px-6 lg:px-8"><h1 className="mb-6 text-4xl font-bold">HOW 2027</h1><p className="text-muted-foreground">{locale === "zh" ? "大会信息暂时无法加载，请稍后再试。" : "Conference information is temporarily unavailable. Please try again later."}</p></div>
+  if (result.status === "error") return <div data-content-state="error" className="mx-auto min-h-[50vh] max-w-7xl px-4 py-16 sm:px-6 lg:px-8"><h1 className="mb-6 text-4xl font-bold">HOW 2027</h1><p className="text-muted-foreground">{locale === "zh" ? "大会信息暂时无法加载，请稍后再试。" : "Conference information is temporarily unavailable. Please try again later."}</p></div>
   const settings = result.status === "empty" ? defaultSiteSettings : result.data
 
   const heroTitle = settings.hero_title
@@ -36,7 +36,7 @@ export default async function HomePage() {
   ]
 
   return (
-    <div>
+    <div data-content-state={result.status}>
       <section className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden bg-slate-50 text-zinc-950 dark:bg-zinc-950 dark:text-white">
         <HeroMotion />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(248_250_252_/_0.88)_0%,rgb(248_250_252_/_0.6)_42%,rgb(248_250_252_/_0.12)_100%)] dark:bg-[linear-gradient(90deg,rgb(2_6_23_/_0.74)_0%,rgb(2_6_23_/_0.38)_42%,rgb(2_6_23_/_0.06)_100%)]" />
@@ -59,7 +59,7 @@ export default async function HomePage() {
             </p>
             <div className="flex flex-wrap gap-4">
               <Link href="/register">
-                <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2">
+                <Button size="lg" className="bg-emerald-700 hover:bg-emerald-800 text-white gap-2">
                   {home.registerNow[locale]} <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -94,7 +94,7 @@ export default async function HomePage() {
           <div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-6">{home.aboutTitle[locale]}</h2>
             <p className="text-zinc-700 dark:text-zinc-400 text-lg leading-relaxed mb-6">{home.aboutDesc[locale]}</p>
-            <p className="text-zinc-600 dark:text-zinc-500 leading-relaxed">
+            <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
               {locale === "zh"
                 ? "HOW 2027 将再次回到充满活力的济南，汇聚来自全球的 PostgreSQL 专家、开发者及社区成员。敬请关注大会日期、讲者及议程等更多详情，我们将继续打造难忘的会议体验。"
                 : "This premier open-source database event will return to the vibrant city of Jinan in 2027, bringing together PostgreSQL experts, developers, and community members from around the world."}
@@ -156,7 +156,7 @@ export default async function HomePage() {
           <h2 className="relative text-3xl font-bold mb-4">{home.ctaTitle[locale]}</h2>
           <p className="relative text-zinc-700 dark:text-zinc-400 mb-8 max-w-md mx-auto">{venueLine}</p>
           <Link href="/register">
-            <Button size="lg" className="relative bg-emerald-600 hover:bg-emerald-500">{home.registerNow[locale]}</Button>
+            <Button size="lg" className="relative bg-emerald-700 hover:bg-emerald-800 text-white">{home.registerNow[locale]}</Button>
           </Link>
         </div>
       </section>

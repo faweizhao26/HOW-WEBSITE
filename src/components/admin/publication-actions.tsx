@@ -40,6 +40,7 @@ type PublicationActionsProps = {
   kind: ItemKind | ReleaseKind
   status?: "draft" | "published"
   hasPendingChanges?: boolean
+  publishDisabled?: boolean
   onCompleted?: () => void
 }
 
@@ -63,6 +64,7 @@ export function PublicationActions({
   kind,
   status = "draft",
   hasPendingChanges = false,
+  publishDisabled = false,
   onCompleted,
 }: PublicationActionsProps) {
   const [isPending, startTransition] = useTransition()
@@ -106,7 +108,7 @@ export function PublicationActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {!isRelease && (
-        <Button size="sm" onClick={publish} disabled={isPending}>
+        <Button size="sm" onClick={publish} disabled={isPending || publishDisabled}>
           {status === "published" ? <RefreshCw /> : <Send />}
           {status === "published"
             ? (locale === "zh" ? (hasPendingChanges ? "发布更改" : "重新发布") : (hasPendingChanges ? "Publish changes" : "Republish"))

@@ -117,7 +117,7 @@ CREATE TABLE public.published_news_posts (
 );
 
 CREATE TABLE public.agenda_releases (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),
   version BIGINT NOT NULL UNIQUE,
   payload JSONB NOT NULL,
   is_current BOOLEAN NOT NULL DEFAULT false,
@@ -130,7 +130,7 @@ CREATE UNIQUE INDEX agenda_releases_one_current
   WHERE is_current;
 
 CREATE TABLE public.site_settings_releases (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),
   version BIGINT NOT NULL UNIQUE,
   payload JSONB NOT NULL,
   is_current BOOLEAN NOT NULL DEFAULT false,
@@ -239,6 +239,22 @@ CREATE POLICY "Admins can view all profiles" ON public.profiles
   FOR SELECT TO authenticated
   USING ((SELECT private.is_admin()));
 
+-- Account roles are managed by trusted database operators, never profile edits.
+REVOKE UPDATE ON public.profiles FROM PUBLIC, anon, authenticated;
+REVOKE UPDATE (role) ON public.profiles FROM PUBLIC, anon, authenticated;
+GRANT UPDATE (full_name, company, bio, bio_zh, avatar_url, phone, wechat) ON public.profiles TO authenticated;
+
+DROP POLICY IF EXISTS "Admins can manage ticket types" ON public.ticket_types;
+CREATE POLICY "Admins can manage ticket types" ON public.ticket_types
+  FOR ALL TO authenticated
+  USING ((SELECT private.is_admin()))
+  WITH CHECK ((SELECT private.is_admin()));
+DROP POLICY IF EXISTS "Admins can manage channel codes" ON public.channel_codes;
+CREATE POLICY "Admins can manage channel codes" ON public.channel_codes
+  FOR ALL TO authenticated
+  USING ((SELECT private.is_admin()))
+  WITH CHECK ((SELECT private.is_admin()));
+
 CREATE POLICY "Admins can manage agenda slots" ON public.agenda_slots
   FOR ALL TO authenticated
   USING ((SELECT private.is_admin()))
@@ -271,56 +287,38 @@ ALTER TABLE public.site_settings_releases ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Published speakers are public" ON public.published_speakers
   FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY "Admins can manage published speakers" ON public.published_speakers
-  FOR ALL TO authenticated
-  USING ((SELECT private.is_admin()))
-  WITH CHECK ((SELECT private.is_admin()));
 
 CREATE POLICY "Published sessions are public" ON public.published_sessions
   FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY "Admins can manage published sessions" ON public.published_sessions
-  FOR ALL TO authenticated
-  USING ((SELECT private.is_admin()))
-  WITH CHECK ((SELECT private.is_admin()));
 
 CREATE POLICY "Published sponsors are public" ON public.published_sponsors
   FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY "Admins can manage published sponsors" ON public.published_sponsors
-  FOR ALL TO authenticated
-  USING ((SELECT private.is_admin()))
-  WITH CHECK ((SELECT private.is_admin()));
 
 CREATE POLICY "Published news posts are public" ON public.published_news_posts
   FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY "Admins can manage published news posts" ON public.published_news_posts
-  FOR ALL TO authenticated
-  USING ((SELECT private.is_admin()))
-  WITH CHECK ((SELECT private.is_admin()));
 
 CREATE POLICY "Current agenda release is public" ON public.agenda_releases
   FOR SELECT TO anon, authenticated USING (is_current);
-CREATE POLICY "Admins can manage agenda releases" ON public.agenda_releases
-  FOR ALL TO authenticated
-  USING ((SELECT private.is_admin()))
-  WITH CHECK ((SELECT private.is_admin()));
+CREATE POLICY "Admins can view agenda release history" ON public.agenda_releases
+  FOR SELECT TO authenticated
+  USING ((SELECT private.is_admin()));
 
 CREATE POLICY "Current settings release is public" ON public.site_settings_releases
   FOR SELECT TO anon, authenticated USING (is_current);
-CREATE POLICY "Admins can manage settings releases" ON public.site_settings_releases
-  FOR ALL TO authenticated
-  USING ((SELECT private.is_admin()))
-  WITH CHECK ((SELECT private.is_admin()));
+CREATE POLICY "Admins can view settings release history" ON public.site_settings_releases
+  FOR SELECT TO authenticated
+  USING ((SELECT private.is_admin()));
 
 REVOKE SELECT ON public.profiles FROM anon;
 REVOKE ALL ON public.sessions, public.agenda_slots, public.speakers, public.sponsors, public.news_posts, public.site_settings FROM anon;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.speakers TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.published_speakers TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.published_sessions TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.published_sponsors TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.published_news_posts TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.agenda_releases TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.site_settings_releases TO authenticated;
+REVOKE ALL ON public.published_speakers FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.published_sessions FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.published_sponsors FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.published_news_posts FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.agenda_releases FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.site_settings_releases FROM PUBLIC, anon, authenticated;
 
 GRANT SELECT ON public.published_speakers TO anon, authenticated;
 GRANT SELECT ON public.published_sessions TO anon, authenticated;
@@ -329,11 +327,68 @@ GRANT SELECT ON public.published_news_posts TO anon, authenticated;
 GRANT SELECT ON public.agenda_releases TO anon, authenticated;
 GRANT SELECT ON public.site_settings_releases TO anon, authenticated;
 
-CREATE OR REPLACE FUNCTION public.publish_speaker(p_speaker_id UUID)
-RETURNS UUID
+-- One dependency-ordered lock set for every publication and rollback.
+-- SHARE ROW EXCLUSIVE blocks draft DML and serialises publishers without blocking readers.
+CREATE OR REPLACE FUNCTION private.lock_publication_tables()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF NOT private.is_admin() THEN
+    RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
+  END IF;
+  LOCK TABLE
+    public.profiles, public.speakers, public.sessions, public.agenda_slots,
+    public.sponsors, public.news_posts, public.site_settings,
+    public.published_speakers, public.published_sessions,
+    public.published_sponsors, public.published_news_posts,
+    public.agenda_releases, public.site_settings_releases
+  IN SHARE ROW EXCLUSIVE MODE;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.lock_publication_tables() FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION private.validated_site_settings_payload()
+RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY INVOKER
-SET search_path = public, private
+SET search_path = ''
+AS $$
+DECLARE
+  v_required_count INT;
+  v_payload JSONB;
+BEGIN
+  SELECT COUNT(DISTINCT key) INTO v_required_count
+  FROM public.site_settings
+  WHERE key IN (
+    'conference_name', 'conference_date', 'conference_location',
+    'conference_location_zh', 'contact_email', 'hero_title',
+    'hero_title_zh', 'hero_subtitle', 'hero_subtitle_zh'
+  ) AND btrim(value) <> '';
+  IF v_required_count <> 9 THEN
+    RAISE EXCEPTION 'required site settings are missing' USING ERRCODE = '23514';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.site_settings
+    WHERE key = 'conference_date' AND value ~ '^2027([.-])4([.-])16-4([.-])18$'
+  ) THEN
+    RAISE EXCEPTION 'conference_date must describe 2027-04-16 through 2027-04-18' USING ERRCODE = '23514';
+  END IF;
+  SELECT jsonb_object_agg(key, value ORDER BY key) INTO v_payload FROM public.site_settings;
+  RETURN v_payload;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.validated_site_settings_payload() FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION private.publish_speaker(p_speaker_id UUID)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 DECLARE
   v_speaker public.speakers%ROWTYPE;
@@ -342,6 +397,7 @@ BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
 
   SELECT * INTO STRICT v_speaker FROM public.speakers WHERE id = p_speaker_id;
   INSERT INTO public.published_speakers (
@@ -373,16 +429,17 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.unpublish_speaker(p_speaker_id UUID)
+CREATE OR REPLACE FUNCTION private.unpublish_speaker(p_speaker_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   IF EXISTS (SELECT 1 FROM public.published_sessions WHERE speaker_id = p_speaker_id) THEN
     RAISE EXCEPTION 'unpublish dependent sessions first' USING ERRCODE = '23503';
   END IF;
@@ -394,11 +451,11 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.publish_session(p_session_id UUID)
+CREATE OR REPLACE FUNCTION private.publish_session(p_session_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 DECLARE
   v_session public.sessions%ROWTYPE;
@@ -407,6 +464,7 @@ BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   SELECT * INTO STRICT v_session FROM public.sessions WHERE id = p_session_id;
   IF v_session.status <> 'approved' THEN
     RAISE EXCEPTION 'session must be approved before publication' USING ERRCODE = '23514';
@@ -444,16 +502,17 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.unpublish_session(p_session_id UUID)
+CREATE OR REPLACE FUNCTION private.unpublish_session(p_session_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   DELETE FROM public.published_sessions WHERE id = p_session_id;
   UPDATE public.sessions
   SET publication_status = 'draft', published_at = NULL, published_by = NULL
@@ -462,11 +521,11 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.publish_sponsor(p_sponsor_id UUID)
+CREATE OR REPLACE FUNCTION private.publish_sponsor(p_sponsor_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 DECLARE
   v_sponsor public.sponsors%ROWTYPE;
@@ -475,6 +534,7 @@ BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   SELECT * INTO STRICT v_sponsor FROM public.sponsors WHERE id = p_sponsor_id;
   INSERT INTO public.published_sponsors (
     id, name, logo_url, tier, website_url, sort_order, published_at
@@ -496,16 +556,17 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.unpublish_sponsor(p_sponsor_id UUID)
+CREATE OR REPLACE FUNCTION private.unpublish_sponsor(p_sponsor_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   DELETE FROM public.published_sponsors WHERE id = p_sponsor_id;
   UPDATE public.sponsors
   SET publication_status = 'draft', published_at = NULL, published_by = NULL
@@ -514,14 +575,14 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.publish_news_post(
+CREATE OR REPLACE FUNCTION private.publish_news_post(
   p_post_id UUID,
   p_published_at TIMESTAMPTZ DEFAULT NULL
 )
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 DECLARE
   v_post public.news_posts%ROWTYPE;
@@ -530,6 +591,7 @@ BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   SELECT * INTO STRICT v_post FROM public.news_posts WHERE id = p_post_id;
   v_time := COALESCE(p_published_at, v_post.published_at, now());
   INSERT INTO public.published_news_posts (
@@ -552,16 +614,17 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.unpublish_news_post(p_post_id UUID)
+CREATE OR REPLACE FUNCTION private.unpublish_news_post(p_post_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   DELETE FROM public.published_news_posts WHERE id = p_post_id;
   UPDATE public.news_posts
   SET publication_status = 'draft', published_at = NULL, published_by = NULL
@@ -570,20 +633,21 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.publish_agenda()
+CREATE OR REPLACE FUNCTION private.publish_agenda()
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 DECLARE
-  v_release_id UUID := uuid_generate_v4();
+  v_release_id UUID := pg_catalog.gen_random_uuid();
   v_version BIGINT;
   v_payload JSONB;
 BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   IF NOT EXISTS (SELECT 1 FROM public.agenda_slots) THEN
     RAISE EXCEPTION 'agenda has no slots' USING ERRCODE = '23514';
   END IF;
@@ -668,16 +732,17 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.rollback_agenda_release(p_release_id UUID)
+CREATE OR REPLACE FUNCTION private.rollback_agenda_release(p_release_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   IF NOT EXISTS (SELECT 1 FROM public.agenda_releases WHERE id = p_release_id) THEN
     RAISE EXCEPTION 'agenda release not found' USING ERRCODE = 'P0002';
   END IF;
@@ -687,38 +752,22 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.publish_site_settings()
+CREATE OR REPLACE FUNCTION private.publish_site_settings()
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 DECLARE
-  v_release_id UUID := uuid_generate_v4();
+  v_release_id UUID := pg_catalog.gen_random_uuid();
   v_version BIGINT;
   v_payload JSONB;
-  v_required_count INT;
 BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
-  SELECT COUNT(DISTINCT key) INTO v_required_count
-  FROM public.site_settings
-  WHERE key IN (
-    'conference_name', 'conference_date', 'conference_location',
-    'conference_location_zh', 'contact_email', 'hero_title',
-    'hero_title_zh', 'hero_subtitle', 'hero_subtitle_zh'
-  ) AND btrim(value) <> '';
-  IF v_required_count <> 9 THEN
-    RAISE EXCEPTION 'required site settings are missing' USING ERRCODE = '23514';
-  END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM public.site_settings
-    WHERE key = 'conference_date' AND value ~ '^2027([.-])4([.-])16-4([.-])18$'
-  ) THEN
-    RAISE EXCEPTION 'conference_date must describe 2027-04-16 through 2027-04-18' USING ERRCODE = '23514';
-  END IF;
-  SELECT jsonb_object_agg(key, value ORDER BY key) INTO v_payload FROM public.site_settings;
+  PERFORM private.lock_publication_tables();
+  v_payload := private.validated_site_settings_payload();
   SELECT COALESCE(MAX(version), 0) + 1 INTO v_version FROM public.site_settings_releases;
   UPDATE public.site_settings_releases SET is_current = false WHERE is_current;
   INSERT INTO public.site_settings_releases (id, version, payload, is_current, published_by)
@@ -727,16 +776,17 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.rollback_site_settings_release(p_release_id UUID)
+CREATE OR REPLACE FUNCTION private.rollback_site_settings_release(p_release_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, private
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   IF NOT private.is_admin() THEN
     RAISE EXCEPTION 'administrator access required' USING ERRCODE = '42501';
   END IF;
+  PERFORM private.lock_publication_tables();
   IF NOT EXISTS (SELECT 1 FROM public.site_settings_releases WHERE id = p_release_id) THEN
     RAISE EXCEPTION 'settings release not found' USING ERRCODE = 'P0002';
   END IF;
@@ -745,6 +795,142 @@ BEGIN
   RETURN p_release_id;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION public.publish_speaker(p_speaker_id UUID)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.publish_speaker(p_speaker_id);
+$$;
+
+CREATE OR REPLACE FUNCTION public.unpublish_speaker(p_speaker_id UUID)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.unpublish_speaker(p_speaker_id);
+$$;
+
+CREATE OR REPLACE FUNCTION public.publish_session(p_session_id UUID)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.publish_session(p_session_id);
+$$;
+
+CREATE OR REPLACE FUNCTION public.unpublish_session(p_session_id UUID)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.unpublish_session(p_session_id);
+$$;
+
+CREATE OR REPLACE FUNCTION public.publish_sponsor(p_sponsor_id UUID)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.publish_sponsor(p_sponsor_id);
+$$;
+
+CREATE OR REPLACE FUNCTION public.unpublish_sponsor(p_sponsor_id UUID)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.unpublish_sponsor(p_sponsor_id);
+$$;
+
+CREATE OR REPLACE FUNCTION public.publish_news_post(
+  p_post_id UUID,
+  p_published_at TIMESTAMPTZ DEFAULT NULL
+)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.publish_news_post(p_post_id, p_published_at);
+$$;
+
+CREATE OR REPLACE FUNCTION public.unpublish_news_post(p_post_id UUID)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.unpublish_news_post(p_post_id);
+$$;
+
+CREATE OR REPLACE FUNCTION public.publish_agenda()
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.publish_agenda();
+$$;
+
+CREATE OR REPLACE FUNCTION public.rollback_agenda_release(p_release_id UUID)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.rollback_agenda_release(p_release_id);
+$$;
+
+CREATE OR REPLACE FUNCTION public.publish_site_settings()
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.publish_site_settings();
+$$;
+
+CREATE OR REPLACE FUNCTION public.rollback_site_settings_release(p_release_id UUID)
+RETURNS UUID
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT private.rollback_site_settings_release(p_release_id);
+$$;
+
+REVOKE ALL ON FUNCTION private.publish_speaker(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.publish_speaker(UUID) TO authenticated;
+REVOKE ALL ON FUNCTION private.unpublish_speaker(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.unpublish_speaker(UUID) TO authenticated;
+REVOKE ALL ON FUNCTION private.publish_session(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.publish_session(UUID) TO authenticated;
+REVOKE ALL ON FUNCTION private.unpublish_session(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.unpublish_session(UUID) TO authenticated;
+REVOKE ALL ON FUNCTION private.publish_sponsor(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.publish_sponsor(UUID) TO authenticated;
+REVOKE ALL ON FUNCTION private.unpublish_sponsor(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.unpublish_sponsor(UUID) TO authenticated;
+REVOKE ALL ON FUNCTION private.publish_news_post(UUID, TIMESTAMPTZ) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.publish_news_post(UUID, TIMESTAMPTZ) TO authenticated;
+REVOKE ALL ON FUNCTION private.unpublish_news_post(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.unpublish_news_post(UUID) TO authenticated;
+REVOKE ALL ON FUNCTION private.publish_agenda() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.publish_agenda() TO authenticated;
+REVOKE ALL ON FUNCTION private.rollback_agenda_release(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.rollback_agenda_release(UUID) TO authenticated;
+REVOKE ALL ON FUNCTION private.publish_site_settings() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.publish_site_settings() TO authenticated;
+REVOKE ALL ON FUNCTION private.rollback_site_settings_release(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.rollback_site_settings_release(UUID) TO authenticated;
 
 REVOKE ALL ON FUNCTION public.publish_speaker(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.unpublish_speaker(UUID) FROM PUBLIC, anon;
@@ -800,8 +986,13 @@ INSERT INTO public.site_settings (key, value) VALUES
   ('hero_title_zh', '开源互联世界'),
   ('hero_subtitle', 'HOW2027: PostgreSQL Eco Conference'),
   ('hero_subtitle_zh', 'HOW2027：PostgreSQL 生态大会')
-ON CONFLICT (key) DO NOTHING;
+ON CONFLICT (key) DO UPDATE SET
+  value = CASE
+    WHEN EXCLUDED.key = 'conference_date' THEN EXCLUDED.value
+    ELSE COALESCE(NULLIF(btrim(public.site_settings.value), ''), EXCLUDED.value)
+  END
+WHERE btrim(public.site_settings.value) = ''
+   OR (EXCLUDED.key = 'conference_date' AND public.site_settings.value IS DISTINCT FROM EXCLUDED.value);
 
 INSERT INTO public.site_settings_releases (version, payload, is_current)
-SELECT 1, jsonb_object_agg(key, value ORDER BY key), true
-FROM public.site_settings;
+SELECT 1, private.validated_site_settings_payload(), true;

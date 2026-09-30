@@ -42,6 +42,7 @@ test("Header has working sign-out routes for desktop and mobile", () => {
 
   const header = read("src/components/layout/header.tsx")
   assert.match(header, /action="\/auth\/signout"/)
+  assert.match(header, /<form action="\/auth\/signout" method="post">\s*<Button type="submit"/)
   assert.doesNotMatch(header, /href="#"\s+onClick=\{\(\) => \{\}\}/)
 })
 

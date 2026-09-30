@@ -439,15 +439,15 @@ git commit -m "Publish site settings as releases"
 - Consumes every public reader, publication action, and admin workflow from Tasks 1-7.
 - Produces a verified branch ready for explicit production migration/deployment approval.
 
-- [ ] **Step 1: Write the authenticated publication journey**
+- [x] **Step 1: Write the authenticated publication journey**
 
 With test Supabase credentials, cover: create draft speaker, verify hidden, publish, verify visible, edit draft, verify old public copy, republish, publish session, publish agenda, publish settings, then roll back agenda/settings. Use unique test identifiers and clean up only records created by the test.
 
-- [ ] **Step 2: Extend public visual and runtime coverage**
+- [x] **Step 2: Extend public visual and runtime coverage**
 
 Include `/speakers`, empty/error states, published schedule, sponsors, updates, and homepage in both themes and desktop/mobile projects. Assert no horizontal overflow, low-contrast text, hydration errors, or browser console errors.
 
-- [ ] **Step 3: Run the complete verification suite**
+- [x] **Step 3: Run the complete verification suite**
 
 Run: `supabase db reset`
 
@@ -461,17 +461,22 @@ Run: `npm run build`
 
 Run: `npm run test:e2e`
 
+Local verification uses the authenticated ego-lite click journey and
+`npm run test:e2e:ego` in place of launching Playwright, following the user's
+explicit browser preference. The optional Playwright CI runner was not run
+locally. See `2026-09-30-content-publication-verification.md` for results.
+
 Expected: all tests and build pass; lint has zero errors and no new warnings in touched files.
 
-- [ ] **Step 4: Inspect the rendered site**
+- [x] **Step 4: Inspect the rendered site**
 
 Start the production build locally on an unused port. Capture desktop and mobile screenshots in Chinese and English, light and dark themes. Check speaker images, sponsor logos, schedule grids, publication badges, dialogs, and empty/error states for overlap or unreadable text.
 
-- [ ] **Step 5: Review migration and deployment boundary**
+- [x] **Step 5: Review migration and deployment boundary**
 
 Confirm `git diff`, migration list, database advisors, no secrets, and production mock mode disabled. Do not apply the production migration, push, or deploy without the user's fresh explicit confirmation after visual review.
 
-- [ ] **Step 6: Commit final verification changes**
+- [x] **Step 6: Commit final verification changes**
 
 ```bash
 git add tests README.md .env.example

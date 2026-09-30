@@ -161,7 +161,11 @@ test("session review remains separate from website publication", () => {
   const dashboard = read("src/app/admin/page.tsx")
   const adminLayout = read("src/app/admin/layout.tsx")
 
-  assert.match(adminSessions, /from\("speakers"\)/)
+  assert.match(adminSessions, /from\("published_speakers"\)/)
+  assert.match(adminSessions, /profiles!sessions_user_id_fkey/)
+  assert.match(adminSessions, /if \(proposals.error\) throw proposals.error/)
+  assert.match(adminSessions, /session.speaker_id \|\| session.publication_status === "published"/)
+  assert.match(adminSessions, /publishDisabled=\{!session.speaker_id/)
   assert.match(adminSessions, /publication_status.*published|published.*publication_status/s)
   assert.match(adminSessions, /speaker_id/)
   assert.match(adminSessions, /PublicationBadge/)
