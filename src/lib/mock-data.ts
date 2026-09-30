@@ -1,3 +1,5 @@
+import type { NewsPost, PublishedNewsPost, PublishedSponsor, Sponsor } from "@/lib/db/schema"
+
 // Enhanced mock data with abstracts and speaker bios
 
 const photo = (name: string) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=10b981&color=fff&size=128&bold=true`
@@ -173,12 +175,14 @@ function loadFromStorage<T>(key: string, fallback: T): T {
   return fallback
 }
 
-function saveToStorage(key: string, data: any) {
+function saveToStorage(key: string, data: unknown) {
   if (typeof window === "undefined") return
   try { localStorage.setItem(key, JSON.stringify(data)) } catch {}
 }
 
-const defaultSponsors = [
+const mockContentTimestamp = "2026-09-29T00:00:00.000Z"
+
+const sponsorSeeds = [
   { id: "msp1", name: "IvorySQL", logo_url: "", tier: "diamond", website_url: "https://ivorysql.org", sort_order: 1 },
   { id: "msp2", name: "HighGo Software", logo_url: "", tier: "diamond", website_url: "https://highgo.com", sort_order: 2 },
   { id: "msp3", name: "Supabase", logo_url: "", tier: "gold", website_url: "https://supabase.com", sort_order: 3 },
@@ -187,26 +191,44 @@ const defaultSponsors = [
   { id: "msp6", name: "ByteDance", logo_url: "", tier: "silver", website_url: "https://bytedance.com", sort_order: 6 },
   { id: "msp7", name: "NebulaGraph", logo_url: "", tier: "bronze", website_url: "https://nebula-graph.io", sort_order: 7 },
   { id: "msp8", name: "OceanBase", logo_url: "", tier: "bronze", website_url: "https://oceanbase.com", sort_order: 8 },
-]
+] as const
 
-let _sponsors: typeof defaultSponsors | null = null
+const defaultSponsors: Sponsor[] = sponsorSeeds.map((sponsor) => ({
+  ...sponsor,
+  publication_status: "published",
+  published_at: mockContentTimestamp,
+  published_by: null,
+  created_at: mockContentTimestamp,
+  updated_at: mockContentTimestamp,
+}))
 
-function getSponsorsInternal(): typeof defaultSponsors {
+let _sponsors: Sponsor[] | null = null
+
+function getSponsorsInternal(): Sponsor[] {
   if (typeof window !== "undefined") {
-    if (!_sponsors) _sponsors = loadFromStorage("how2027_sponsors", defaultSponsors)
+    if (!_sponsors) {
+      _sponsors = loadFromStorage<Sponsor[]>("how2027_sponsors", defaultSponsors).map((sponsor) => ({
+        ...sponsor,
+        publication_status: sponsor.publication_status ?? "published",
+        published_at: sponsor.published_at === undefined ? mockContentTimestamp : sponsor.published_at,
+        published_by: sponsor.published_by ?? null,
+        created_at: sponsor.created_at ?? mockContentTimestamp,
+        updated_at: sponsor.updated_at ?? mockContentTimestamp,
+      }))
+    }
     return _sponsors
   }
   return defaultSponsors
 }
 
 export function getSponsors() { return getSponsorsInternal() }
-export function setSponsors(s: typeof defaultSponsors) { _sponsors = s; saveToStorage("how2027_sponsors", s) }
-export function addSponsor(s: typeof defaultSponsors[0]) {
+export function setSponsors(s: Sponsor[]) { _sponsors = s; saveToStorage("how2027_sponsors", s) }
+export function addSponsor(s: Sponsor) {
   const current = getSponsorsInternal()
   _sponsors = [...current, s]
   saveToStorage("how2027_sponsors", _sponsors)
 }
-export function updateSponsor(id: string, data: Partial<typeof defaultSponsors[0]>) {
+export function updateSponsor(id: string, data: Partial<Sponsor>) {
   const current = getSponsorsInternal()
   _sponsors = current.map(s => s.id === id ? { ...s, ...data } : s)
   saveToStorage("how2027_sponsors", _sponsors)
@@ -217,24 +239,50 @@ export function removeSponsor(id: string) {
   saveToStorage("how2027_sponsors", _sponsors)
 }
 
-const defaultNews = [
+const newsSeeds = [
   { id: "mn1", title: "CFP is Now Open!", title_zh: "演讲征集现已开启！", content: "We are excited to announce that the Call for Proposals (CFP) for HOW 2027 is now open.", content_zh: "我们很高兴地宣布，HOW 2027 演讲征集现已开启。", published_at: "2026-11-01T00:00:00Z" },
   { id: "mn2", title: "Venue Announced: Jinan Shandong Hotel (Shungeng International Convention Center)", title_zh: "会场公布：济南山东大厦（舜耕国际会议中心）", content: "HOW 2027 will be held at Jinan Shandong Hotel (Shungeng International Convention Center).", content_zh: "HOW 2027 将在济南山东大厦（舜耕国际会议中心）举办。", published_at: "2026-12-15T00:00:00Z" },
   { id: "mn3", title: "Early Bird Registration Opens", title_zh: "早鸟票注册开启", content: "Early bird tickets for HOW 2027 are now available.", content_zh: "HOW 2027 早鸟票现已发售。", published_at: "2027-01-10T00:00:00Z" },
-]
+] as const
 
-let _news: typeof defaultNews | null = null
+const defaultNews: NewsPost[] = newsSeeds.map((post) => ({
+  ...post,
+  cover_url: null,
+  publication_status: "published",
+  published_by: null,
+  created_at: post.published_at,
+  updated_at: post.published_at,
+}))
 
-function getNewsInternal(): typeof defaultNews {
+let _news: NewsPost[] | null = null
+
+function getNewsInternal(): NewsPost[] {
   if (typeof window !== "undefined") {
-    if (!_news) _news = loadFromStorage("how2027_news", defaultNews)
+    if (!_news) {
+      _news = loadFromStorage<NewsPost[]>("how2027_news", defaultNews).map((post) => ({
+        ...post,
+        cover_url: post.cover_url ?? null,
+        publication_status: post.publication_status ?? "published",
+        published_by: post.published_by ?? null,
+        created_at: post.created_at ?? post.published_at ?? mockContentTimestamp,
+        updated_at: post.updated_at ?? post.published_at ?? mockContentTimestamp,
+      }))
+    }
     return _news
   }
   return defaultNews
 }
 
 export function getNews() { return getNewsInternal() }
-export function setNews(n: typeof defaultNews) { _news = n; saveToStorage("how2027_news", n) }
-export function addNews(n: typeof defaultNews[0]) { const c = getNewsInternal(); _news = [...c, n]; saveToStorage("how2027_news", _news) }
-export function updateNews(id: string, data: Partial<typeof defaultNews[0]>) { const c = getNewsInternal(); _news = c.map(n => n.id === id ? { ...n, ...data } : n); saveToStorage("how2027_news", _news) }
+export function setNews(n: NewsPost[]) { _news = n; saveToStorage("how2027_news", n) }
+export function addNews(n: NewsPost) { const c = getNewsInternal(); _news = [...c, n]; saveToStorage("how2027_news", _news) }
+export function updateNews(id: string, data: Partial<NewsPost>) { const c = getNewsInternal(); _news = c.map(n => n.id === id ? { ...n, ...data } : n); saveToStorage("how2027_news", _news) }
 export function removeNews(id: string) { const c = getNewsInternal(); _news = c.filter(n => n.id !== id); saveToStorage("how2027_news", _news) }
+
+export function getPublishedMockSponsors(): PublishedSponsor[] {
+  return sponsorSeeds.map((sponsor) => ({ ...sponsor, published_at: mockContentTimestamp }))
+}
+
+export function getPublishedMockNews(): PublishedNewsPost[] {
+  return newsSeeds.map((post) => ({ ...post, cover_url: null }))
+}

@@ -6,10 +6,11 @@ type PublicationBadgeProps = {
   publishedAt: string | null
   updatedAt: string
   locale: Locale
+  hasPendingChanges?: boolean
 }
 
-export function PublicationBadge({ status, publishedAt, updatedAt, locale }: PublicationBadgeProps) {
-  const hasPendingChanges = status === "published" && publishedAt !== null && updatedAt > publishedAt
+export function PublicationBadge({ status, publishedAt, updatedAt, locale, hasPendingChanges: pendingChanges }: PublicationBadgeProps) {
+  const hasPendingChanges = pendingChanges ?? (status === "published" && publishedAt !== null && updatedAt > publishedAt)
 
   if (hasPendingChanges) {
     return (

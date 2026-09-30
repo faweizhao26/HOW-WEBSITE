@@ -4,7 +4,7 @@ create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 grant usage on schema extensions to anon, authenticated;
 grant execute on all functions in schema extensions to anon, authenticated;
-select plan(27);
+select plan(42);
 
 select has_table('public', 'speakers', 'speaker drafts exist');
 select has_table('public', 'published_speakers', 'public speaker projection exists');
@@ -154,6 +154,43 @@ select results_eq(
   $$values ('Pending'::text)$$,
   'editing a published draft does not change the public projection'
 );
+
+insert into public.sponsors (id, name, logo_url, tier)
+values ('40000000-0000-0000-0000-000000000001', 'Original sponsor', 'https://example.com/logo.png', 'gold');
+select is((select count(*) from public.published_sponsors where id = '40000000-0000-0000-0000-000000000001'), 0::bigint, 'sponsor draft is hidden before publication');
+select lives_ok($$select public.publish_sponsor('40000000-0000-0000-0000-000000000001')$$, 'administrator can publish a sponsor');
+create temporary table sponsor_snapshot as
+select to_jsonb(s) as payload from public.published_sponsors s where id = '40000000-0000-0000-0000-000000000001';
+update public.sponsors set name = 'Edited sponsor', logo_url = 'https://example.com/new.png'
+where id = '40000000-0000-0000-0000-000000000001';
+select results_eq(
+  $$select to_jsonb(s) from public.published_sponsors s where id = '40000000-0000-0000-0000-000000000001'$$,
+  $$select payload from sponsor_snapshot$$,
+  'sponsor public snapshot stays byte-for-byte unchanged after draft edit'
+);
+select lives_ok($$select public.publish_sponsor('40000000-0000-0000-0000-000000000001')$$, 'administrator can republish a sponsor');
+select is((select name from public.published_sponsors where id = '40000000-0000-0000-0000-000000000001'), 'Edited sponsor', 'republish updates public sponsor');
+select lives_ok($$select public.unpublish_sponsor('40000000-0000-0000-0000-000000000001')$$, 'administrator can withdraw a sponsor');
+select is((select count(*) from public.published_sponsors where id = '40000000-0000-0000-0000-000000000001'), 0::bigint, 'withdrawn sponsor is hidden');
+
+insert into public.news_posts (id, title, content)
+values ('50000000-0000-0000-0000-000000000001', 'Original news', 'Original body');
+select is((select published_at from public.news_posts where id = '50000000-0000-0000-0000-000000000001'), null::timestamptz, 'news draft has no publication date');
+select is((select count(*) from public.published_news_posts where id = '50000000-0000-0000-0000-000000000001'), 0::bigint, 'news draft is hidden before publication');
+select lives_ok($$select public.publish_news_post('50000000-0000-0000-0000-000000000001')$$, 'administrator can publish news');
+create temporary table news_snapshot as
+select to_jsonb(n) as payload from public.published_news_posts n where id = '50000000-0000-0000-0000-000000000001';
+update public.news_posts set title = 'Edited news', content = 'Edited body'
+where id = '50000000-0000-0000-0000-000000000001';
+select results_eq(
+  $$select to_jsonb(n) from public.published_news_posts n where id = '50000000-0000-0000-0000-000000000001'$$,
+  $$select payload from news_snapshot$$,
+  'news public snapshot stays byte-for-byte unchanged after draft edit'
+);
+select lives_ok($$select public.publish_news_post('50000000-0000-0000-0000-000000000001')$$, 'administrator can republish news');
+select is((select title from public.published_news_posts where id = '50000000-0000-0000-0000-000000000001'), 'Edited news', 'republish updates public news');
+select lives_ok($$select public.unpublish_news_post('50000000-0000-0000-0000-000000000001')$$, 'administrator can withdraw news');
+select is((select count(*) from public.published_news_posts where id = '50000000-0000-0000-0000-000000000001'), 0::bigint, 'withdrawn news is hidden');
 reset role;
 
 select * from finish();

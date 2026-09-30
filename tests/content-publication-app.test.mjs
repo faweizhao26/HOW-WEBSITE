@@ -178,3 +178,31 @@ test("session review remains separate from website publication", () => {
   assert.match(adminLayout, /flex-col md:flex-row/)
   assert.match(adminLayout, /overflow-x-auto/)
 })
+
+test("sponsor and news drafts publish through public projections", () => {
+  const adminSponsors = read("src/app/admin/sponsors/page.tsx")
+  const adminUpdates = read("src/app/admin/updates/page.tsx")
+  const publicSponsors = read("src/app/sponsors/page.tsx")
+  const publicUpdates = read("src/app/updates/page.tsx")
+
+  for (const publicPage of [publicSponsors, publicUpdates]) {
+    assert.doesNotMatch(publicPage, /^['\"]use client['\"]/)
+    assert.doesNotMatch(publicPage, /createClient|localStorage|from\(["'](?:sponsors|news_posts)["']\)|getSponsors\(|getNews\(/)
+    assert.match(publicPage, /result\.status === "error"/)
+    assert.match(publicPage, /result\.status === "empty"/)
+  }
+
+  assert.match(publicSponsors, /getPublishedSponsors\(\)/)
+  assert.match(publicUpdates, /getPublishedNews\(\)/)
+
+  for (const adminPage of [adminSponsors, adminUpdates]) {
+    assert.match(adminPage, /PublicationBadge/)
+    assert.match(adminPage, /PublicationActions/)
+    assert.match(adminPage, /published_at/)
+    assert.match(adminPage, /updated_at/)
+  }
+
+  assert.match(adminSponsors, /from\("sponsors"\)/)
+  assert.match(adminUpdates, /from\("news_posts"\)/)
+  assert.doesNotMatch(adminUpdates, /insert\([^)]*published_at/s)
+})

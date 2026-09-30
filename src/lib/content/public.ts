@@ -10,7 +10,7 @@ import type {
   PublishedSponsor,
   PublicContentResult,
 } from "@/lib/content/types"
-import { getNews, getSponsors, mockSlots } from "@/lib/mock-data"
+import { getPublishedMockNews, getPublishedMockSponsors, mockSlots } from "@/lib/mock-data"
 import { createServerSupabase } from "@/lib/supabase/server"
 
 const CONTENT_UNAVAILABLE = "Published content is temporarily unavailable."
@@ -190,13 +190,7 @@ export async function getPublishedSessions(): Promise<PublicContentResult<Publis
 }
 
 export async function getPublishedSponsors(): Promise<PublicContentResult<PublishedSponsor[]>> {
-  if (getContentMode() === "mock") {
-    return listResult(getSponsors().map((sponsor): PublishedSponsor => ({
-      ...sponsor,
-      tier: sponsor.tier as PublishedSponsor["tier"],
-      published_at: MOCK_PUBLISHED_AT,
-    })))
-  }
+  if (getContentMode() === "mock") return listResult(getPublishedMockSponsors())
 
   try {
     const supabase = await createServerSupabase()
@@ -209,9 +203,7 @@ export async function getPublishedSponsors(): Promise<PublicContentResult<Publis
 }
 
 export async function getPublishedNews(): Promise<PublicContentResult<PublishedNewsPost[]>> {
-  if (getContentMode() === "mock") {
-    return listResult(getNews().map((post) => ({ ...post, cover_url: null })))
-  }
+  if (getContentMode() === "mock") return listResult(getPublishedMockNews())
 
   try {
     const supabase = await createServerSupabase()
