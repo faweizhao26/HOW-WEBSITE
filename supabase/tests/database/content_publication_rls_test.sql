@@ -72,10 +72,9 @@ select results_eq(
   $$values ('70000000-0000-0000-0000-000000000001'::uuid)$$,
   'anonymous ticket queries work and expose only active tickets'
 );
-select results_eq(
+select is_empty(
   $$select id from public.channel_codes where id in ('80000000-0000-0000-0000-000000000001', '80000000-0000-0000-0000-000000000002') order by id$$,
-  $$values ('80000000-0000-0000-0000-000000000001'::uuid)$$,
-  'anonymous channel queries work and expose only active codes'
+  'anonymous callers cannot enumerate invitation codes'
 );
 select lives_ok(
   $$select c.code, t.name from public.channel_codes c join public.ticket_types t on t.id = c.ticket_type_id where c.code = 'PUBLICATION-TEST-ACTIVE'$$,

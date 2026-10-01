@@ -157,7 +157,7 @@ test("speaker lifecycle is available in admin and public navigation", () => {
 test("session review remains separate from website publication", () => {
   const adminSessions = read("src/app/admin/sessions/page.tsx")
   const cfpPage = read("src/app/cfp/page.tsx")
-  const profilePage = read("src/app/profile/page.tsx")
+  const profilePage = read("src/app/profile/profile-content.tsx")
   const dashboard = read("src/app/admin/page.tsx")
   const adminLayout = read("src/app/admin/layout.tsx")
 

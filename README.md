@@ -27,14 +27,44 @@ Never add a service-role key to `NEXT_PUBLIC_*` variables.
 ## Database Setup
 
 For a new Supabase project, apply `supabase-schema.sql` once. For an existing
-project with the original schema, use
-`supabase/migrations/20260929000100_content_publication_workflow.sql` instead.
+project with the original schema, apply
+`supabase/migrations/20260929000100_content_publication_workflow.sql`, then
+`supabase/migrations/20261001051337_registration_security.sql` instead.
+Projects that already have the publication workflow need only the registration
+migration.
 Do not apply both paths to the same database. This migration is additive to
 the original schema; it is not a standalone bootstrap migration.
 
 Admin access comes from the trusted `profiles.role` column. Promote the intended
 account from a trusted database console, not through signup metadata. Ordinary
 accounts cannot change their own role.
+
+## Registration
+
+Registration uses the logged-in account's confirmed email and a Supabase Auth
+confirmed phone. The phone is normalized to E.164. Sending and confirming codes
+uses `updateUser({ phone })` and the `phone_change` OTP flow, not a separate phone
+login or a client-side code comparison.
+
+Before enabling registration in production, configure a supported SMS provider
+in Supabase Auth, enable the phone provider, and disable phone auto-confirmation.
+The server checks `/auth/v1/settings` before phone operations and new registration;
+missing providers, automatic confirmation, or unreadable settings fail closed.
+Auth configuration is essential: SQL cannot distinguish SMS verification from
+an Auth service that automatically confirms arbitrary phones. Never enable test
+OTP mappings in production. Actual SMS delivery still requires a real provider
+and a device delivery check; local test OTPs do not verify delivery.
+
+The database permits one registration per account, including cancelled records.
+Users cancel or restore that same record in their profile; they cannot change
+ticket, contact, ownership or check-in fields through the Data API. Admins retain
+management/check-in access. A cancelled ticket can only be restored while its
+ticket/invitation remains available; checked-in records require admin action.
+Existing records are preserved. If duplicates already exist, the migration
+stops without deleting them, and an administrator must resolve them first.
+
+Invitation codes are not publicly enumerable. Authenticated users can validate
+one exact code with `registration_channel_ticket`, which returns only a ticket id.
 
 ## Content Publishing
 
@@ -68,7 +98,7 @@ npm run build
 ```
 
 Database behavior tests are in
-`supabase/tests/database/content_publication_rls_test.sql`. Run them with
+`supabase/tests/database/`. Run them with
 `supabase test db` against an isolated migrated project. A PostgreSQL-only
 substitute needs the Supabase `anon`/`authenticated` roles, `auth.users`,
 `auth.uid()` and pgTAP; this validates SQL/RLS, not the full Auth/Data API stack.
@@ -114,6 +144,22 @@ settings draft and release are restored. Browser clicks still need a separate
 ego-lite verification; an API pass does not stand in for that check.
 Test-client logout uses local scope to preserve other sessions of the same
 test administrator, including the browser review session.
+
+Registration has a separate isolated Auth/Data API lifecycle check:
+
+```bash
+node --env-file=.env.local scripts/verify-registration-api.mjs
+```
+
+It uses the same `PUBLICATION_TEST_SUPABASE_*` credentials and isolated-project
+guard, but needs no existing admin login. Without `REGISTRATION_TEST_OTP`, it
+expects an unconfigured SMS service and verifies configuration rejection.
+For local Auth OTP testing only, configure a test phone/code mapping in the
+isolated GoTrue instance, then set `REGISTRATION_TEST_PHONE` and
+`REGISTRATION_TEST_OTP` to that mapping. The script checks OTP rejection/success,
+concurrent registration uniqueness, direct-write denial, cancel/restore and
+checked-in cancellation denial. Generated accounts, tickets and invitations
+are removed even on failure.
 
 ```bash
 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3018 npm run test:e2e

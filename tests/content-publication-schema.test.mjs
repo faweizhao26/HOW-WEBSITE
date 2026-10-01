@@ -16,7 +16,7 @@ function functionDefinition(sql, schema, name) {
 
 test("full schema embeds the exact publication migration", () => {
   const schema = read("supabase-schema.sql")
-  assert.equal(schema.split("-- --- Draft/public content publication workflow ---\n")[1], read(migrationPath))
+  assert.equal(schema.split("-- --- Draft/public content publication workflow ---\n")[1].split("\n-- --- Registration security ---\n")[0], read(migrationPath))
 })
 
 test("publication writes require guarded private helpers behind invoker RPCs", () => {
