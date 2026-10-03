@@ -8,10 +8,19 @@ const eslintConfig = defineConfig([
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
+  {
+    files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
+    rules: {
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/immutability": "warn",
       "react/no-unescaped-entities": "warn",
     },
+  },
+  {
+    files: ["tools/next-lint-glob/*.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([

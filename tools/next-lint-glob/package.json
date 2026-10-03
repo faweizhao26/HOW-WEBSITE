@@ -1,0 +1,10 @@
+{
+  "name": "next-lint-glob",
+  "version": "3.3.1",
+  "private": true,
+  "main": "index.cjs",
+  "license": "MIT",
+  "dependencies": {
+    "tinyglobby": "0.2.17"
+  }
+}

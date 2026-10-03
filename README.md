@@ -67,6 +67,11 @@ npm run lint
 npm run build
 ```
 
+The development lint dependency `fast-glob` is a private local adapter backed
+by tinyglobby, avoiding the vulnerable micromatch/braces dependency chain.
+See `tools/next-lint-glob/README.md` for its limited API and removal criteria.
+Keep that directory and the lockfile together; `npm ci` validates installation.
+
 Database behavior tests are in
 `supabase/tests/database/content_publication_rls_test.sql`. Run them with
 `supabase test db` against an isolated migrated project. A PostgreSQL-only
