@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import { Pencil, Plus, Star, Trash2 } from "lucide-react"
@@ -27,10 +29,6 @@ const tiers = [
   { value: "bronze", label: { en: "Bronze", zh: "铜牌" }, color: "bg-orange-700" },
 ] as const
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  return document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)?.[1] === "zh" ? "zh" : "en"
-}
 
 async function fetchSponsorRows() {
   const { data, error } = await createClient().from("sponsors").select("*").order("sort_order")
@@ -142,7 +140,7 @@ function SponsorForm({ sponsor, locale, onSaved }: { sponsor?: Sponsor; locale: 
 }
 
 export default function AdminSponsorsPage() {
-  const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
+  const locale = useLocale()
   const mockMode = isMockMode()
   const [sponsors, setSponsors] = useState<Sponsor[]>(() => mockMode ? getSponsors() : [])
   const [loading, setLoading] = useState(!mockMode)

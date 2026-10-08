@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { useLocale } from "@/lib/i18n/provider"
 
 export default function LoginPage() {
+  const locale = useLocale()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -27,7 +29,7 @@ export default function LoginPage() {
     if (error) {
       toast.error(error.message)
     } else {
-      toast.success("Logged in!")
+      toast.success(locale === "zh" ? "登录成功" : "Logged in!")
       router.push(redirect)
       router.refresh()
     }
@@ -37,13 +39,13 @@ export default function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <Card className="w-full max-w-md bg-zinc-900 border-zinc-800">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Sign In</CardTitle>
-          <CardDescription>登录 HOW 2027 账号</CardDescription>
+          <CardTitle className="text-2xl"><h1>{locale === "zh" ? "登录" : "Sign In"}</h1></CardTitle>
+          <CardDescription>{locale === "zh" ? "登录 HOW 2027 账号" : "Sign in to your HOW 2027 account"}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{locale === "zh" ? "邮箱" : "Email"}</Label>
               <Input
                 id="email"
                 type="email"
@@ -54,7 +56,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{locale === "zh" ? "密码" : "Password"}</Label>
               <Input
                 id="password"
                 type="password"
@@ -64,13 +66,13 @@ export default function LoginPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? (locale === "zh" ? "登录中..." : "Signing in...") : (locale === "zh" ? "登录" : "Sign In")}
             </Button>
           </form>
           <p className="text-center text-sm text-zinc-400 mt-4">
-            Don&apos;t have an account?{" "}
+            {locale === "zh" ? "还没有账号？" : "Don't have an account?"}{" "}
             <Link href="/auth/register" className="text-emerald-400 hover:text-emerald-300">
-              Register
+              {locale === "zh" ? "注册" : "Register"}
             </Link>
           </p>
         </CardContent>

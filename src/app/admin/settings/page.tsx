@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { useCallback, useEffect, useState, useTransition } from "react"
 import { Save, Send } from "lucide-react"
 import { toast } from "sonner"
@@ -14,16 +16,11 @@ import { conference } from "@/lib/conference"
 import { defaultSiteSettings, hasSettingsChanges, validateSettingsDraft } from "@/lib/content/settings"
 import type { SiteSettingsRelease } from "@/lib/db/schema"
 import { admin as adminT } from "@/lib/i18n/translations"
-import type { Locale } from "@/lib/i18n/utils"
 import { createClient } from "@/lib/supabase/client"
 import { isMockMode } from "@/lib/utils"
 
 type SettingsData = { draft: Record<string, string>; releases: SiteSettingsRelease[] }
 
-function getLocaleFromCookie(): Locale {
-  if (typeof document === "undefined") return "en"
-  return document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)?.[1] === "zh" ? "zh" : "en"
-}
 
 async function fetchSettings(): Promise<SettingsData> {
   const supabase = createClient()
@@ -37,7 +34,7 @@ async function fetchSettings(): Promise<SettingsData> {
 }
 
 export default function AdminSettingsPage() {
-  const [locale] = useState<Locale>(getLocaleFromCookie)
+  const locale = useLocale()
   const mockMode = isMockMode()
   const [data, setData] = useState<SettingsData>(() => ({ draft: mockMode ? { ...defaultSiteSettings } : {}, releases: [] }))
   const [settings, setSettings] = useState<Record<string, string>>(() => mockMode ? { ...defaultSiteSettings } : {})

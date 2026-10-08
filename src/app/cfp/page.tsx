@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -28,11 +30,6 @@ type Session = {
   created_at: string
 }
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  const match = document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)
-  return match?.[1] === "zh" ? "zh" : "en"
-}
 
 function statusBadge(status: string, locale: "en" | "zh") {
   switch (status) {
@@ -48,7 +45,7 @@ function statusBadge(status: string, locale: "en" | "zh") {
 }
 
 export default function CFPPage() {
-  const [locale, setLocale] = useState<"en" | "zh">("en")
+  const locale = useLocale()
   const [user, setUser] = useState<any>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,7 +63,6 @@ export default function CFPPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    setLocale(getLocaleFromCookie())
     loadData()
   }, [])
 
@@ -117,7 +113,7 @@ export default function CFPPage() {
   }
 
   if (loading) {
-    return <div className="max-w-3xl mx-auto px-4 py-16 text-center text-zinc-500">{common.loading[locale]}</div>
+    return <div className="max-w-3xl mx-auto px-4 py-16 text-center text-muted-foreground">{common.loading[locale]}</div>
   }
 
   if (!user) {
@@ -242,7 +238,7 @@ export default function CFPPage() {
 
         <TabsContent value="submissions">
           {sessions.length === 0 ? (
-            <div className="text-center py-16 text-zinc-500">
+            <div className="text-center py-16 text-muted-foreground">
               <p>{cfp.noSubmissions[locale]}</p>
             </div>
           ) : (
@@ -260,12 +256,12 @@ export default function CFPPage() {
                         </div>
                         <h3 className="font-medium text-white mb-1">{session.title}</h3>
                         {session.title_zh && (
-                          <p className="text-sm text-zinc-500 mb-2">{session.title_zh}</p>
+                          <p className="text-sm text-muted-foreground mb-2">{session.title_zh}</p>
                         )}
                         <p className="text-sm text-zinc-400 line-clamp-2">{session.abstract}</p>
                         {session.admin_feedback && (
                           <div className="mt-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                            <p className="text-xs text-zinc-500 mb-1">{cfp.pending[locale] === "Pending Review" ? "Admin Feedback" : "管理员反馈"}:</p>
+                            <p className="text-xs text-muted-foreground mb-1">{cfp.pending[locale] === "Pending Review" ? "Admin Feedback" : "管理员反馈"}:</p>
                             <p className="text-sm text-zinc-300">{session.admin_feedback}</p>
                           </div>
                         )}

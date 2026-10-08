@@ -1,73 +1,69 @@
 "use client"
+
+import { useLocale } from "@/lib/i18n/provider"
 import { isMockMode } from "@/lib/utils"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { admin as adminT } from "@/lib/i18n/translations"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mic, CheckCircle, Clock, Users, ArrowRight } from "lucide-react"
+import { AdminLoadError } from "@/components/admin/load-error"
+import { loadDashboardStats, type DashboardStats } from "@/lib/admin/data"
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  const match = document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)
-  return match?.[1] === "zh" ? "zh" : "en"
-}
 
 
 export default function AdminDashboard() {
-  const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
-  const [stats, setStats] = useState({
+  const locale = useLocale()
+  const [stats, setStats] = useState<DashboardStats | null>(isMockMode() ? {
     totalSessions: 14,
     pending: 10,
     approved: 3,
     rejected: 1,
     speakers: 8,
     agendaSlots: 48,
-  })
-  const [loading, setLoading] = useState(false)
+  } : null)
+  const [loading, setLoading] = useState(!isMockMode())
+  const [loadError, setLoadError] = useState(false)
 
-  useEffect(() => {
-    if (isMockMode()) { setLoading(false); return }
-    loadStats()
+  const loadStats = useCallback(async () => {
+    setLoading(true)
+    setLoadError(false)
+    try {
+      setStats(await loadDashboardStats(createClient()))
+    } catch {
+      setStats(null)
+      setLoadError(true)
+    } finally { setLoading(false) }
   }, [])
 
-  async function loadStats() {
-    setLoading(true)
-    try {
-      const supabase = createClient()
-      const { data: sessions } = await supabase.from("sessions").select("status")
-      const { count: speakerCount } = await supabase.from("speakers").select("*", { count: "exact", head: true })
-      const { count: slotCount } = await supabase.from("agenda_slots").select("*", { count: "exact", head: true })
-      if (sessions) {
-        setStats({
-          totalSessions: sessions.length,
-          pending: sessions.filter((s) => s.status === "pending").length,
-          approved: sessions.filter((s) => s.status === "approved").length,
-          rejected: sessions.filter((s) => s.status === "rejected").length,
-          speakers: speakerCount || 0,
-          agendaSlots: slotCount || 0,
-        })
-      }
-    } catch {}
-    setLoading(false)
-  }
+  useEffect(() => {
+    if (isMockMode()) return
+    let cancelled = false
+    loadDashboardStats(createClient())
+      .then(data => { if (!cancelled) setStats(data) })
+      .catch(() => { if (!cancelled) { setStats(null); setLoadError(true) } })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   const cards = [
-    { title: adminT.totalProposals[locale], value: stats.totalSessions, icon: Mic, color: "text-blue-400", href: "/admin/sessions" },
-    { title: adminT.pendingReview[locale], value: stats.pending, icon: Clock, color: "text-yellow-400", href: "/admin/sessions" },
-    { title: adminT.approved[locale], value: stats.approved, icon: CheckCircle, color: "text-emerald-400", href: "/admin/sessions" },
-    { title: adminT.speakers[locale], value: stats.speakers, icon: Users, color: "text-purple-400", href: "/admin/speakers" },
+    { title: adminT.totalProposals[locale], value: stats?.totalSessions, icon: Mic, color: "text-blue-400", href: "/admin/sessions" },
+    { title: adminT.pendingReview[locale], value: stats?.pending, icon: Clock, color: "text-yellow-400", href: "/admin/sessions" },
+    { title: adminT.approved[locale], value: stats?.approved, icon: CheckCircle, color: "text-emerald-400", href: "/admin/sessions" },
+    { title: adminT.speakers[locale], value: stats?.speakers, icon: Users, color: "text-purple-400", href: "/admin/speakers" },
   ]
 
   return (
     <div>
       <h1 className="text-2xl font-bold mb-2">{adminT.dashboard[locale]}</h1>
-      <p className="text-sm text-zinc-500 mb-8">
+      <p className="text-sm text-muted-foreground mb-8">
         {isMockMode() ? adminT.demoMode[locale] : adminT.overview[locale]}
       </p>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {loadError && <AdminLoadError onRetry={loadStats} />}
+      {!loadError && <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {cards.map((card) => (
           <Link key={card.title} href={card.href}>
             <Card className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-colors">
@@ -83,9 +79,9 @@ export default function AdminDashboard() {
             </Card>
           </Link>
         ))}
-      </div>
+      </div>}
 
-      <div className="flex flex-wrap gap-4">
+      {stats && !loading && <div className="flex flex-wrap gap-4">
         <Link href="/admin/sessions">
           <Card className="bg-zinc-900/50 border-zinc-800 hover:border-emerald-800/50 transition-colors cursor-pointer">
             <CardContent className="p-6 flex items-center gap-3">
@@ -96,7 +92,7 @@ export default function AdminDashboard() {
                   {adminT.pendingReady[locale].replace("{pending}", String(stats.pending)).replace("{approved}", String(stats.approved))}
                 </p>
               </div>
-              <ArrowRight className="h-4 w-4 text-zinc-500 ml-2" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground ml-2" />
             </CardContent>
           </Card>
         </Link>
@@ -110,11 +106,11 @@ export default function AdminDashboard() {
                   {adminT.slotsReady[locale].replace("{slots}", String(stats.agendaSlots)).replace("{approved}", String(stats.approved))}
                 </p>
               </div>
-              <ArrowRight className="h-4 w-4 text-zinc-500 ml-2" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground ml-2" />
             </CardContent>
           </Card>
         </Link>
-      </div>
+      </div>}
     </div>
   )
 }

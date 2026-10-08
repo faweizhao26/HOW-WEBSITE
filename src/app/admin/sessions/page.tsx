@@ -1,4 +1,6 @@
 "use client"
+
+import { useLocale } from "@/lib/i18n/provider"
 import { isMockMode } from "@/lib/utils"
 
 import { useCallback, useEffect, useState } from "react"
@@ -49,11 +51,6 @@ const mockSessions: SessionWithProfile[] = [
   { id: "ms7", user_id: "u7", title: "Comparing ORMs for PostgreSQL", title_zh: "PostgreSQL ORM 对比", abstract: "A comparison of TypeScript ORMs.", abstract_zh: "TypeScript ORM 比较。", duration: 30, type: "talk", status: "rejected", admin_feedback: "Too niche for main track.", slides_url: null, video_url: null, created_at: "2027-01-05", profiles: { full_name: "Liu Yang", company: "ByteDance" } },
 ]
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  const match = document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)
-  return match?.[1] === "zh" ? "zh" : "en"
-}
 
 
 function statusBadge(status: string, locale: "en" | "zh") {
@@ -78,7 +75,7 @@ async function fetchSessionData() {
 
 export default function AdminSessionsPage() {
   const mock = isMockMode()
-  const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
+  const locale = useLocale()
   const [sessions, setSessions] = useState<SessionWithProfile[]>(() => mock ? mockSessions.map((session) => ({ ...session, speaker_id: session.status === "approved" ? "mock-speaker-1" : null, publication_status: "draft", published_at: null })) : [])
   const [publishedSpeakers, setPublishedSpeakers] = useState<PublishedSpeakerOption[]>(() => mock ? mockPublishedSpeakers : [])
   const [loading, setLoading] = useState(!mock)
@@ -195,13 +192,13 @@ export default function AdminSessionsPage() {
         <h1 className="text-2xl font-bold">{adminT.sessionProposals[locale]}</h1>
         {mock && <Badge variant="outline" className="text-amber-400 border-amber-800">{adminT.demo[locale]}</Badge>}
       </div>
-      <p className="text-sm text-zinc-500 mb-6">
+      <p className="text-sm text-muted-foreground mb-6">
         {mock ? adminT.demoMode[locale] : (locale === "zh" ? "讲师提交的议题在这里查看、审核和管理。" : "View, review and manage speaker proposals here.")}
       </p>
 
       <div className="flex items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-xs">
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder={adminT.searchProposals[locale]} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
@@ -220,7 +217,7 @@ export default function AdminSessionsPage() {
       ) : loadError ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 py-12 text-muted-foreground"><p>{locale === "zh" ? "议题暂时无法加载" : "Proposals are temporarily unavailable"}</p><Button variant="outline" onClick={loadSessions}>{locale === "zh" ? "重试" : "Retry"}</Button></div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-zinc-500"><p>{adminT.noSessions[locale]}</p></div>
+        <div className="text-center py-20 text-muted-foreground"><p>{adminT.noSessions[locale]}</p></div>
       ) : (
         <div className="space-y-4">
           {filtered.map((session) => (
@@ -239,19 +236,19 @@ export default function AdminSessionsPage() {
                       <Badge variant="outline" className="text-zinc-400 border-zinc-700">{session.duration}min · {session.type}</Badge>
                     </div>
                     <h3 className="font-medium text-white text-lg mb-1">{session.title}</h3>
-                    {session.title_zh && <p className="text-sm text-zinc-500 mb-2">{session.title_zh}</p>}
+                    {session.title_zh && <p className="text-sm text-muted-foreground mb-2">{session.title_zh}</p>}
                     <p className="text-sm text-zinc-400 line-clamp-2 mb-2">{session.abstract}</p>
-                    <p className="text-xs text-zinc-500">{session.profiles?.full_name}{session.profiles?.company && ` · ${session.profiles.company}`}</p>
+                    <p className="text-xs text-muted-foreground">{session.profiles?.full_name}{session.profiles?.company && ` · ${session.profiles.company}`}</p>
                     {session.admin_feedback && (
                       <div className="mt-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                        <p className="text-xs text-zinc-500 mb-1">{adminT.adminFeedback[locale]}:</p>
+                        <p className="text-xs text-muted-foreground mb-1">{adminT.adminFeedback[locale]}:</p>
                         <p className="text-sm text-zinc-300">{session.admin_feedback}</p>
                       </div>
                     )}
 
                     {(session.status === "approved" || session.publication_status === "published") && (
                       <div className="mt-4 border-t border-zinc-800 pt-4">
-                        <p className="mb-3 text-xs font-medium uppercase text-zinc-500">
+                        <p className="mb-3 text-xs font-medium uppercase text-muted-foreground">
                           {adminT.websitePublication[locale]}
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
@@ -288,7 +285,7 @@ export default function AdminSessionsPage() {
                             />
                           )}
                           {!session.speaker_id && (
-                            <span className="text-sm text-zinc-500">{adminT.publishRequiresSpeaker[locale]}</span>
+                            <span className="text-sm text-muted-foreground">{adminT.publishRequiresSpeaker[locale]}</span>
                           )}
                         </div>
                       </div>

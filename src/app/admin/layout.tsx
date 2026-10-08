@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { isMockMode } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
@@ -35,15 +37,10 @@ const navItems = [
   { href: "/admin/settings", icon: Settings, key: "settings" },
 ] as const
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  const match = document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)
-  return match?.[1] === "zh" ? "zh" : "en"
-}
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [locale, setLocale] = useState<"en" | "zh">("en")
+  const locale = useLocale()
   const [loading, setLoading] = useState(true)
   const [authorized, setAuthorized] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
@@ -51,7 +48,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
 
   useEffect(() => {
-    setLocale(getLocaleFromCookie())
     checkAuth()
   }, [])
 
@@ -101,7 +97,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-zinc-500">{common.loading[locale]}</div>
+    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">{common.loading[locale]}</div>
   }
 
   if (!authorized) return null
@@ -144,7 +140,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
           <button
             onClick={handleLogout}
-            className="flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300 md:hidden"
+            className="flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-zinc-800/50 hover:text-zinc-300 md:hidden"
           >
             <LogOut className="h-4 w-4" />
             <span>{adminLabels.logout?.[locale] || (locale === "zh" ? "退出登录" : "Logout")}</span>
@@ -154,7 +150,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="hidden border-t border-zinc-800 p-4 md:block">
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-3 text-sm text-zinc-500 hover:text-zinc-300 w-full ${
+            className={`flex items-center gap-3 text-sm text-muted-foreground hover:text-zinc-300 w-full ${
               collapsed ? "justify-center" : ""
             }`}
           >

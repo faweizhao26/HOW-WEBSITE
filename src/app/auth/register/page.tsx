@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { useLocale } from "@/lib/i18n/provider"
 
 export default function RegisterPage() {
+  const locale = useLocale()
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -30,7 +32,7 @@ export default function RegisterPage() {
     if (error) {
       toast.error(error.message)
     } else {
-      toast.success("Registration successful! Check your email to confirm your account.")
+      toast.success(locale === "zh" ? "注册成功！请查看邮件确认账号。" : "Registration successful! Check your email to confirm your account.")
       router.push("/auth/login")
     }
   }
@@ -39,23 +41,23 @@ export default function RegisterPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <Card className="w-full max-w-md bg-zinc-900 border-zinc-800">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>注册 HOW 2027 账号</CardDescription>
+          <CardTitle className="text-2xl"><h1>{locale === "zh" ? "创建账号" : "Create Account"}</h1></CardTitle>
+          <CardDescription>{locale === "zh" ? "注册 HOW 2027 账号" : "Create your HOW 2027 account"}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name / 姓名</Label>
+              <Label htmlFor="fullName">{locale === "zh" ? "姓名" : "Full Name"}</Label>
               <Input
                 id="fullName"
-                placeholder="Your name"
+                placeholder={locale === "zh" ? "您的姓名" : "Your name"}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{locale === "zh" ? "邮箱" : "Email"}</Label>
               <Input
                 id="email"
                 type="email"
@@ -66,7 +68,7 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{locale === "zh" ? "密码" : "Password"}</Label>
               <Input
                 id="password"
                 type="password"
@@ -77,13 +79,13 @@ export default function RegisterPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? (locale === "zh" ? "创建中..." : "Creating account...") : (locale === "zh" ? "创建账号" : "Create Account")}
             </Button>
           </form>
           <p className="text-center text-sm text-zinc-400 mt-4">
-            Already have an account?{" "}
+            {locale === "zh" ? "已有账号？" : "Already have an account?"}{" "}
             <Link href="/auth/login" className="text-emerald-400 hover:text-emerald-300">
-              Sign In
+              {locale === "zh" ? "登录" : "Sign In"}
             </Link>
           </p>
         </CardContent>

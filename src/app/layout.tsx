@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/footer"
 import { ChatbotWidget } from "@/components/chatbot"
 import { getLocale } from "@/lib/i18n/utils"
 import { Toaster } from "./toaster"
+import { LocaleProvider } from "@/lib/i18n/provider"
 
 export const metadata: Metadata = {
   title: "HOW 2027 — PostgreSQL Eco Conference",
@@ -24,11 +25,13 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={theme} suppressHydrationWarning>
       <body className="font-sans bg-background text-foreground antialiased min-h-screen flex flex-col">
-        <Header locale={locale} initialTheme={theme} />
-        <main className="flex-1 pt-16">{children}</main>
-        <Footer locale={locale} />
-        <ChatbotWidget />
-        <Toaster />
+        <LocaleProvider locale={locale}>
+          <Header locale={locale} initialTheme={theme} />
+          <main className="flex-1 pt-16">{children}</main>
+          <Footer locale={locale} />
+          <ChatbotWidget />
+          <Toaster />
+        </LocaleProvider>
       </body>
     </html>
   )

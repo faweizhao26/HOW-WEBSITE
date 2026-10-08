@@ -177,7 +177,8 @@ test("session review remains separate from website publication", () => {
     assert.match(submitterPage, /statusBadge\(/)
   }
 
-  assert.match(dashboard, /from\("speakers"\)/)
+  assert.match(dashboard, /loadDashboardStats\(createClient\(\)\)/)
+  assert.match(read("src/lib/admin/data.ts"), /from\("speakers"\)/)
   assert.doesNotMatch(dashboard, /new Set\(sessions\.map\(\(s\) => s\.user_id\)\)/)
   assert.match(adminLayout, /flex-col md:flex-row/)
   assert.match(adminLayout, /overflow-x-auto/)

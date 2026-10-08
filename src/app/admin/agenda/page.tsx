@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { useCallback, useEffect, useState, useTransition } from "react"
 import { Pencil, Plus, Send, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -18,7 +20,6 @@ import { conference } from "@/lib/conference"
 import { validateAgendaDraft, type AgendaIssue } from "@/lib/content/agenda-validation"
 import type { AgendaRelease, AgendaSlot, AgendaSlotInsert } from "@/lib/db/schema"
 import { admin as adminT, schedule as sched } from "@/lib/i18n/translations"
-import type { Locale } from "@/lib/i18n/utils"
 import { mockSlots } from "@/lib/mock-data"
 import { createClient } from "@/lib/supabase/client"
 import { isMockMode } from "@/lib/utils"
@@ -36,10 +37,6 @@ const issueLabels: Record<AgendaIssue, { en: string; zh: string }> = {
   label: { en: "Slots without a session must have a title.", zh: "未绑定演讲的时段必须填写标题。" },
 }
 
-function getLocaleFromCookie(): Locale {
-  if (typeof document === "undefined") return "en"
-  return document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)?.[1] === "zh" ? "zh" : "en"
-}
 
 function emptySlot(date: string): AgendaSlotInsert {
   return { date, start_time: "09:00", end_time: "09:30", label: "", label_zh: null, type: "opening", session_id: null, room: null, sort_order: 0 }
@@ -73,7 +70,7 @@ async function fetchAgendaData(): Promise<AgendaData> {
 }
 
 export default function AdminAgendaPage() {
-  const [locale] = useState<Locale>(getLocaleFromCookie)
+  const locale = useLocale()
   const mockMode = isMockMode()
   const [data, setData] = useState<AgendaData>(() => mockMode ? getMockAgenda() : { slots: [], sessions: [], releases: [] })
   const [loading, setLoading] = useState(!mockMode)

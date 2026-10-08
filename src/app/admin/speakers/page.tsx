@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Pencil, Plus, UserRound } from "lucide-react"
 import { toast } from "sonner"
@@ -53,10 +55,6 @@ const emptyForm: SpeakerFormState = {
   sort_order: "0",
 }
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  return document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)?.[1] === "zh" ? "zh" : "en"
-}
 
 function getMockSpeakers(): Speaker[] {
   const now = new Date().toISOString()
@@ -105,7 +103,7 @@ async function fetchSpeakerRows() {
 }
 
 export default function AdminSpeakersPage() {
-  const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
+  const locale = useLocale()
   const mockMode = isMockMode()
   const [speakers, setSpeakers] = useState<Speaker[]>(() => mockMode ? getMockSpeakers() : [])
   const [loading, setLoading] = useState(!mockMode)

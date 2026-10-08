@@ -179,7 +179,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
                     <span className="font-medium text-white">{locale === "zh" && ticket.name_zh ? ticket.name_zh : ticket.name}</span>
                     {ticket.is_free ? <Badge variant="outline" className="text-emerald-400 border-emerald-800 text-[10px]">{locale === "zh" ? "免费" : "Free"}</Badge> : <Badge variant="outline" className="text-amber-400 border-amber-800 text-[10px]">{locale === "zh" ? "渠道码" : "Code"}</Badge>}
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5">{locale === "zh" && ticket.description_zh ? ticket.description_zh : ticket.description}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{locale === "zh" && ticket.description_zh ? ticket.description_zh : ticket.description}</p>
                   {ticket.requires_code && (
                     <p className="text-xs text-amber-500 mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{locale === "zh" ? "需要渠道码" : "Requires channel code"}</p>
                   )}

@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { useCallback, useEffect, useState } from "react"
 import { Calendar, Newspaper, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -20,10 +22,6 @@ import { addNews as addToStore, getNews, getPublishedMockNews, removeNews as rem
 import { createClient } from "@/lib/supabase/client"
 import { isMockMode } from "@/lib/utils"
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  return document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)?.[1] === "zh" ? "zh" : "en"
-}
 
 async function fetchNewsRows() {
   const supabase = createClient()
@@ -128,7 +126,7 @@ function PostForm({ post, locale, onSaved }: { post?: NewsPost; locale: "en" | "
 }
 
 export default function AdminUpdatesPage() {
-  const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
+  const locale = useLocale()
   const mockMode = isMockMode()
   const [posts, setPosts] = useState<NewsPost[]>(() => mockMode ? getNews() : [])
   const [publishedPosts, setPublishedPosts] = useState<PublishedNewsPost[]>(() => mockMode ? getPublishedMockNews() : [])

@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -20,12 +22,6 @@ import {
 } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  const match = document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)
-  return match?.[1] === "zh" ? "zh" : "en"
-}
-
 function statusBadge(status: string, locale: "en" | "zh") {
   switch (status) {
     case "pending": return <Badge variant="secondary">{cfpT.pending[locale]}</Badge>
@@ -36,7 +32,7 @@ function statusBadge(status: string, locale: "en" | "zh") {
 }
 
 export default function ProfilePage() {
-  const [locale] = useState(getLocaleFromCookie())
+  const locale = useLocale()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [sessions, setSessions] = useState<any[]>([])
@@ -143,7 +139,7 @@ export default function ProfilePage() {
   }
 
   if (loading) {
-    return <div className="max-w-4xl mx-auto px-4 py-16 text-center text-zinc-500">{common.loading[locale]}</div>
+    return <div className="max-w-4xl mx-auto px-4 py-16 text-center text-muted-foreground">{common.loading[locale]}</div>
   }
 
   if (!user) {
@@ -191,8 +187,8 @@ export default function ProfilePage() {
               </div>
               <h2 className="text-lg font-semibold text-white text-center">{fullName || user.email}</h2>
               {profile?.role === "admin" && (
-                <Badge className="mt-2 bg-amber-900/50 text-amber-300 border-amber-800">
-                  <Shield className="h-3 w-3 mr-1" /> Admin
+                <Badge className="mt-2 bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-800">
+                  <Shield className="h-3 w-3 mr-1" /> {locale === "zh" ? "管理员" : "Admin"}
                 </Badge>
               )}
             </CardContent>
@@ -202,28 +198,28 @@ export default function ProfilePage() {
           <Card className="bg-zinc-900/50 border-zinc-800">
             <CardContent className="pt-6 space-y-4">
               <div className="flex items-center gap-3 text-sm">
-                <Mail className="h-4 w-4 text-zinc-500 shrink-0" />
+                <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-zinc-400">{locale === "zh" ? "邮箱" : "Email"}:</span>
                 <span className="text-zinc-300 ml-auto truncate">{user.email}</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <Key className="h-4 w-4 text-zinc-500 shrink-0" />
+                <Key className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-zinc-400">ID:</span>
-                <span className="text-zinc-500 text-xs font-mono ml-auto truncate">{user.id.slice(0, 16)}...</span>
-                <button onClick={copyId} className="text-zinc-600 hover:text-zinc-300 ml-1">
+                <span className="text-muted-foreground text-xs font-mono ml-auto truncate">{user.id.slice(0, 16)}...</span>
+                <button onClick={copyId} className="text-muted-foreground hover:text-zinc-300 ml-1">
                   {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                 </button>
               </div>
               {phone && (
                 <div className="flex items-center gap-3 text-sm">
-                  <Phone className="h-4 w-4 text-zinc-500 shrink-0" />
+                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-zinc-400">{locale === "zh" ? "手机" : "Phone"}:</span>
                   <span className="text-zinc-300 ml-auto">{phone}</span>
                 </div>
               )}
               {company && (
                 <div className="flex items-center gap-3 text-sm">
-                  <Building className="h-4 w-4 text-zinc-500 shrink-0" />
+                  <Building className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-zinc-400">{locale === "zh" ? "公司" : "Company"}:</span>
                   <span className="text-zinc-300 ml-auto">{company}</span>
                 </div>
@@ -273,18 +269,18 @@ export default function ProfilePage() {
                   <TabsTrigger value="sessions">
                     <Mic className="h-4 w-4 mr-1" />
                     {locale === "zh" ? "我的议题" : "My Sessions"}
-                    <span className="ml-2 text-xs bg-zinc-700 px-2 py-0.5 rounded-full">{sessions.length}</span>
+                    <span className="ml-2 text-xs text-zinc-200 bg-zinc-700 px-2 py-0.5 rounded-full">{sessions.length}</span>
                   </TabsTrigger>
                   <TabsTrigger value="registration">
                     <Calendar className="h-4 w-4 mr-1" />
                     {locale === "zh" ? "大会报名" : "Registration"}
-                    <span className="ml-2 text-xs bg-zinc-700 px-2 py-0.5 rounded-full">{registrations.length}</span>
+                    <span className="ml-2 text-xs text-zinc-200 bg-zinc-700 px-2 py-0.5 rounded-full">{registrations.length}</span>
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="sessions">
                   {sessions.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-500">
+                    <div className="text-center py-8 text-muted-foreground">
                       <Mic className="h-8 w-8 mx-auto mb-3 opacity-50" />
                       <p className="text-sm">{locale === "zh" ? "还没有提交任何议题" : "No sessions submitted yet"}</p>
                       <Link href="/cfp">
@@ -301,11 +297,11 @@ export default function ProfilePage() {
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 {statusBadge(s.status, locale)}
-                                <span className="text-xs text-zinc-500">{s.duration}min · {s.type}</span>
+                                <span className="text-xs text-muted-foreground">{s.duration}min · {s.type}</span>
                               </div>
                               <h4 className="text-sm font-medium text-white">{s.title}</h4>
                               {s.admin_feedback && (
-                                <p className="text-xs text-zinc-500 mt-2 italic">"{s.admin_feedback}"</p>
+                                <p className="text-xs text-muted-foreground mt-2 italic">"{s.admin_feedback}"</p>
                               )}
                             </div>
                           </div>
@@ -317,7 +313,7 @@ export default function ProfilePage() {
 
                 <TabsContent value="registration">
                   {registrations.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-500">
+                    <div className="text-center py-8 text-muted-foreground">
                       <Calendar className="h-8 w-8 mx-auto mb-3 opacity-50" />
                       <p className="text-sm">{locale === "zh" ? "还没有报名记录" : "No registration records"}</p>
                       <Link href="/register">
@@ -339,18 +335,18 @@ export default function ProfilePage() {
                                 {reg.status === "cancelled" && <Badge variant="destructive" className="text-[10px]">{locale === "zh" ? "已取消" : "Cancelled"}</Badge>}
                                 {reg.checked_in && <Badge variant="outline" className="text-[10px] text-cyan-400 border-cyan-800">{locale === "zh" ? "已签到" : "Checked in"}</Badge>}
                               </div>
-                              <div className="text-xs text-zinc-500 space-y-0.5">
+                              <div className="text-xs text-muted-foreground space-y-0.5">
                                 <p>{reg.email}</p>
                                 {reg.phone && <p>{reg.phone}</p>}
                                 {reg.company && <p>{reg.company}{reg.position && ` · ${reg.position}`}</p>}
                               </div>
-                              <p className="text-xs text-zinc-600 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {new Date(reg.created_at).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "long", day: "numeric" })}
                               </p>
                             </div>
                             <AlertDialog>
                               <AlertDialogTrigger>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400 shrink-0">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-400 shrink-0">
                                   {reg.status === "cancelled" ? <RotateCcw className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                                 </Button>
                               </AlertDialogTrigger>

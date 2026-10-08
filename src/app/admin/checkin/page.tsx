@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { useEffect, useState, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -10,14 +12,9 @@ import { toast } from "sonner"
 import { Search, CheckCircle, X, UserCheck, Users, QrCode, Printer } from "lucide-react"
 import { admin as adminT } from "@/lib/i18n/translations"
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  const match = document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)
-  return match?.[1] === "zh" ? "zh" : "en"
-}
 
 export default function AdminCheckinPage() {
-  const [locale] = useState(getLocaleFromCookie())
+  const locale = useLocale()
   const [search, setSearch] = useState("")
   const [results, setResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
@@ -103,7 +100,7 @@ ${reg.company ? `<div class="row"><span class="company">${reg.company}</span><sp
       </div>
 
       <div className="relative mb-6">
-        <Search className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+        <Search className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           ref={inputRef}
           value={search}
@@ -113,13 +110,13 @@ ${reg.company ? `<div class="row"><span class="company">${reg.company}</span><sp
         />
         {search.length > 0 && (
           <button onClick={() => { setSearch(""); setResults([]); inputRef.current?.focus() }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-zinc-300">
             <X className="h-5 w-5" />
           </button>
         )}
       </div>
 
-      {searching && <p className="text-center text-zinc-500 py-8">{locale === "zh" ? "搜索中..." : "Searching..."}</p>}
+      {searching && <p className="text-center text-muted-foreground py-8">{locale === "zh" ? "搜索中..." : "Searching..."}</p>}
 
       <div className="space-y-2">
         {results.map(reg => (
@@ -131,11 +128,11 @@ ${reg.company ? `<div class="row"><span class="company">${reg.company}</span><sp
                   {reg.checked_in && <Badge className="bg-emerald-900/50 text-emerald-300 border-emerald-800 shrink-0">{locale === "zh" ? "已签到" : "Checked in"}</Badge>}
                   {reg.ticket_types && <Badge variant="outline" className="text-[10px]">{locale === "zh" && reg.ticket_types.name_zh ? reg.ticket_types.name_zh : reg.ticket_types.name}</Badge>}
                 </div>
-                <div className="flex items-center gap-4 text-xs text-zinc-500">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span>{reg.email}</span>
                   <span>{reg.phone}</span>
                   {reg.company && <span>{reg.company}</span>}
-                  {reg.checked_in_at && <span className="text-zinc-600">{locale === "zh" ? "签到时间: " : "At: "}{new Date(reg.checked_in_at).toLocaleTimeString(locale === "zh" ? "zh-CN" : "en-US")}</span>}
+                  {reg.checked_in_at && <span className="text-muted-foreground">{locale === "zh" ? "签到时间: " : "At: "}{new Date(reg.checked_in_at).toLocaleTimeString(locale === "zh" ? "zh-CN" : "en-US")}</span>}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -160,14 +157,14 @@ ${reg.company ? `<div class="row"><span class="company">${reg.company}</span><sp
         ))}
 
         {search.length >= 2 && !searching && results.length === 0 && (
-          <div className="text-center py-20 text-zinc-500">
+          <div className="text-center py-20 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-lg">{locale === "zh" ? "未找到匹配的报名信息" : "No matching registrations found"}</p>
           </div>
         )}
 
         {search.length < 2 && (
-          <div className="text-center py-20 text-zinc-500">
+          <div className="text-center py-20 text-muted-foreground">
             <QrCode className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-lg">{locale === "zh" ? "输入姓名、邮箱或手机号开始搜索签到" : "Search by name, email or phone to check in"}</p>
           </div>

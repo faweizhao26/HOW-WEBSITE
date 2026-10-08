@@ -22,6 +22,8 @@ for (const [width, height, mobile] of [[1440,1000,false],[390,844,true]]) {
     await page.evaluate(({lang,theme}) => { document.cookie="lang="+lang+"; path=/"; document.cookie="theme="+theme+"; path=/"; }, {lang,theme});
     await page.reload();
     await page.waitForLoadState();
+    if (route.startsWith("/admin")) await page.waitForFunction(() => document.querySelector("main main h1") && !document.querySelector("main [data-slot=skeleton]") && ![...document.querySelectorAll("main main p")].some(node => node.textContent.trim() === "—"));
+    if (route === "/profile" || route === "/cfp") await page.waitForSelector("loc=css:main h1");
     await page.waitForFunction(() => [...document.querySelectorAll("main img")].every(image => { const rect=image.getBoundingClientRect(); return image.closest("details:not([open])") || rect.height===0 || rect.top>=innerHeight || rect.bottom<=0 || image.complete; }));
     const quality = await page.evaluate(inspect);
     const events = await page.events();

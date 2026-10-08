@@ -1,16 +1,13 @@
 "use client"
 
+import { useLocale } from "@/lib/i18n/provider"
+
 import { useState, useRef, useEffect } from "react"
 import { MessageCircle, X, Send, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { conference } from "@/lib/conference"
 
-function getLocaleFromCookie(): "en" | "zh" {
-  if (typeof document === "undefined") return "en"
-  const match = document.cookie.match(/(?:^|;\s*)lang=([^;]*)/)
-  return match?.[1] === "zh" ? "zh" : "en"
-}
 
 type QA = { q: RegExp; a: { en: string; zh: string } }
 
@@ -44,7 +41,7 @@ function getAnswer(question: string, locale: "en" | "zh"): string {
 }
 
 export function ChatbotWidget() {
-  const [locale] = useState<"en" | "zh">(getLocaleFromCookie())
+  const locale = useLocale()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<{ role: "user" | "bot"; text: string }[]>([])
   const [input, setInput] = useState("")
