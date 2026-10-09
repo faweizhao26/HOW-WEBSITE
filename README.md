@@ -32,6 +32,19 @@ project with the original schema, use
 Do not apply both paths to the same database. This migration is additive to
 the original schema; it is not a standalone bootstrap migration.
 
+After either bootstrap path, apply
+`supabase/migrations/20261009105046_registration_integrity.sql` before deploying
+the registration-integrity code. It rejects existing duplicate registrations
+without modifying them; resolve those records explicitly before retrying.
+Registration uses a confirmed account email, an active ticket and a matching
+invitation where required. Phone numbers are format-validated but their
+ownership is not verified: real SMS integration remains deferred.
+
+The migration hides invitation-code lists from ordinary users, adds guarded
+lookups and blocks forged registration fields through the Data API. Cancellation
+and restoration reuse the user's existing registration rather than creating
+another one. Administrators retain ticket and check-in management.
+
 Admin access comes from the trusted `profiles.role` column. Promote the intended
 account from a trusted database console, not through signup metadata. Ordinary
 accounts cannot change their own role.
@@ -119,6 +132,16 @@ settings draft and release are restored. Browser clicks still need a separate
 ego-lite verification; an API pass does not stand in for that check.
 Test-client logout uses local scope to preserve other sessions of the same
 test administrator, including the browser review session.
+
+`scripts/verify-registration-integrity-api.mjs` uses the same isolated
+`PUBLICATION_TEST_*` credentials and requires a localhost database. It checks
+identity/ticket/code enforcement, direct API bypass attempts, eight concurrent
+submissions, cancellation/restoration and admin check-in/undo. Generated rows and
+accounts are cleaned up. `REGISTRATION_QA_KEEP_FIXTURES=true` preserves a private
+fixture for browser QA; run with `REGISTRATION_QA_CLEANUP=true` afterward.
+`EGO_TASK_SPACE_ID=<active-id> node scripts/verify-registration-integrity-ego.mjs`
+checks populated registration and CFP pages in eight language/theme/viewport
+combinations each. The browser account must already be signed in.
 
 ```bash
 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3018 npm run test:e2e

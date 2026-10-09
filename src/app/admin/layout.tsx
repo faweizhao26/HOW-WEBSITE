@@ -41,48 +41,47 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const locale = useLocale()
-  const [loading, setLoading] = useState(true)
-  const [authorized, setAuthorized] = useState(false)
+  const [loading, setLoading] = useState(() => !isMockMode())
+  const [authorized, setAuthorized] = useState(() => isMockMode())
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
   useEffect(() => {
-    checkAuth()
-  }, [])
-
-  async function checkAuth() {
-    if (isMockMode()) {
-      setAuthorized(true)
-      setLoading(false)
-      return
-    }
-
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+    let active = true
+    async function checkAuth() {
+      if (isMockMode()) return
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!active) return
+        if (!user) {
+          router.push("/auth/login")
+          return
+        }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single()
+        if (!active) return
+        if (profile?.role !== "admin") {
+          router.push("/")
+          return
+        }
+        setAuthorized(true)
+      } catch {
+        if (!active) return
+        setAuthorized(false)
+        setLoading(false)
         router.push("/auth/login")
         return
       }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single()
-      if (profile?.role !== "admin") {
-        router.push("/")
-        return
-      }
-      setAuthorized(true)
-    } catch {
-      setAuthorized(false)
       setLoading(false)
-      router.push("/auth/login")
-      return
     }
-    setLoading(false)
-  }
+    void checkAuth()
+    return () => { active = false }
+  }, [router])
 
   async function handleLogout() {
     if (isMockMode()) {

@@ -3,7 +3,7 @@
 import { useLocale } from "@/lib/i18n/provider"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import type { User as AuthUser } from "@supabase/supabase-js"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { cfp, common } from "@/lib/i18n/translations"
@@ -30,6 +30,15 @@ type Session = {
   created_at: string
 }
 
+async function loadCFPData() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const sessions = user ? await supabase.from("sessions")
+    .select("id, title, title_zh, abstract, duration, type, status, admin_feedback, created_at")
+    .eq("user_id", user.id).order("created_at", { ascending: false }) : { data: [] }
+  return { user, sessions: (sessions.data || []) as Session[] }
+}
+
 
 function statusBadge(status: string, locale: "en" | "zh") {
   switch (status) {
@@ -46,7 +55,7 @@ function statusBadge(status: string, locale: "en" | "zh") {
 
 export default function CFPPage() {
   const locale = useLocale()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -59,33 +68,23 @@ export default function CFPPage() {
   const [duration, setDuration] = useState("30")
   const [sessionType, setSessionType] = useState("talk")
 
-  const router = useRouter()
-  const supabase = createClient()
-
   useEffect(() => {
-    loadData()
+    let active = true
+    void loadCFPData().then(result => {
+      if (!active) return
+      setUser(result.user)
+      setSessions(result.sessions)
+      setLoading(false)
+    })
+    return () => { active = false }
   }, [])
-
-  async function loadData() {
-    const { data: { user } } = await supabase.auth.getUser()
-    setUser(user)
-    if (user) {
-      const { data } = await supabase
-        .from("sessions")
-        .select("id, title, title_zh, abstract, duration, type, status, admin_feedback, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-      setSessions(data || [])
-    }
-    setLoading(false)
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
     setSubmitting(true)
 
-    const { error } = await supabase.from("sessions").insert({
+    const { error } = await createClient().from("sessions").insert({
       user_id: user.id,
       title,
       title_zh: titleZh || null,
@@ -108,7 +107,9 @@ export default function CFPPage() {
       setDuration("30")
       setSessionType("talk")
       setTab("submissions")
-      loadData()
+      const result = await loadCFPData()
+      setUser(result.user)
+      setSessions(result.sessions)
     }
   }
 
