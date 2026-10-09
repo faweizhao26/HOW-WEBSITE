@@ -29,8 +29,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 function statusBadge(status: string, locale: "en" | "zh") {
   switch (status) {
     case "pending": return <Badge variant="secondary">{cfpT.pending[locale]}</Badge>
-    case "approved": return <Badge className="bg-emerald-900/50 text-emerald-300 border-emerald-800">{cfpT.approved[locale]}</Badge>
-    case "rejected": return <Badge variant="destructive">{cfpT.rejected[locale]}</Badge>
+    case "approved": return <Badge className="bg-emerald-100 text-emerald-900 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-200 dark:border-emerald-800">{cfpT.approved[locale]}</Badge>
+    case "rejected": return <Badge variant="outline" className="bg-red-100 text-red-900 border-red-200 dark:bg-red-950 dark:text-red-200 dark:border-red-800">{cfpT.rejected[locale]}</Badge>
     default: return <Badge variant="outline">{status}</Badge>
   }
 }
@@ -213,7 +213,7 @@ export default function ProfilePage() {
               <button type="button" disabled={busy} aria-label={locale === "zh" ? "更新头像" : "Update avatar"} className="relative group cursor-pointer disabled:cursor-wait mb-4 rounded-full" onClick={() => fileInputRef.current?.click()}>
                 <Avatar className="w-24 h-24 ring-2 ring-emerald-500/30 overflow-hidden">
                   <AvatarImage src={avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || user.email || "")}&background=10b981&color=fff&size=128`} alt="" />
-                  <AvatarFallback>{(fullName || user.email || "?").slice(0, 1).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">{(fullName || user.email || "?").slice(0, 1).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <Camera className="h-6 w-6 text-white" />
