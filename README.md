@@ -161,6 +161,13 @@ application path. Local review in this workflow uses ego-lite instead.
 
 ## Production Boundary
 
+Account email requests live at `/auth/forgot-password` and
+`/auth/resend-confirmation`. Add the deployed site's `/auth/callback` and
+`/auth/confirm` URLs to Supabase Auth's redirect allowlist. Keep PKCE emails in
+the browser that requested them. The native password reset page is
+`/auth/reset-password`; callback failures do not authorize it using an old session.
+See `docs/STATUS.md` for current release status and remaining verification gaps.
+
 Review the local screenshots and verification results before production work.
 Production migration, pushing the branch and deploying require a fresh explicit
 confirmation. Push with `faweizhao26`, not the local machine's other account.

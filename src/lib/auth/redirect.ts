@@ -12,3 +12,15 @@ export function safeAuthRedirect(value: unknown): string {
     return target
   } catch { return "/" }
 }
+
+export function accountEmailCallbackURL(origin: string, kind: "recovery" | "confirmation", next: unknown): string {
+  if (kind === "confirmation") {
+    const url = new URL("/auth/confirm", origin)
+    url.searchParams.set("redirect", safeAuthRedirect(next))
+    return url.href
+  }
+  const url = new URL("/auth/callback", origin)
+  url.searchParams.set("next", safeAuthRedirect(next))
+  url.searchParams.set("flow", kind)
+  return url.href
+}

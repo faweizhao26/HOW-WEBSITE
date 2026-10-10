@@ -67,7 +67,10 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">{locale === "zh" ? "密码" : "Password"}</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="password">{locale === "zh" ? "密码" : "Password"}</Label>
+                <Link className="text-sm text-emerald-700 dark:text-emerald-400 hover:underline" href={`/auth/forgot-password?redirect=${encodeURIComponent(redirect)}`}>{locale === "zh" ? "忘记密码？" : "Forgot Password?"}</Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -90,6 +93,7 @@ export default function LoginPage() {
               {locale === "zh" ? "注册" : "Register"}
             </Link>
           </p>
+          <p className="mt-3 text-center text-sm"><Link className="text-emerald-700 dark:text-emerald-400 hover:underline" href={`/auth/resend-confirmation?redirect=${encodeURIComponent(redirect)}`}>{locale === "zh" ? "重新发送确认邮件" : "Resend Confirmation Email"}</Link></p>
         </CardContent>
       </Card>
     </div>
