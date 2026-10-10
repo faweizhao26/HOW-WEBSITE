@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server"
 import { createServerSupabase } from "@/lib/supabase/server"
+import { safeAuthRedirect } from "@/lib/auth/redirect"
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
-  const next = searchParams.get("next") ?? "/"
+  const next = safeAuthRedirect(searchParams.get("next"))
 
   if (code) {
-    const supabase = await createServerSupabase()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
-    }
+    try {
+      const supabase = await createServerSupabase()
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+      if (!error && data.session) return NextResponse.redirect(new URL(next, origin))
+    } catch { /* Failed exchanges use the same readable login state as expired links. */ }
   }
 
-  return NextResponse.redirect(`${origin}/auth/login?error=auth_failed`)
+  const login = new URL("/auth/login", origin)
+  login.searchParams.set("error", "auth_failed")
+  login.searchParams.set("redirect", next)
+  return NextResponse.redirect(login)
 }

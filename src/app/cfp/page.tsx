@@ -2,10 +2,13 @@
 
 import { useLocale } from "@/lib/i18n/provider"
 
-import { useState, useEffect } from "react"
-import type { User as AuthUser } from "@supabase/supabase-js"
+import { startTransition, useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { CFPError, loadCFPData, parseProposalInput } from "@/lib/cfp/service"
+import type { CFPData, CFPErrorCode } from "@/lib/cfp/service"
+import { cfpErrors } from "@/lib/cfp/messages"
+import { submitCFP } from "./actions"
 import { cfp, common } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,36 +19,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Plus, ChevronRight } from "lucide-react"
-
-type Session = {
-  id: string
-  title: string
-  title_zh: string | null
-  abstract: string
-  duration: number
-  type: "talk" | "workshop" | "panel"
-  status: "pending" | "approved" | "rejected"
-  admin_feedback: string | null
-  created_at: string
-}
-
-async function loadCFPData() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const sessions = user ? await supabase.from("sessions")
-    .select("id, title, title_zh, abstract, duration, type, status, admin_feedback, created_at")
-    .eq("user_id", user.id).order("created_at", { ascending: false }) : { data: [] }
-  return { user, sessions: (sessions.data || []) as Session[] }
-}
-
+import { Plus, ChevronRight, RotateCw, AlertCircle } from "lucide-react"
 
 function statusBadge(status: string, locale: "en" | "zh") {
   switch (status) {
     case "pending":
       return <Badge variant="secondary">{cfp.pending[locale]}</Badge>
     case "approved":
-      return <Badge className="bg-emerald-900/50 text-emerald-300 border-emerald-800">{cfp.approved[locale]}</Badge>
+      return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800">{cfp.approved[locale]}</Badge>
     case "rejected":
       return <Badge variant="destructive">{cfp.rejected[locale]}</Badge>
     default:
@@ -55,11 +36,20 @@ function statusBadge(status: string, locale: "en" | "zh") {
 
 export default function CFPPage() {
   const locale = useLocale()
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [sessions, setSessions] = useState<Session[]>([])
+  const [data, setData] = useState<CFPData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [accountChanged, setAccountChanged] = useState(false)
+  const [loadVersion, setLoadVersion] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<CFPErrorCode | null>(null)
   const [tab, setTab] = useState("new")
+  const pending = useRef(false)
+  const attempt = useRef<{ fingerprint: string; id: string } | null>(null)
+  const draftOwner = useRef<string | null | undefined>(undefined)
+  const identity = useRef<{ userId: string | null | undefined; version: number }>({ userId: undefined, version: 0 })
+  const user = data?.user
+  const sessions = data?.sessions || []
 
   const [title, setTitle] = useState("")
   const [titleZh, setTitleZh] = useState("")
@@ -70,62 +60,107 @@ export default function CFPPage() {
 
   useEffect(() => {
     let active = true
-    void loadCFPData().then(result => {
-      if (!active) return
-      setUser(result.user)
-      setSessions(result.sessions)
-      setLoading(false)
-    })
+    const version = identity.current.version
+    async function load() {
+      try {
+        const result = await loadCFPData(createClient())
+        if (!active || version !== identity.current.version) return
+        if (identity.current.userId !== undefined && identity.current.userId !== (result.user?.id || null)) {
+          setAccountChanged(true)
+          return
+        }
+        draftOwner.current = result.user?.id || null
+        setData(result)
+        setLoadError(false)
+      } catch { if (active && version === identity.current.version) setLoadError(true) }
+      finally { if (active && version === identity.current.version) setLoading(false) }
+    }
+    void load()
     return () => { active = false }
+  }, [loadVersion])
+
+  useEffect(() => {
+    const { data: { subscription } } = createClient().auth.onAuthStateChange((_event, session) => {
+      const next = session?.user.id || null
+      const previous = identity.current.userId !== undefined ? identity.current.userId : draftOwner.current
+      identity.current.userId = next
+      if (previous === undefined || previous === next) return
+      identity.current.version++
+      draftOwner.current = undefined
+      attempt.current = null
+      setData(null)
+      setAccountChanged(true)
+      setLoading(false)
+      setSubmitError(null)
+      setTitle(""); setTitleZh(""); setAbstract(""); setAbstractZh("")
+      setDuration("30"); setSessionType("talk")
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
-  async function handleSubmit(e: React.FormEvent) {
+  function retryLoad() {
+    setLoading(true)
+    setLoadError(false)
+    setAccountChanged(false)
+    setLoadVersion(version => version + 1)
+  }
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!user) return
+    if (pending.current) return
+    setSubmitError(null)
+    if (!user) { setSubmitError("login_required"); return }
+    const fields = { title, titleZh, abstract, abstractZh, duration: Number(duration), type: sessionType }
+    const fingerprint = JSON.stringify(fields)
+    const id = attempt.current?.fingerprint === fingerprint ? attempt.current.id : crypto.randomUUID()
+    let values
+    try { values = parseProposalInput({ ...fields, requestId: id, expectedUserId: user.id }) }
+    catch (error) { setSubmitError(error instanceof CFPError ? error.code : "invalid_input"); return }
+    attempt.current = { fingerprint, id }
+    pending.current = true
     setSubmitting(true)
-
-    const { error } = await createClient().from("sessions").insert({
-      user_id: user.id,
-      title,
-      title_zh: titleZh || null,
-      abstract,
-      abstract_zh: abstractZh || null,
-      duration: parseInt(duration),
-      type: sessionType,
+    const owner = user.id
+    const version = identity.current.version
+    startTransition(async () => {
+      try {
+        const result = await submitCFP(values)
+        if (draftOwner.current !== owner || identity.current.version !== version) return
+        if (!result.success) { setSubmitError(result.code); return }
+        setData(previous => previous ? { ...previous, sessions: [result.data, ...previous.sessions.filter(session => session.id !== result.data.id)] } : previous)
+        attempt.current = null
+        toast.success(cfp.success[locale])
+        setTitle("")
+        setTitleZh("")
+        setAbstract("")
+        setAbstractZh("")
+        setDuration("30")
+        setSessionType("talk")
+        setTab("submissions")
+      } catch { if (draftOwner.current === owner && identity.current.version === version) setSubmitError("operation_failed") }
+      finally { pending.current = false; setSubmitting(false) }
     })
-
-    setSubmitting(false)
-
-    if (error) {
-      toast.error(error.message)
-    } else {
-      toast.success(cfp.success[locale])
-      setTitle("")
-      setTitleZh("")
-      setAbstract("")
-      setAbstractZh("")
-      setDuration("30")
-      setSessionType("talk")
-      setTab("submissions")
-      const result = await loadCFPData()
-      setUser(result.user)
-      setSessions(result.sessions)
-    }
   }
 
   if (loading) {
     return <div className="max-w-3xl mx-auto px-4 py-16 text-center text-muted-foreground">{common.loading[locale]}</div>
   }
 
+  if (loadError || accountChanged) return (
+    <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
+      <h1 className="text-3xl font-bold">{cfp.title[locale]}</h1>
+      <p role="alert" className="text-muted-foreground">{cfpErrors[accountChanged ? "account_changed" : "load_failed"][locale]}</p>
+      <Button onClick={retryLoad} variant="outline"><RotateCw className="h-4 w-4" />{locale === "zh" ? "重试" : "Retry"}</Button>
+    </div>
+  )
+
   if (!user) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-zinc-400 mb-4">{cfp.loginRequired[locale]}</p>
-        <Link href="/auth/login?redirect=/cfp">
-          <Button className="bg-emerald-600 hover:bg-emerald-500">
+        <h1 className="text-3xl font-bold mb-6">{cfp.title[locale]}</h1>
+        <p className="text-muted-foreground mb-4">{cfp.loginRequired[locale]}</p>
+          <Button render={<Link href="/auth/login?redirect=/cfp" />} nativeButton={false} className="bg-emerald-600 hover:bg-emerald-500">
             {locale === "en" ? "Login" : "登录"} <ChevronRight className="h-4 w-4" />
           </Button>
-        </Link>
       </div>
     )
   }
@@ -134,13 +169,13 @@ export default function CFPPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <h1 className="text-4xl font-bold mb-8">{cfp.title[locale]}</h1>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={value => { if (!pending.current) setTab(value) }}>
         <TabsList className="bg-zinc-900 border border-zinc-800 mb-8">
-          <TabsTrigger value="new">
+          <TabsTrigger value="new" disabled={submitting}>
             <Plus className="h-4 w-4 mr-1" />
             {cfp.submitTitle[locale]}
           </TabsTrigger>
-          <TabsTrigger value="submissions">
+          <TabsTrigger value="submissions" disabled={submitting}>
             {locale === "zh" ? "我的提案" : "My Proposals"}
             {sessions.length > 0 && (
               <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded-full">{sessions.length}</span>
@@ -159,7 +194,8 @@ export default function CFPPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5" aria-busy={submitting}>
+                <fieldset disabled={submitting} className="space-y-5 min-w-0">
                 <div className="space-y-2">
                   <Label htmlFor="title">{cfp.titleLabel[locale]} *</Label>
                   <Input
@@ -167,6 +203,7 @@ export default function CFPPage() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Building Modern APIs with PostgreSQL"
+                    maxLength={200}
                     required
                   />
                 </div>
@@ -177,6 +214,7 @@ export default function CFPPage() {
                     value={titleZh}
                     onChange={(e) => setTitleZh(e.target.value)}
                     placeholder="例如：PostgreSQL 构建现代 API"
+                    maxLength={200}
                   />
                 </div>
                 <div className="space-y-2">
@@ -187,6 +225,7 @@ export default function CFPPage() {
                     onChange={(e) => setAbstract(e.target.value)}
                     placeholder="Describe your session..."
                     rows={4}
+                    maxLength={10000}
                     required
                   />
                 </div>
@@ -198,14 +237,15 @@ export default function CFPPage() {
                     onChange={(e) => setAbstractZh(e.target.value)}
                     placeholder="用中文描述您的演讲..."
                     rows={4}
+                    maxLength={10000}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>{cfp.durationLabel[locale]} *</Label>
-                    <Select value={duration} onValueChange={(v) => setDuration(v || "30")}>
-                      <SelectTrigger>
-                        <SelectValue />
+                    <Label htmlFor="cfp-duration">{cfp.durationLabel[locale]} *</Label>
+                    <Select value={duration} disabled={submitting} onValueChange={(v) => setDuration(v || "30")}>
+                      <SelectTrigger id="cfp-duration">
+                        <SelectValue>{duration} {locale === "zh" ? "分钟" : "min"}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="15">15 min</SelectItem>
@@ -216,10 +256,10 @@ export default function CFPPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>{cfp.typeLabel[locale]} *</Label>
-                    <Select value={sessionType} onValueChange={(v) => setSessionType(v || "talk")}>
-                      <SelectTrigger>
-                        <SelectValue />
+                    <Label htmlFor="cfp-type">{cfp.typeLabel[locale]} *</Label>
+                    <Select value={sessionType} disabled={submitting} onValueChange={(v) => setSessionType(v || "talk")}>
+                      <SelectTrigger id="cfp-type">
+                        <SelectValue>{sessionType === "workshop" ? cfp.workshop[locale] : sessionType === "panel" ? cfp.panel[locale] : cfp.talk[locale]}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="talk">{cfp.talk[locale]}</SelectItem>
@@ -229,6 +269,8 @@ export default function CFPPage() {
                     </Select>
                   </div>
                 </div>
+                </fieldset>
+                {submitError && <div role="alert" className="flex gap-2 text-sm text-red-700 dark:text-red-300"><AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /><p>{cfpErrors[submitError][locale]}</p></div>}
                 <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 w-full" disabled={submitting}>
                   {submitting ? cfp.submitting[locale] : cfp.submit[locale]}
                 </Button>

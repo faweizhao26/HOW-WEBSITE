@@ -143,6 +143,15 @@ fixture for browser QA; run with `REGISTRATION_QA_CLEANUP=true` afterward.
 checks populated registration and CFP pages in eight language/theme/viewport
 combinations each. The browser account must already be signed in.
 
+`scripts/verify-cfp-auth-api.mjs` also requires isolated localhost
+`PUBLICATION_TEST_*` credentials. It creates synthetic accounts and checks login,
+CFP validation/ownership, eight concurrent retries and committed-response-loss
+recovery. `CFP_QA_KEEP_FIXTURES=true` retains a private fixture for browser review;
+`CFP_QA_CLEANUP=true` removes those accounts and their proposals afterward.
+`EGO_TASK_SPACE_ID=<active-id> node scripts/verify-cfp-auth-ego.mjs` uses that fixture
+and a local preview (default port 3025) for 12 interaction checks and 24
+language/theme/viewport/route combinations. It does not test real email delivery.
+
 ```bash
 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3018 npm run test:e2e
 ```

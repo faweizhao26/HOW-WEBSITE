@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { useLocale } from "@/lib/i18n/provider"
+import { authErrorCode } from "@/lib/auth/login"
+import type { AuthErrorCode } from "@/lib/auth/login"
+import { authErrors } from "@/lib/auth/messages"
+import { safeAuthRedirect } from "@/lib/auth/redirect"
 
 export default function RegisterPage() {
   const locale = useLocale()
@@ -17,24 +21,37 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [errorCode, setErrorCode] = useState<AuthErrorCode | null>(null)
+  const pending = useRef(false)
   const router = useRouter()
-  const supabase = createClient()
+  const searchParams = useSearchParams()
+  const redirect = safeAuthRedirect(searchParams.get("redirect"))
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
+    if (pending.current) return
+    pending.current = true
     setLoading(true)
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    })
-    setLoading(false)
-    if (error) {
-      toast.error(error.message)
-    } else {
+    setErrorCode(null)
+    let navigating = false
+    try {
+      const callback = new URL("/auth/callback", window.location.origin)
+      callback.searchParams.set("next", redirect)
+      const { data, error } = await createClient().auth.signUp({
+        email: email.trim(), password,
+        options: { data: { full_name: fullName.trim() }, emailRedirectTo: callback.href },
+      })
+      if (error) { setErrorCode(authErrorCode(error)); return }
+      if (data.session) {
+        window.location.assign(redirect)
+        navigating = true
+        return
+      }
       toast.success(locale === "zh" ? "注册成功！请查看邮件确认账号。" : "Registration successful! Check your email to confirm your account.")
-      router.push("/auth/login")
-    }
+      router.push(`/auth/login?redirect=${encodeURIComponent(redirect)}`)
+      navigating = true
+    } catch { setErrorCode("operation_failed") }
+    finally { if (!navigating) { pending.current = false; setLoading(false) } }
   }
 
   return (
@@ -54,6 +71,8 @@ export default function RegisterPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
+                disabled={loading}
+                autoComplete="name"
               />
             </div>
             <div className="space-y-2">
@@ -65,6 +84,9 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loading}
+                maxLength={254}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -76,15 +98,19 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                disabled={loading}
+                maxLength={4096}
+                autoComplete="new-password"
               />
             </div>
+            {errorCode && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{authErrors[errorCode][locale]}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (locale === "zh" ? "创建中..." : "Creating account...") : (locale === "zh" ? "创建账号" : "Create Account")}
             </Button>
           </form>
           <p className="text-center text-sm text-zinc-400 mt-4">
             {locale === "zh" ? "已有账号？" : "Already have an account?"}{" "}
-            <Link href="/auth/login" className="text-emerald-400 hover:text-emerald-300">
+            <Link href={`/auth/login?redirect=${encodeURIComponent(redirect)}`} className="text-emerald-400 hover:text-emerald-300">
               {locale === "zh" ? "登录" : "Sign In"}
             </Link>
           </p>
