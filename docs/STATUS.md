@@ -6,9 +6,10 @@
 ## 当前版本
 
 - 正式网站：https://how-website.vercel.app/
-- 账号邮件功能提交：`main`，`7da54c61114b2bf478363d544f9be4d68f73b7b5`。
-- Vercel Production 部署 `dpl_CCw8VSTK3fTEgzMNze67GboEgNuM` 为 `READY`，
-  对应上述功能提交，正式域名已分配成功；本状态文档另行补充发布验收记录。
+- 最新修复批次：`main`，`911ae256ba15ad9d158ead4451c06d6ed4c4ab72`，
+  工作分支 `codex/avatar-storage-verification`；提交和 SSH 推送均使用 `faweizhao26`。
+- Vercel Production 部署 `dpl_8wfaj2RKn5EgummC7pRtvUVRJpSa` 为 `READY`，
+  对应上述头像权限及迁移归档提交，正式域名已分配成功；不是仅 Preview。
 - 本轮已在 ego-lite 打开正式网站，验证登录、账号注册、个人中心、报名、投稿
   的 40 种设备/语言/主题显示组合，并只读查看后台。未改正式报名和会议内容。
 - 新增账号邮件闭环已用 `faweizhao26` 提交并推送到 `main` 和
@@ -69,7 +70,7 @@
 
 正式回调配置已修复，账号邮件闭环已发布，新邮件打开重置表单已由用户确认。
 实际密码变更和新密码登录留给用户自行完成。头像权限、真实 Storage 验收和迁移记录
-核对均已完成；本批仓库发布结果见发布回执。下一步优先补全正式内容。
+核对及仓库发布均已完成，Production 已上线。下一步优先补全正式内容。
 暂不重新打开已完成的主题、报名、后台和投稿
 修复，也不把短信接入当作当前发布阻塞。
 
@@ -84,6 +85,12 @@
 代码已推送到上述工作分支和 `main`，Production 已上线。生产 Auth 的 Site URL 和两个回调地址已更新；
 未改现有用户密码、用户资料或正式业务记录。
 头像迁移已在生产执行并验收；历史迁移仅归档对齐，未重跑 SQL 或修改生产历史记录。
+
+## 发布回执
+
+2026-10-11：`911ae25` 已推送到 `main` 和 `codex/avatar-storage-verification`。
+Vercel 确认 `target=production`、`readyState=READY`，提交 SHA 一致，
+部署别名包含 `how-website.vercel.app`。本回执是后续文档补充，不改变运行代码或数据库。
 
 ## 证据入口
 

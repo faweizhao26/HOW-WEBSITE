@@ -108,3 +108,15 @@ authenticated schema usage, helper EXECUTE and object SELECT/INSERT/DELETE grant
   authenticated ordinary-user browser requests instead.
 - The security advisor reported no Storage/RLS issue; the existing leaked-password-protection
   warning is separate and no unrelated Auth setting was changed.
+
+## Release Receipt
+
+- 2026-10-11: commit `911ae256ba15ad9d158ead4451c06d6ed4c4ab72`, authored and committed
+  by `faweizhao26 <faweizhao26@gmail.com>`, pushed through verified `faweizhao26` SSH
+  identity to `main` and `codex/avatar-storage-verification`.
+- Vercel deployment `dpl_8wfaj2RKn5EgummC7pRtvUVRJpSa` reports `target=production`,
+  `readyState=READY`, the same Git commit SHA and alias `how-website.vercel.app`.
+- The worktree was clean after the fix commit. Temporary credential fixtures, generated
+  PNGs, screenshots and the one-off live acceptance script were removed after verification.
+- This receipt is a documentation-only follow-up; it does not rerun migrations or change
+  application runtime behavior.
