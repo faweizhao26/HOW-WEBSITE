@@ -7,12 +7,12 @@ export const conference = {
   days: ["2027-04-16", "2027-04-17", "2027-04-18"],
   dayCount: 3,
   venue: {
-    en: "Jinan Shandong Hotel (Shungeng International Convention Center)",
-    zh: "济南山东大厦（舜耕国际会议中心）",
+    en: "Venue to be announced",
+    zh: "会场待公布",
   },
   address: {
-    en: "2-1 Ma'anshan Road, Shizhong District, Jinan, Shandong, China",
-    zh: "中国·山东·济南市中区马鞍山路 2-1 号",
+    en: "The address will be published once the venue is confirmed.",
+    zh: "具体地址将在会场确认后公布。",
   },
 } as const
 

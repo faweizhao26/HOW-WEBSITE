@@ -241,7 +241,7 @@ export function removeSponsor(id: string) {
 
 const newsSeeds = [
   { id: "mn1", title: "CFP is Now Open!", title_zh: "演讲征集现已开启！", content: "We are excited to announce that the Call for Proposals (CFP) for HOW 2027 is now open.", content_zh: "我们很高兴地宣布，HOW 2027 演讲征集现已开启。", published_at: "2026-11-01T00:00:00Z" },
-  { id: "mn2", title: "Venue Announced: Jinan Shandong Hotel (Shungeng International Convention Center)", title_zh: "会场公布：济南山东大厦（舜耕国际会议中心）", content: "HOW 2027 will be held at Jinan Shandong Hotel (Shungeng International Convention Center).", content_zh: "HOW 2027 将在济南山东大厦（舜耕国际会议中心）举办。", published_at: "2026-12-15T00:00:00Z" },
+  { id: "mn2", title: "Venue planning update", title_zh: "会场筹备进展", content: "The HOW 2027 venue and address will be announced once confirmed.", content_zh: "HOW 2027 会场和具体地址将在确认后公布。", published_at: "2026-12-15T00:00:00Z" },
   { id: "mn3", title: "Early Bird Registration Opens", title_zh: "早鸟票注册开启", content: "Early bird tickets for HOW 2027 are now available.", content_zh: "HOW 2027 早鸟票现已发售。", published_at: "2027-01-10T00:00:00Z" },
 ] as const
 

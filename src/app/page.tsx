@@ -9,13 +9,13 @@ import { CheckCircle, ArrowRight, Calendar, MapPin, Users, Mic } from "lucide-re
 import { Countdown } from "@/components/countdown"
 import { HeroMotion } from "@/components/home/hero-motion"
 import { conference, formatConferenceDateRange, getConferenceStartDate } from "@/lib/conference"
-import { getPublishedSettings } from "@/lib/content/public"
+import { getPublishedSessions, getPublishedSettings } from "@/lib/content/public"
 import { defaultSiteSettings } from "@/lib/content/settings"
 
 export default async function HomePage() {
   const cookieStore = await cookies()
   const locale = getLocale(cookieStore.get("lang")?.value)
-  const result = await getPublishedSettings()
+  const [result, sessions] = await Promise.all([getPublishedSettings(), getPublishedSessions()])
   if (result.status === "error") return <div data-content-state="error" className="mx-auto min-h-[50vh] max-w-7xl px-4 py-16 sm:px-6 lg:px-8"><h1 className="mb-6 text-4xl font-bold">HOW 2027</h1><p className="text-muted-foreground">{locale === "zh" ? "大会信息暂时无法加载，请稍后再试。" : "Conference information is temporarily unavailable. Please try again later."}</p></div>
   const settings = result.status === "empty" ? defaultSiteSettings : result.data
 
@@ -27,10 +27,13 @@ export default async function HomePage() {
   const location = settings.conference_location
   const locationZh = settings.conference_location_zh
   const venueLine = conference.venue[locale]
+  const pending = locale === "zh" ? "待公布" : "TBA"
+  const sessionCount = sessions.status === "ready" ? String(sessions.data.length)
+    : sessions.status === "empty" ? pending : locale === "zh" ? "暂不可用" : "Unavailable"
 
   const stats = [
-    { icon: Mic, label: locale === "zh" ? "演讲" : "Sessions", value: "18" },
-    { icon: Users, label: locale === "zh" ? "参会者" : "Attendees", value: "500+" },
+    { icon: Mic, label: locale === "zh" ? "已公布演讲" : "Published Sessions", value: sessionCount },
+    { icon: Users, label: locale === "zh" ? "参会规模" : "Attendance", value: pending },
     { icon: MapPin, label: locale === "zh" ? "地点" : "Location", value: locale === "zh" ? locationZh : location },
     { icon: Calendar, label: locale === "zh" ? "天数" : "Days", value: String(conference.dayCount) },
   ]
@@ -81,7 +84,7 @@ export default async function HomePage() {
             <Card key={stat.label} className="bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
               <CardContent className="p-6 text-center">
                 <stat.icon className="h-6 w-6 text-emerald-400 mx-auto mb-3" />
-                <div className="text-2xl font-bold text-zinc-950 dark:text-white">{stat.value}</div>
+                <div className={`${stat.value === "Unavailable" ? "text-base" : "text-2xl"} font-bold text-zinc-950 dark:text-white`}>{stat.value}</div>
                 <div className="text-sm text-zinc-600 dark:text-zinc-400">{stat.label}</div>
               </CardContent>
             </Card>

@@ -47,10 +47,10 @@ test.describe("official conference facts", () => {
 
   test("uses one venue name everywhere users see it", async ({ page }) => {
     await page.goto("/venue")
-    await expect(page.getByRole("heading", { name: "济南山东大厦（舜耕国际会议中心）" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "会场待公布", exact: true })).toBeVisible()
 
     await page.goto("/")
-    await expect(page.getByText("济南山东大厦（舜耕国际会议中心）")).toBeVisible()
+    await expect(page.getByText("会场待公布", { exact: true })).toBeVisible()
   })
 })
 

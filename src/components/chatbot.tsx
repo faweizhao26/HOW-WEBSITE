@@ -15,18 +15,18 @@ const contactEmail = "faweizhao26@gmail.com"
 
 const qa: QA[] = [
   { q: /time|date|schedule|when|举办时间|时间|日期|什么时候|agenda|议程/, a: { en: "HOW 2027 will be held in Jinan, China, from April 16–18, 2027. The Schedule page has the latest published program.", zh: "HOW 2027 将于 2027 年 4 月 16 日至 18 日在中国济南举办。最新发布的议程请查看议程页面。" } },
-  { q: /venue|location|where|place|address|地点|哪里|在哪|地址|会场/, a: { en: `The conference will be held at ${conference.venue.en}, ${conference.address.en}.`, zh: `会议将在${conference.venue.zh}举办，地址：${conference.address.zh}。` } },
-  { q: /register|sign.?up|ticket|报名|注册|票|参加|参会/, a: { en: "You can register on the Register page. We offer Community Pass (free), VIP Pass (requires channel code), and Speaker Pass. Login is required to register.", zh: "您可以在报名页面注册。我们提供社区票（免费）、贵宾票（需渠道码）和讲者票。需要登录后才能报名。" } },
+  { q: /venue|location|where|place|address|地点|哪里|在哪|地址|会场/, a: { en: `${conference.venue.en}. The address and on-site directions will be published on the Venue page once confirmed.`, zh: `${conference.venue.zh}。具体地址和现场指引将在确认后更新到会场页面。` } },
+  { q: /register|sign.?up|ticket|报名|注册|票|参加|参会/, a: { en: "You can register on the Register page after signing in. Available passes, eligibility and channel-code requirements are shown on that page.", zh: "登录后可在报名页面完成报名。当前可选票种、参与资格和渠道码要求以报名页面的说明为准。" } },
   { q: /speaker|讲者|讲师|嘉宾|谁.*来|who.*speak/, a: { en: "The Speakers page lists announced speakers. Check the Schedule page for their published sessions and times.", zh: "已公布的讲者请查看讲者页面，演讲内容和时间以议程页面的最新发布版本为准。" } },
   { q: /cfp|submit|proposal|speak|talk|session|议题|投递|演讲|提交|投稿/, a: { en: "You can submit your talk proposal on the CFP page. You'll need to register and login first. Submissions include title, abstract, duration, and type (talk/workshop/panel).", zh: "您可以在投递演讲页面提交提案。需要先注册登录。提交内容包括标题、摘要、时长和类型（演讲/工作坊/圆桌）。" } },
-  { q: /price|cost|free|paid|费用|价格|多少钱|收费|免费/, a: { en: "Community Pass is FREE for everyone. VIP Pass and Speaker Pass require a channel code from our partners.", zh: "社区票对所有人免费。贵宾票和讲者票需要使用合作伙伴提供的渠道码。" } },
+  { q: /price|cost|free|paid|费用|价格|多少钱|收费|免费/, a: { en: `Check the Register page for current ticket terms. For pricing or eligibility questions, contact ${contactEmail}.`, zh: `票务安排以报名页面当前说明为准。费用或参与资格问题请联系 ${contactEmail}。` } },
   { q: /coc|conduct|行为|准则|规范|code/, a: { en: "HOW 2027 follows a Code of Conduct to ensure a safe, respectful environment for all participants. Harassment of any form is not tolerated. See the Code of Conduct page for details.", zh: "HOW 2027 遵循行为准则，确保为所有参会者提供安全、互相尊重的环境。不容忍任何形式的骚扰。详见行为准则页面。" } },
   { q: /contact|email|联系|邮件|问题|help|support/, a: { en: `For any questions, please contact us at ${contactEmail}`, zh: `如有任何问题，请发送邮件至 ${contactEmail}。` } },
-  { q: /stream|online|live|直播|线上|远程|看直播/, a: { en: "HOW 2027 is an in-person conference in Jinan. Online streaming details will be announced closer to the event.", zh: "HOW 2027 是在济南举办的线下会议。线上直播详情将在临近会议时公布。" } },
+  { q: /stream|online|live|直播|线上|远程|看直播/, a: { en: "Whether live streaming will be offered, and how to watch, will be announced once confirmed. Check the Updates page for official information.", zh: "是否提供直播及观看方式待确认后公布，请关注动态页面的正式公告。" } },
   { q: /cancel|refund|退票|取消|退款/, a: { en: `You can cancel your registration from your Profile page. For refund questions, please contact ${contactEmail}.`, zh: `您可以在个人中心页面取消报名。退款相关问题请联系 ${contactEmail}。` } },
-  { q: /hotel|酒店|住宿|accommodation/, a: { en: `The venue is ${conference.venue.en}. Recommended hotel information will be published in the attendee guide once confirmed.`, zh: `会场是${conference.venue.zh}。推荐酒店信息确认后会在参会指南中发布。` } },
-  { q: /transport|交通|地铁|机场|how.*get/, a: { en: "Jinan Yaoqiang International Airport is about 40 minutes from the venue by taxi. Jinan Railway Station is 15 minutes away.", zh: "济南遥墙国际机场打车到会场约 40 分钟，济南火车站约 15 分钟。" } },
-  { q: /food|meal|lunch|dinner|吃饭|用餐|午餐|晚餐/, a: { en: "Lunch and coffee breaks are provided for all attendees during the conference days.", zh: "会议期间为所有参会者提供午餐和茶歇。" } },
+  { q: /hotel|酒店|住宿|accommodation/, a: { en: "Recommended hotel information will be published in the attendee guide once the venue and accommodation arrangements are confirmed.", zh: "会场及住宿安排确定后，推荐酒店信息会在参会指南中发布。" } },
+  { q: /transport|交通|地铁|机场|how.*get/, a: { en: "Confirmed airport, railway and local transport routes will be published in the attendee guide. Travel times depend on your starting point and traffic; fixed journey times are not confirmed.", zh: "机场、高铁和本地交通路线将在确认后发布到参会指南。具体耗时取决于出发地点与路况，目前不提供已确认的固定车程。" } },
+  { q: /food|meal|lunch|dinner|coffee|catering|吃饭|用餐|午餐|晚餐|茶歇|餐饮/, a: { en: "Meal and coffee-break arrangements are to be announced. Whether they are provided and which passes include them will be published in the attendee guide once confirmed.", zh: "餐饮和茶歇安排待公布。是否提供、哪些票种包含这些服务，以参会指南后续确认的信息为准。" } },
   { q: /social|wechat|weixin|微信群|群聊|社区|community/, a: { en: "Join our community! Follow us on social media for updates. Check the Updates page for the latest news.", zh: "加入我们的社区！关注社交媒体获取最新动态。查看动态页面了解最新消息。" } },
 ]
 
@@ -64,7 +64,7 @@ export function ChatbotWidget() {
   }
 
   const greeting = locale === "zh"
-    ? "你好！我是 HOW 2027 的 AI 助手。有什么关于大会的问题可以问我！"
+    ? "你好！这里是 HOW 2027 大会问答。已确认信息以对应页面和正式公告为准。"
     : "Hi! I'm the HOW 2027 assistant. Ask me anything about the conference!"
 
   return (
@@ -78,7 +78,7 @@ export function ChatbotWidget() {
               </div>
               <div>
                 <p className="text-sm font-medium text-white">{locale === "zh" ? "HOW 2027 助手" : "HOW 2027 Assistant"}</p>
-                <p className="text-[10px] text-zinc-500">{locale === "zh" ? "AI 小助手" : "AI-powered"}</p>
+                <p className="text-xs text-zinc-400">{locale === "zh" ? "大会问答" : "Conference FAQ"}</p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-zinc-300">

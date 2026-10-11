@@ -24,10 +24,10 @@ export default async function VenuePage() {
               <p className="text-zinc-400 mt-2">
                 {conference.address[locale]}
               </p>
-              <p className="text-zinc-500 mt-2 text-sm">
+              <p className="text-zinc-400 mt-2 text-sm">
                 {locale === "zh"
-                  ? "舜耕国际会议中心区，近舜耕路"
-                  : "Shungeng International Convention Center area, near Shungeng Road"}
+                  ? "具体会议厅、签到位置与现场指引待公布。"
+                  : "Conference rooms, check-in locations and on-site directions are to be announced."}
               </p>
             </div>
           </div>
@@ -35,9 +35,9 @@ export default async function VenuePage() {
       </Card>
 
       <div className="mt-10 aspect-video rounded-xl bg-zinc-900/50 border border-zinc-800 flex items-center justify-center">
-        <div className="text-center text-zinc-500">
+        <div className="text-center text-zinc-400">
           <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>{locale === "zh" ? "地图将在会议临近时公布" : "Map will be available closer to the event"}</p>
+          <p>{locale === "zh" ? "地图将在会场确认后公布" : "The map will be published once the venue is confirmed"}</p>
         </div>
       </div>
     </div>

@@ -35,8 +35,8 @@ const sections = [
     icon: Coffee,
     title: { en: "Community Socials", zh: "社区活动" },
     body: {
-      en: "Expect lightweight community moments such as newcomer breakfast, hallway track meetups, city walks, and small-group dinners.",
-      zh: "我们计划放上一些轻量社区活动，例如新人早餐、走廊交流、城市漫步和小组晚餐。",
+      en: "Community activities are being considered, including newcomer welcomes, hallway meetups, city walks and small-group dinners. The final activities, times and participation details are to be announced.",
+      zh: "社区活动仍在筹备，可能包括新人欢迎、走廊交流、城市漫步和小组晚餐。具体活动、时间与参与方式待确认后公布。",
     },
     items: {
       en: ["Newcomer welcome", "Meet & Eat groups", "City walk or morning run"],
@@ -121,7 +121,7 @@ export default async function AttendPage() {
           <div key={item.label.en} className="border border-zinc-800 rounded-lg p-5 bg-zinc-950/40">
             <item.icon className="h-5 w-5 text-cyan-400 mb-3" />
             <h3 className="text-white font-medium mb-2">{item.label[locale]}</h3>
-            <p className="text-sm text-zinc-500 leading-relaxed">{item.text[locale]}</p>
+            <p className="text-sm text-zinc-400 leading-relaxed">{item.text[locale]}</p>
           </div>
         ))}
       </div>
