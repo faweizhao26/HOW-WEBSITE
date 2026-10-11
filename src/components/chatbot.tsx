@@ -54,13 +54,13 @@ export function ChatbotWidget() {
   function handleSend() {
     const q = input.trim()
     if (!q) return
-    const newMessages = [...messages, { role: "user" as const, text: q }]
-    setMessages(newMessages)
+    const answer = getAnswer(q, locale)
+    setMessages(current => [
+      ...current,
+      { role: "user", text: q },
+      { role: "bot", text: answer },
+    ])
     setInput("")
-    setTimeout(() => {
-      const answer = getAnswer(q, locale)
-      setMessages([...newMessages, { role: "bot", text: answer }])
-    }, 500)
   }
 
   const greeting = locale === "zh"
@@ -118,7 +118,11 @@ export function ChatbotWidget() {
             <Input
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSend()}
+              onKeyDown={e => {
+                if (e.key !== "Enter" || e.nativeEvent.isComposing) return
+                e.preventDefault()
+                handleSend()
+              }}
               placeholder={locale === "zh" ? "输入您的问题..." : "Ask a question..."}
               className="border-zinc-700 bg-zinc-800 text-sm h-10"
             />
