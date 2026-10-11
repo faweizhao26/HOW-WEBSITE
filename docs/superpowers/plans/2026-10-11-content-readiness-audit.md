@@ -57,3 +57,8 @@
 - 2026-10-11: User explicitly requested the push after reviewing the local outcome. Target: Production; identity: `faweizhao26`.
 - SSH identity confirmed; remote `main` is still `aeb79255022789d429b3972eb3eced0d72994557` before this release. Focused tests 16/16 and diff whitespace check passed again; no runtime code changed since the full tests, lint, build and display verification above.
 - Exclude the unrelated Next.js-generated `AGENTS.md` change and the temporary snapshot adapter. Deployment result and live-page verification will be recorded in `docs/STATUS.md`.
+- Runtime commit `dbafb17038bb6ae4c5c053b682054ea2f5bfedaf` pushed to `main` and `codex/content-readiness-audit` with `faweizhao26` as author, committer and SSH identity.
+- Deployment `dpl_9iUsLPtMXMfz7LsjicLf93MTeUeW`: `target=production`, `readyState=READY`, matching SHA, `aliasError=null`, alias includes `how-website.vercel.app`.
+- Production homepage, venue and attend pages passed six read-only Chinese/English checks; actual homepage published content is ready, pending numbers and venue are correct, no horizontal overflow, text contrast problems or runtime exceptions found in this scope.
+- Chinese and English FAQ meal/venue questions passed on the production origin. No registration or account mutations performed; no logout. TaskSpace 22 finished, no agent pages kept.
+- Release receipt updates only documentation; no additional runtime changes or database migration.
