@@ -24,7 +24,7 @@ SELECT json_build_object(
 const before = query(snapshotSQL)
 assert.equal(before.status, 0, before.stderr)
 assert.equal(JSON.parse(before.stdout).owner_count, 1)
-const migration = await readFile(new URL("../supabase/migrations/20261009105046_registration_integrity.sql", import.meta.url), "utf8")
+const migration = await readFile(new URL("../supabase/migrations/20261009151924_registration_integrity.sql", import.meta.url), "utf8")
 const failure = query(`
 BEGIN;
 DROP INDEX public.registrations_one_per_user;

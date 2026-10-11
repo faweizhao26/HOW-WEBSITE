@@ -33,7 +33,7 @@ Do not apply both paths to the same database. This migration is additive to
 the original schema; it is not a standalone bootstrap migration.
 
 After either bootstrap path, apply
-`supabase/migrations/20261009105046_registration_integrity.sql` before deploying
+`supabase/migrations/20261009151924_registration_integrity.sql` before deploying
 the registration-integrity code. It rejects existing duplicate registrations
 without modifying them; resolve those records explicitly before retrying.
 Registration uses a confirmed account email, an active ticket and a matching
@@ -48,6 +48,19 @@ another one. Administrators retain ticket and check-in management.
 Admin access comes from the trusted `profiles.role` column. Promote the intended
 account from a trusted database console, not through signup metadata. Ordinary
 accounts cannot change their own role.
+
+Migration filenames match production history, including the two July security
+migrations restored from production statements. Do not replay those migrations or
+the already-applied registration SQL to repair a filename mismatch. Fresh projects
+must create the base schema first; this migration folder is not a standalone bootstrap.
+
+Avatar uploads also require
+`supabase/migrations/20261010094629_avatar_storage_ownership.sql`. This adds ordinary
+user INSERT/SELECT/DELETE access only to owned `avatars/<user-id>/<filename>` objects
+in `conference-media`, without UPDATE/upsert access. Administrator media access and
+public asset URLs are retained. This migration is already applied in production;
+ordinary-user upload, replacement and failure cleanup were verified with temporary
+accounts, then all test accounts and files were removed. See `docs/STATUS.md`.
 
 ## Content Publishing
 
