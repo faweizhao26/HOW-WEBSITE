@@ -43,6 +43,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
   const user = data?.user
   const tickets = data?.tickets || []
   const email = user?.email || ""
+  const requiresChannelCode = Boolean(tickets.find(ticket => ticket.id === selectedTicket)?.requires_code)
 
   useEffect(() => {
     let active = true
@@ -176,7 +177,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium break-words">{locale === "zh" && ticket.name_zh ? ticket.name_zh : ticket.name}</span>
-                    <Badge variant="outline" className="text-emerald-800 dark:text-emerald-300 border-emerald-600 text-xs">{ticket.is_free ? (locale === "zh" ? "免费" : "Free") : (locale === "zh" ? "渠道票" : "Partner Pass")}</Badge>
+                    <Badge variant="outline" className={`text-xs ${ticket.is_free ? "text-emerald-800 dark:text-emerald-300 border-emerald-600" : "text-amber-800 dark:text-amber-300 border-amber-600"}`}>{ticket.is_free ? (locale === "zh" ? "免费" : "Free") : (locale === "zh" ? "收费" : "Paid")}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 break-words">{locale === "zh" && ticket.description_zh ? ticket.description_zh : ticket.description}</p>
                   {ticket.requires_code && <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{locale === "zh" ? "需要渠道码" : "Requires channel code"}</p>}
@@ -188,9 +189,9 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
         </CardContent>
       </Card>
       <Card className="mb-6">
-        <CardHeader><CardTitle className="text-sm"><Label htmlFor="channel-code">{locale === "zh" ? "渠道码（选填）" : "Channel Code (optional)"}</Label></CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-sm"><Label htmlFor="channel-code">{requiresChannelCode ? (locale === "zh" ? "渠道码（必填）" : "Channel Code (required)") : (locale === "zh" ? "渠道码（选填）" : "Channel Code (optional)")}</Label></CardTitle></CardHeader>
         <CardContent>
-          <Input id="channel-code" value={channelCode} onChange={event => changeChannel(event.target.value)} maxLength={128} disabled={submitting} aria-describedby="channel-status" aria-invalid={codeStatus === "invalid"} />
+          <Input id="channel-code" value={channelCode} onChange={event => changeChannel(event.target.value)} maxLength={128} disabled={submitting} aria-describedby="channel-status" aria-required={requiresChannelCode} aria-invalid={codeStatus === "invalid"} />
           <div id="channel-status" aria-live="polite" className="text-xs mt-2">
             {channelCode.trim() && !user ? <p className="text-muted-foreground">{locale === "zh" ? "请先登录" : "Please log in first"}</p> : <>
               {codeStatus === "checking" && <p className="text-muted-foreground">{locale === "zh" ? "验证中..." : "Checking..."}</p>}
