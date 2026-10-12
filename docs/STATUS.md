@@ -6,10 +6,10 @@
 ## 当前版本
 
 - 正式网站：https://how-website.vercel.app/
-- 最新运行代码：`main`，`f59d13ef20a897cbd4d40ce5468448ecb628b909`，
+- 最新运行代码：`main`，`afa2c8917d60a3414df6acdf7a5577891b4b49f6`，
   工作分支 `codex/faq-interaction-reliability`；提交和 SSH 推送均使用 `faweizhao26`。
-- Vercel Production 部署 `dpl_3XaMZSNK96pir4jovKXcW12SeJHB` 为 `READY`，
-  对应上述问答交互修复提交，正式域名已分配成功；不是仅 Preview。
+- Vercel Production 部署 `dpl_2aNJFCA2qBBkK4wKMcJBEyBj5sJE` 为 `READY`，
+  对应上述票务显示修复提交，正式域名已分配成功；不是仅 Preview。
 - 本轮已在 ego-lite 打开正式网站，验证登录、账号注册、个人中心、报名、投稿
   的 40 种设备/语言/主题显示组合，并只读查看后台。未改正式报名和会议内容。
 - 新增账号邮件闭环已用 `faweizhao26` 提交并推送到 `main` 和
@@ -97,9 +97,7 @@ ego-lite 本地检查确认：中英文连续问题及回复完整保留，普�
 最新回复自动滚动到可见位置，未观察到运行时异常。TaskSpace 23 已结束。
 预览仍为公开内容快照环境；本批只验证本地问答交互，不计为实时后台或生产业务验收。
 
-## 尚待处理
-
-### 本地已修复：票务显示（尚未推送）
+## 已发布：票务显示
 
 2026-10-12 完成本轮票务显示修复；再次只读打开正式讲者、议程、动态页面，三页均正常显示未公布状态。
 报名页发现两处显示不一致：非免费票被统一标成渠道票；选择需渠道码的票后，输入仍标选填。
@@ -108,7 +106,12 @@ ego-lite 本地检查确认：中英文连续问题及回复完整保留，普�
 相关回归测试 21/21、改动文件 lint 与生产构建通过；ego-lite 本地 8 种语言/设备/主题组合，
 每种检查 4 种票务配置，标签、选择切换及无横向溢出通过。检查使用本地展示数据，未提交报名。
 人工查看中文桌面日间和英文手机夜间截图；手机截图等待颜色过渡完成后检查，未将过渡帧当成主题缺陷。
-本批代码仅在本地，Production 未更新；预览为 `http://127.0.0.1:3031/register`。
+用户确认推送后，`afa2c89` 已推送到工作分支和 `main`，Production 已 READY。
+正式报名页只读检查正常，已发布脚本包含必填提示、收费标签及 `aria-required`，不再含原渠道票标签。
+当前主账号已有报名记录，正式页显示原有报名状态；未为了查看票种而取消报名、退出账号或创建新用户。
+本地展示矩阵不冒充正式报名提交验收。预览仍为 `http://127.0.0.1:3031/register`。
+
+## 尚待处理
 
 | 顺序 | 工作 | 性质与当前状态 | 完成标准 |
 | --- | --- | --- | --- |
@@ -149,6 +152,14 @@ Vercel 共享域名，Supabase SMTP 开关仍关闭；恢复工作时可沿用�
 头像迁移已在生产执行并验收；历史迁移仅归档对齐，未重跑 SQL 或修改生产历史记录。
 
 ## 发布回执
+
+2026-10-12：票务显示修复 `afa2c8917d60a3414df6acdf7a5577891b4b49f6`
+已原子推送到 `main` 和 `codex/faq-interaction-reliability`，提交作者、提交者和 SSH 身份
+均为 `faweizhao26`。部署 `dpl_2aNJFCA2qBBkK4wKMcJBEyBj5sJE` 确认
+`target=production`、`readyState=READY`、Git SHA 一致，正式域名包含
+`how-website.vercel.app` 且 `aliasError=null`。ego-lite 正式报名页加载正常、无横向溢出；
+当前账号显示已有报名记录，新版公开脚本已核对。未提交、取消或恢复任何正式报名。
+本批同时归档真实邮件验收、测试清理及用户延期 SMTP 的记录；没有接入 SMTP 或购买服务。
 
 2026-10-11：问答交互修复 `f59d13e` 已推送到 `main` 和 `codex/faq-interaction-reliability`。
 提交作者、提交者和 SSH 身份均为 `faweizhao26`；部署 `dpl_3XaMZSNK96pir4jovKXcW12SeJHB`
