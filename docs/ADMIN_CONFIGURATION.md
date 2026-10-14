@@ -71,7 +71,7 @@ Supabase URL/anon key，服务端或浏览器均不接收 service-role key。
 本轮 `--cleanup-business` 已恢复原草稿及公开版本，删除自己的测试发布、
 票种、渠道码、提案和普通测试账号，并撤销该账号会话。
 保留本轮独立管理员及预览供用户查看；已有其他测试 fixture 和账号未修改。
-临时截图和 Supabase CLI 临时版本文件在验收结束后清理。
+临时截图和 Supabase CLI 临时版本文件已在验收结束后清理。
 预览服务器 PID 和保留账号凭据仅在 `/private/tmp/how-cfp-settings-qa.json`。
 预览不再需要时只停止该 PID、撤销并删除该独立管理员，再移除该 fixture 和日志；
 不要停止其他预览或删除其他测试账号。
