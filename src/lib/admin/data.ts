@@ -37,14 +37,14 @@ async function savedId(query: PromiseLike<{ data: { id: string } | null; error: 
   return data.id
 }
 
-type TicketFields = Pick<TicketType, "name" | "name_zh" | "description" | "description_zh" | "is_free" | "requires_code">
+type TicketFields = Pick<TicketType, "name" | "name_zh" | "description" | "description_zh" | "is_free" | "requires_code"> & Partial<Pick<TicketType, "is_active" | "sort_order">>
 export function saveTicket(client: Client, fields: TicketFields, id?: string): Promise<string> {
   const query = id ? client.from("ticket_types").update(fields).eq("id", id)
-    : client.from("ticket_types").insert({ ...fields, sort_order: 99 })
+    : client.from("ticket_types").insert({ sort_order: 99, ...fields })
   return savedId(query.select("id").single())
 }
 
-type ChannelFields = Pick<ChannelCode, "code" | "name" | "ticket_type_id">
+type ChannelFields = Pick<ChannelCode, "code" | "name" | "ticket_type_id"> & Partial<Pick<ChannelCode, "is_active">>
 export function saveChannel(client: Client, fields: ChannelFields, id?: string): Promise<string> {
   const query = id ? client.from("channel_codes").update(fields).eq("id", id) : client.from("channel_codes").insert(fields)
   return savedId(query.select("id").single())

@@ -15,7 +15,7 @@ const user = { id: "11111111-1111-4111-8111-111111111111", email: "speaker@examp
 const input = { requestId: "22222222-2222-4222-8222-222222222222", expectedUserId: user.id, title: "  PostgreSQL  ", titleZh: "", abstract: "  Abstract  ", abstractZh: "", duration: 30, type: "talk" }
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } })
 function client(fetch, currentUser = user, error = null) {
-  const db = createClient("https://isolated.example.test", "test-key", { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch } })
+  const db = createClient("https://isolated.example.test", "test-key", { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: (url, options) => new URL(url).pathname.endsWith("site_settings_releases") ? json({ payload: {} }) : fetch(url, options) } })
   db.auth.getUser = async () => ({ data: { user: currentUser }, error })
   return db
 }
@@ -23,7 +23,7 @@ const row = { id: input.requestId, user_id: user.id, title: "PostgreSQL", title_
 
 test("CFP reads distinguish signed-out, empty, Auth failure and proposal query failure", async () => {
   const { loadCFPData } = await cfp()
-  assert.deepEqual(await loadCFPData(client(() => { throw Error("should not read") }, null, { name: "AuthSessionMissingError" })), { user: null, sessions: [] })
+  assert.deepEqual(await loadCFPData(client(() => { throw Error("should not read") }, null, { name: "AuthSessionMissingError" })), { user: null, sessions: [], policy: null })
   assert.equal((await loadCFPData(client(() => json([])))).sessions.length, 0)
   await assert.rejects(loadCFPData(client(() => json([]), null, { name: "AuthRetryableFetchError" })), e => e.code === "load_failed")
   await assert.rejects(loadCFPData(client(() => json({ message: "private query failure" }, 503))), e => e.code === "load_failed")

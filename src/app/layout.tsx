@@ -7,6 +7,7 @@ import { ChatbotWidget } from "@/components/chatbot"
 import { getLocale } from "@/lib/i18n/utils"
 import { Toaster } from "./toaster"
 import { LocaleProvider } from "@/lib/i18n/provider"
+import { getPublishedSiteContent } from "@/lib/content/site-public"
 
 export const metadata: Metadata = {
   title: "HOW 2027 — PostgreSQL Eco Conference",
@@ -21,6 +22,7 @@ export default async function RootLayout({
   const cookieStore = await cookies()
   const locale = getLocale(cookieStore.get("lang")?.value)
   const theme = cookieStore.get("theme")?.value === "light" ? "light" : "dark"
+  const published = await getPublishedSiteContent()
 
   return (
     <html lang={locale} className={theme} suppressHydrationWarning>
@@ -29,7 +31,7 @@ export default async function RootLayout({
           <Header locale={locale} initialTheme={theme} />
           <main className="flex-1 pt-16">{children}</main>
           <Footer locale={locale} />
-          <ChatbotWidget />
+          <ChatbotWidget published={published.status === "ready" ? { settings: published.settings, content: published.content } : null} />
           <Toaster />
         </LocaleProvider>
       </body>

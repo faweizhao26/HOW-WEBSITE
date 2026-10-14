@@ -1,6 +1,8 @@
 import type { CFPErrorCode } from "./service"
 
 export const cfpErrors: Record<CFPErrorCode, { en: string; zh: string }> = {
+  cfp_closed: { en: "The call for proposals is closed. Your draft has been kept.", zh: "征稿已关闭或截止，填写内容已保留。" },
+  cfp_options_changed: { en: "The allowed session types or durations have changed. Reload the current requirements before submitting.", zh: "允许的演讲类型或时长已调整，请核对最新征稿要求后再提交。" },
   account_changed: { en: "Your signed-in account has changed. Reload your proposals before continuing.", zh: "登录账号已变更，请重新加载提案后继续。" },
   login_required: { en: "Please sign in again before submitting.", zh: "请重新登录后提交。" },
   email_not_verified: { en: "Confirm your account email before submitting.", zh: "请先确认账号邮箱，再提交提案。" },

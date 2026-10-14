@@ -66,6 +66,14 @@ test("successful mutations require a returned row id", async () => {
   }
 })
 
+test("new tickets preserve the chosen order instead of overwriting it with the default", async () => {
+  const { saveTicket } = await load()
+  let fields
+  await saveTicket(client((_url, options) => { fields = JSON.parse(options.body); return json({ id: "saved-id" }) }), { name: "Custom", is_active: false, sort_order: 4 })
+  assert.equal(fields.sort_order, 4)
+  assert.equal(fields.is_active, false)
+})
+
 test("registration reads distinguish no records from a failed request", async () => {
   const { loadRegistrationRecords } = await load()
   assert.deepEqual(await loadRegistrationRecords(client(() => json([]))), [])

@@ -2,7 +2,7 @@
 
 import { useLocale } from "@/lib/i18n/provider"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useId, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,12 +23,15 @@ import type { ChannelCode, TicketType } from "@/lib/db/schema"
 
 function TicketForm({ ticket, onSaved }: { ticket?: TicketType; onSaved: () => void }) {
   const locale = useLocale()
+  const formId = useId()
   const [name, setName] = useState(ticket?.name || "")
   const [nameZh, setNameZh] = useState(ticket?.name_zh || "")
   const [desc, setDesc] = useState(ticket?.description || "")
   const [descZh, setDescZh] = useState(ticket?.description_zh || "")
   const [isFree, setIsFree] = useState(ticket?.is_free ?? true)
   const [requiresCode, setRequiresCode] = useState(ticket?.requires_code ?? false)
+  const [isActive, setIsActive] = useState(ticket?.is_active ?? true)
+  const [sortOrder, setSortOrder] = useState(String(ticket?.sort_order ?? 99))
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
@@ -39,7 +42,7 @@ function TicketForm({ ticket, onSaved }: { ticket?: TicketType; onSaved: () => v
     setSaving(true)
     setSaveError(false)
     try {
-      await saveTicket(createClient(), { name, name_zh: nameZh, description: desc, description_zh: descZh, is_free: isFree, requires_code: requiresCode }, ticket?.id)
+      await saveTicket(createClient(), { name: name.trim(), name_zh: nameZh.trim(), description: desc.trim(), description_zh: descZh.trim(), is_free: isFree, requires_code: requiresCode, is_active: isActive, sort_order: Number(sortOrder) }, ticket?.id)
       toast.success(ticket ? (locale === "zh" ? "已更新" : "Updated") : (locale === "zh" ? "已创建" : "Created"))
       setOpen(false)
       onSaved()
@@ -54,12 +57,14 @@ function TicketForm({ ticket, onSaved }: { ticket?: TicketType; onSaved: () => v
         <DialogHeader><DialogTitle>{ticket ? (locale === "zh" ? "编辑票种" : "Edit Ticket") : (locale === "zh" ? "添加票种" : "Add Ticket")}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset disabled={saving} className="space-y-4">
-          <div className="space-y-2"><Label>{locale === "zh" ? "名称（英文）" : "Name (English)"}</Label><Input value={name} onChange={e => setName(e.target.value)} required /></div>
-          <div className="space-y-2"><Label>{locale === "zh" ? "名称（中文）" : "Name (Chinese)"}</Label><Input value={nameZh} onChange={e => setNameZh(e.target.value)} /></div>
-          <div className="space-y-2"><Label>{locale === "zh" ? "说明（英文）" : "Description (English)"}</Label><Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} /></div>
-          <div className="space-y-2"><Label>{locale === "zh" ? "说明（中文）" : "Description (Chinese)"}</Label><Textarea value={descZh} onChange={e => setDescZh(e.target.value)} rows={2} /></div>
-          <div className="flex items-center justify-between"><Label>{locale === "zh" ? "免费票" : "Free Ticket"}</Label><Switch checked={isFree} onCheckedChange={setIsFree} /></div>
-          <div className="flex items-center justify-between"><Label>{locale === "zh" ? "需要渠道码" : "Requires Code"}</Label><Switch checked={requiresCode} onCheckedChange={setRequiresCode} /></div>
+          <div className="space-y-2"><Label htmlFor={`${formId}-name`}>{locale === "zh" ? "名称（英文）" : "Name (English)"}</Label><Input id={`${formId}-name`} value={name} onChange={e => setName(e.target.value)} required /></div>
+          <div className="space-y-2"><Label htmlFor={`${formId}-name-zh`}>{locale === "zh" ? "名称（中文）" : "Name (Chinese)"}</Label><Input id={`${formId}-name-zh`} value={nameZh} onChange={e => setNameZh(e.target.value)} /></div>
+          <div className="space-y-2"><Label htmlFor={`${formId}-description`}>{locale === "zh" ? "说明（英文）" : "Description (English)"}</Label><Textarea id={`${formId}-description`} value={desc} onChange={e => setDesc(e.target.value)} rows={2} /></div>
+          <div className="space-y-2"><Label htmlFor={`${formId}-description-zh`}>{locale === "zh" ? "说明（中文）" : "Description (Chinese)"}</Label><Textarea id={`${formId}-description-zh`} value={descZh} onChange={e => setDescZh(e.target.value)} rows={2} /></div>
+          <div className="flex items-center justify-between"><Label htmlFor={`${formId}-free`}>{locale === "zh" ? "免费票" : "Free Ticket"}</Label><Switch id={`${formId}-free`} checked={isFree} onCheckedChange={setIsFree} /></div>
+          <div className="flex items-center justify-between"><Label htmlFor={`${formId}-code`}>{locale === "zh" ? "需要渠道码" : "Requires Code"}</Label><Switch id={`${formId}-code`} checked={requiresCode} onCheckedChange={setRequiresCode} /></div>
+          <div className="flex items-center justify-between"><Label htmlFor={`${formId}-active`}>{locale === "zh" ? "启用票种" : "Ticket enabled"}</Label><Switch id={`${formId}-active`} checked={isActive} onCheckedChange={setIsActive} /></div>
+          <div className="space-y-2"><Label htmlFor={`${formId}-order`}>{locale === "zh" ? "显示顺序" : "Display order"}</Label><Input id={`${formId}-order`} type="number" min={0} max={9999} step={1} required value={sortOrder} onChange={e => setSortOrder(e.target.value)} /></div>
           </fieldset>
           {saveError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{locale === "zh" ? "票种保存失败，请重试。填写内容已保留。" : "Unable to save ticket. Your input has been kept; please try again."}</p>}
           <Button type="submit" disabled={saving} className="w-full bg-emerald-600 hover:bg-emerald-500">{saving ? (locale === "zh" ? "保存中..." : "Saving...") : ticket ? (locale === "zh" ? "保存" : "Save") : (locale === "zh" ? "创建" : "Create")}</Button>
@@ -71,9 +76,11 @@ function TicketForm({ ticket, onSaved }: { ticket?: TicketType; onSaved: () => v
 
 function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tickets: TicketType[]; onSaved: () => void }) {
   const locale = useLocale()
+  const formId = useId()
   const [code, setCode] = useState(channel?.code || "")
   const [name, setName] = useState(channel?.name || "")
   const [ticketId, setTicketId] = useState(channel?.ticket_type_id || "")
+  const [isActive, setIsActive] = useState(channel?.is_active ?? true)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<"duplicate" | "failed" | null>(null)
@@ -86,7 +93,7 @@ function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tic
     setSaving(true)
     setSaveError(null)
     try {
-      await saveChannel(createClient(), { code, name, ticket_type_id: ticketId || null }, channel?.id)
+      await saveChannel(createClient(), { code: code.trim(), name: name.trim(), ticket_type_id: ticketId || null, is_active: isActive }, channel?.id)
       toast.success(channel ? (locale === "zh" ? "已更新" : "Updated") : (locale === "zh" ? "已创建" : "Created"))
       setOpen(false)
       onSaved()
@@ -109,14 +116,15 @@ function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tic
         <DialogHeader><DialogTitle>{channel ? (locale === "zh" ? "编辑渠道码" : "Edit Channel") : (locale === "zh" ? "新建渠道码" : "New Channel")}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset disabled={saving} className="space-y-4">
-          <div className="space-y-2"><Label>{locale === "zh" ? "渠道码" : "Code"}</Label><Input value={code} onChange={e => setCode(e.target.value)} placeholder="VIP-2027" required /></div>
-          <div className="space-y-2"><Label>{locale === "zh" ? "名称" : "Name"}</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder={locale === "zh" ? "合作伙伴渠道" : "Partner channel"} required /></div>
-          <div className="space-y-2"><Label>{locale === "zh" ? "关联票种" : "Linked Ticket"}</Label>
-            <select value={ticketId} onChange={e => setTicketId(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-300">
+          <div className="space-y-2"><Label htmlFor={`${formId}-code`}>{locale === "zh" ? "渠道码" : "Code"}</Label><Input id={`${formId}-code`} value={code} onChange={e => setCode(e.target.value)} placeholder="VIP-2027" required /></div>
+          <div className="space-y-2"><Label htmlFor={`${formId}-name`}>{locale === "zh" ? "名称" : "Name"}</Label><Input id={`${formId}-name`} value={name} onChange={e => setName(e.target.value)} placeholder={locale === "zh" ? "合作伙伴渠道" : "Partner channel"} required /></div>
+          <div className="space-y-2"><Label htmlFor={`${formId}-ticket`}>{locale === "zh" ? "关联票种" : "Linked Ticket"}</Label>
+            <select id={`${formId}-ticket`} value={ticketId} onChange={e => setTicketId(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-300">
               <option value="">{locale === "zh" ? "不关联" : "None"}</option>
               {tickets.map(t => <option key={t.id} value={t.id}>{locale === "zh" && t.name_zh ? t.name_zh : t.name}</option>)}
             </select>
           </div>
+          <div className="flex items-center justify-between"><Label htmlFor={`${formId}-active`}>{locale === "zh" ? "启用渠道码" : "Channel enabled"}</Label><Switch id={`${formId}-active`} checked={isActive} onCheckedChange={setIsActive} /></div>
           {code && <div className="p-3 bg-zinc-800 rounded-lg"><p className="text-xs text-zinc-400 mb-2">{locale === "zh" ? "报名链接" : "Registration Link"}:</p><div className="flex items-center gap-2"><code className="min-w-0 text-xs text-cyan-400 flex-1 truncate">{registerLink}</code><Button type="button" size="icon" variant="ghost" className="h-6 w-6 shrink-0" title={locale === "zh" ? "复制链接" : "Copy link"} onClick={copyLink}><Copy className="h-3 w-3" /></Button></div></div>}
           </fieldset>
           {saveError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{saveError === "duplicate" ? (locale === "zh" ? "渠道码已存在，请更换。" : "This code already exists. Please choose another.") : (locale === "zh" ? "渠道码保存失败，请重试。填写内容已保留。" : "Unable to save channel. Your input has been kept; please try again.")}</p>}
@@ -185,15 +193,17 @@ export default function AdminTicketsPage() {
           <div className="space-y-3">
             {tickets.map(t => (
               <Card key={t.id} className="bg-zinc-900/50 border-zinc-800">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-white">{locale === "zh" && t.name_zh ? t.name_zh : t.name}</span>
+                <CardContent className="p-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="font-medium text-white break-words">{locale === "zh" && t.name_zh ? t.name_zh : t.name}</span>
                       {t.name_zh && <span className="text-muted-foreground text-sm">{t.name_zh}</span>}
                       {t.is_free ? <Badge variant="outline" className="text-emerald-400 border-emerald-800 text-[10px]">{locale === "zh" ? "免费" : "Free"}</Badge> : <Badge variant="outline" className="text-amber-400 border-amber-800 text-[10px]">{locale === "zh" ? "收费" : "Paid"}</Badge>}
                       {t.requires_code && <Badge variant="secondary" className="text-[10px]">{locale === "zh" ? "需渠道码" : "Code req'd"}</Badge>}
+                      <Badge variant="outline">{t.is_active ? (locale === "zh" ? "已启用" : "Enabled") : (locale === "zh" ? "已停用" : "Disabled")}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">{t.description}</p>
+                    <p className="text-xs text-muted-foreground break-words">{locale === "zh" ? t.description_zh || t.description : t.description}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? "顺序" : "Order"}: {t.sort_order}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0"><TicketForm ticket={t} onSaved={loadAll} /><Button variant="ghost" size="icon" disabled={!!deleting} title={locale === "zh" ? "删除票种" : "Delete ticket"} className="h-8 w-8 hover:text-red-400" onClick={() => deleteRecord("ticket", t.id)}><Trash2 className="h-4 w-4" /></Button></div>
                 </CardContent>
@@ -207,11 +217,12 @@ export default function AdminTicketsPage() {
           <div className="space-y-3">
             {channels.map(c => (
               <Card key={c.id} className="bg-zinc-900/50 border-zinc-800">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge className="bg-cyan-900/50 text-cyan-300 border-cyan-800 font-mono">{c.code}</Badge>
-                      <span className="text-zinc-300 text-sm">{c.name}</span>
+                <CardContent className="p-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <Badge className="bg-cyan-900/50 text-cyan-300 border-cyan-800 font-mono break-all whitespace-normal">{c.code}</Badge>
+                      <span className="text-zinc-300 text-sm break-words">{c.name}</span>
+                      <Badge variant="outline">{c.is_active ? (locale === "zh" ? "已启用" : "Enabled") : (locale === "zh" ? "已停用" : "Disabled")}</Badge>
                       {c.ticket_type_id && (
                         <span className="text-xs text-muted-foreground">
                           → {tickets.find(t => t.id === c.ticket_type_id)?.name || c.ticket_type_id}
@@ -220,7 +231,7 @@ export default function AdminTicketsPage() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                       <Link className="h-3 w-3" />
-                      <code className="text-cyan-500">/register?code={c.code}</code>
+                      <code className="min-w-0 break-all text-cyan-500">/register?code={encodeURIComponent(c.code)}</code>
                       <button title={locale === "zh" ? "复制链接" : "Copy link"} onClick={async () => { try { await navigator.clipboard.writeText(`https://how-website.vercel.app/register?code=${encodeURIComponent(c.code)}`); toast.success(locale === "zh" ? "已复制" : "Copied") } catch { toast.error(locale === "zh" ? "复制失败，请重试" : "Unable to copy. Please try again.") } }}><Copy className="h-3 w-3" /></button>
                     </div>
                   </div>

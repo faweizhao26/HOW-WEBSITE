@@ -11,15 +11,27 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
+import { SiteContentEditor } from "@/components/admin/site-content-editor"
+import { parseSiteContent, parseSiteContentDraft } from "@/lib/content/site-content"
 import { Skeleton } from "@/components/ui/skeleton"
 import { conference } from "@/lib/conference"
 import { defaultSiteSettings, hasSettingsChanges, validateSettingsDraft } from "@/lib/content/settings"
+import { cfpDurations, cfpSessionTypes, defaultCFPSettings } from "@/lib/cfp/settings"
 import type { SiteSettingsRelease } from "@/lib/db/schema"
-import { admin as adminT } from "@/lib/i18n/translations"
+import { admin as adminT, cfp as cfpT } from "@/lib/i18n/translations"
 import { createClient } from "@/lib/supabase/client"
 import { isMockMode } from "@/lib/utils"
 
 type SettingsData = { draft: Record<string, string>; releases: SiteSettingsRelease[] }
+
+function selectedOptions(value: string | undefined, fallback: string, options: readonly (string | number)[]) {
+  try {
+    const values = JSON.parse(value || fallback)
+    return Array.isArray(values) ? options.filter(option => values.includes(option)) : []
+  } catch { return [] }
+}
 
 
 async function fetchSettings(): Promise<SettingsData> {
@@ -94,7 +106,9 @@ export default function AdminSettingsPage() {
     if (issue) {
       setPublishError(issue === "required"
         ? (locale === "zh" ? "请补全大会信息和中英文首页标题。" : "Complete the conference information and both hero translations.")
-        : (locale === "zh" ? "大会日期必须为 2027.4.16-4.18。" : "The conference period must be 2027.4.16-4.18."))
+        : issue === "date" ? (locale === "zh" ? "大会日期必须为 2027.4.16-4.18。" : "The conference period must be 2027.4.16-4.18.")
+          : issue === "cfp" ? (locale === "zh" ? "请核对征稿日期和联系邮箱，并至少选择一种演讲类型和时长；说明文字最多 10000 字。" : "Check the CFP date and contact email, select at least one type and duration, and keep each description within 10000 characters.")
+            : (locale === "zh" ? "页面内容格式不完整，请检查邮箱、图片和资料链接，以及问答关键词。" : "Check page content, emails, image/document URLs and FAQ keywords."))
       return
     }
     setPublishError("")
@@ -108,12 +122,14 @@ export default function AdminSettingsPage() {
 
   if (loading) return <div className="space-y-4"><Skeleton className="h-10 w-52" /><Skeleton className="h-36" /><Skeleton className="h-36" /></div>
 
+  let siteContent
+  try { siteContent = parseSiteContentDraft(settings) } catch { siteContent = null }
+
   const fields = [
     { key: "conference_name", label: adminT.conferenceName[locale] },
     { key: "conference_date", label: adminT.conferenceDate[locale], placeholder: conference.settingDate },
     { key: "conference_location", label: adminT.locationEn[locale] },
     { key: "conference_location_zh", label: adminT.locationZh[locale] },
-    { key: "cfp_deadline", label: adminT.cfpDeadline[locale], type: "date" },
     { key: "register_url", label: adminT.registerUrl[locale], type: "url", placeholder: "https://..." },
     { key: "contact_email", label: adminT.contactEmail[locale], type: "email", placeholder: "faweizhao26@gmail.com" },
   ]
@@ -123,6 +139,20 @@ export default function AdminSettingsPage() {
     { key: "hero_subtitle", label: adminT.heroSubtitleEn[locale] },
     { key: "hero_subtitle_zh", label: adminT.heroSubtitleZh[locale] },
   ]
+  const cfpFields = [
+    { key: "cfp_intro", label: locale === "zh" ? "征稿说明（英文）" : "CFP introduction (English)" },
+    { key: "cfp_intro_zh", label: locale === "zh" ? "征稿说明（中文）" : "CFP introduction (Chinese)" },
+    { key: "cfp_requirements", label: locale === "zh" ? "提交要求（英文）" : "Submission requirements (English)" },
+    { key: "cfp_requirements_zh", label: locale === "zh" ? "提交要求（中文）" : "Submission requirements (Chinese)" },
+    { key: "cfp_review_notes", label: locale === "zh" ? "审核及结果通知说明（英文）" : "Review and result notification notes (English)" },
+    { key: "cfp_review_notes_zh", label: locale === "zh" ? "审核及结果通知说明（中文）" : "Review and result notification notes (Chinese)" },
+  ]
+  function changeOption(key: "cfp_types" | "cfp_durations", option: string | number, checked: boolean, options: readonly (string | number)[]) {
+    setSettings(current => {
+      const selected = selectedOptions(current[key], defaultCFPSettings[key], options)
+      return { ...current, [key]: JSON.stringify(options.filter(value => value === option ? checked : selected.includes(value))) }
+    })
+  }
 
   return (
     <form onSubmit={saveSettings} className="max-w-3xl space-y-6">
@@ -140,7 +170,21 @@ export default function AdminSettingsPage() {
       </div>
       {loadError ? <div className="flex flex-wrap items-center gap-3 text-muted-foreground"><p>{locale === "zh" ? "设置加载失败" : "Unable to load settings"}</p><Button type="button" variant="outline" onClick={loadSettings}>{locale === "zh" ? "重试" : "Retry"}</Button></div> : <>
         <section className="space-y-5"><h2 className="text-lg font-semibold">{adminT.conferenceInfo[locale]}</h2><div className="grid gap-5 sm:grid-cols-2">{fields.map(({ key, label, type, placeholder }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Input id={`setting-${key}`} type={type || "text"} value={settings[key] || ""} placeholder={placeholder} disabled={saving || publishing} onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))} /></div>)}</div></section>
+        <section className="space-y-5 border-t pt-6">
+          <h2 className="text-lg font-semibold">{locale === "zh" ? "征稿设置" : "Call for proposals"}</h2>
+          <fieldset disabled={saving || publishing} className="space-y-5 min-w-0">
+            <div className="flex items-center justify-between gap-4"><Label htmlFor="setting-cfp_enabled">{locale === "zh" ? "开放征稿" : "Accepting proposals"}</Label><Switch id="setting-cfp_enabled" checked={settings.cfp_enabled !== "false"} onCheckedChange={checked => setSettings(current => ({ ...current, cfp_enabled: String(checked) }))} /></div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2"><Label htmlFor="setting-cfp_deadline">{locale === "zh" ? "征稿截止日期（北京时间）" : "CFP deadline (Beijing time)"}</Label><Input id="setting-cfp_deadline" type="date" value={settings.cfp_deadline || ""} onChange={event => setSettings(current => ({ ...current, cfp_deadline: event.target.value }))} /></div>
+              <div className="space-y-2"><Label htmlFor="setting-cfp_contact_email">{locale === "zh" ? "投稿咨询邮箱" : "CFP contact email"}</Label><Input id="setting-cfp_contact_email" type="email" value={settings.cfp_contact_email || ""} placeholder={settings.contact_email || ""} onChange={event => setSettings(current => ({ ...current, cfp_contact_email: event.target.value }))} /></div>
+            </div>
+            <fieldset className="space-y-3"><legend className="mb-3 text-sm font-medium">{locale === "zh" ? "允许的演讲类型" : "Allowed session types"}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{cfpSessionTypes.map(type => <label key={type} className="flex items-center gap-2 text-sm"><input type="checkbox" name="cfp_types" value={type} checked={selectedOptions(settings.cfp_types, defaultCFPSettings.cfp_types, cfpSessionTypes).includes(type)} onChange={event => changeOption("cfp_types", type, event.target.checked, cfpSessionTypes)} className="size-4 accent-emerald-600" />{cfpT[type][locale]}</label>)}</div></fieldset>
+            <fieldset className="space-y-3"><legend className="mb-3 text-sm font-medium">{locale === "zh" ? "允许的演讲时长" : "Allowed session durations"}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{cfpDurations.map(duration => <label key={duration} className="flex items-center gap-2 text-sm"><input type="checkbox" name="cfp_durations" value={duration} checked={selectedOptions(settings.cfp_durations, defaultCFPSettings.cfp_durations, cfpDurations).includes(duration)} onChange={event => changeOption("cfp_durations", duration, event.target.checked, cfpDurations)} className="size-4 accent-emerald-600" />{duration} {locale === "zh" ? "分钟" : "min"}</label>)}</div></fieldset>
+            <div className="grid gap-5 sm:grid-cols-2">{cfpFields.map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Textarea id={`setting-${key}`} value={settings[key] || ""} rows={4} maxLength={10000} onChange={event => setSettings(current => ({ ...current, [key]: event.target.value }))} /></div>)}</div>
+          </fieldset>
+        </section>
         <section className="space-y-5 border-t pt-6"><h2 className="text-lg font-semibold">{adminT.heroSection[locale]}</h2><div className="grid gap-5 sm:grid-cols-2">{heroFields.map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Input id={`setting-${key}`} value={settings[key] || ""} disabled={saving || publishing} onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))} /></div>)}</div></section>
+        {siteContent ? <SiteContentEditor value={siteContent} locale={locale} disabled={saving || publishing} onChange={content => setSettings(current => ({ ...current, site_content: JSON.stringify(content) }))} /> : <div className="space-y-3 border-t pt-6"><p role="alert">{locale === "zh" ? "页面内容草稿无法解析。其他设置已保留。" : "Page content draft cannot be parsed. Other settings are retained."}</p><Button type="button" variant="outline" disabled={saving || publishing} onClick={() => setSettings(current => ({ ...current, site_content: JSON.stringify(parseSiteContent({})) }))}>{locale === "zh" ? "恢复默认页面内容" : "Restore default page content"}</Button></div>}
       </>}
       {data.releases.length > 0 && <section className="border-t pt-6"><h2 className="mb-3 text-lg font-semibold">{locale === "zh" ? "发布历史" : "Release history"}</h2><div className="divide-y">{data.releases.map((release) => <div key={release.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-sm">v{release.version} · {new Date(release.published_at).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}{release.is_current && <Badge className="ml-2" variant="outline">{locale === "zh" ? "当前" : "Current"}</Badge>}</span>{!release.is_current && <PublicationActions id={release.id} kind="settings-release" locale={locale} onCompleted={loadSettings} />}</div>)}</div></section>}
     </form>

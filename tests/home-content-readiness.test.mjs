@@ -9,6 +9,7 @@ import ts from "typescript"
 import * as conference from "../src/lib/conference.ts"
 import * as translations from "../src/lib/i18n/translations.ts"
 import { defaultSiteSettings } from "../src/lib/content/settings.ts"
+import { contentText, parseSiteContent } from "../src/lib/content/site-content.ts"
 
 const js = ts.transpileModule(readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
@@ -24,6 +25,8 @@ async function render(sessions, locale = "en") {
     "@/lib/i18n/translations": translations,
     "@/lib/conference": conference,
     "@/lib/content/settings": { defaultSiteSettings },
+    "@/lib/content/site-content": { contentText, parseSiteContent },
+    "@/components/content/content-blocks": { ContentBlocks: () => null },
     "@/lib/content/public": {
       getPublishedSettings: async () => ({ status: "ready", data: defaultSiteSettings }),
       getPublishedSessions: async () => sessions,

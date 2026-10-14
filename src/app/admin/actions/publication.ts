@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { requireAdmin } from "@/lib/auth/require-admin"
 import { createServerSupabase } from "@/lib/supabase/server"
+import { validateSettingsDraft } from "@/lib/content/settings"
 
 export type PublicationActionResult =
   | { ok: true; id: string }
@@ -32,6 +33,10 @@ async function runPublicationAction(
   try {
     await requireAdmin()
     const supabase = await createServerSupabase()
+    if (rpcName === "publish_site_settings") {
+      const draft = await supabase.from("site_settings").select("key,value")
+      if (draft.error || !draft.data || validateSettingsDraft(Object.fromEntries(draft.data.map(row => [row.key, row.value])))) return { ok: false, message: SAFE_ACTION_ERROR }
+    }
     const { data, error } = args
       ? await supabase.rpc(rpcName, args)
       : await supabase.rpc(rpcName)
@@ -39,6 +44,7 @@ async function runPublicationAction(
     if (error || typeof data !== "string") return { ok: false, message: SAFE_ACTION_ERROR }
 
     paths.forEach((path) => revalidatePath(path))
+    if (rpcName === "publish_site_settings" || rpcName === "rollback_site_settings_release") revalidatePath("/", "layout")
     return { ok: true, id: data }
   } catch {
     return { ok: false, message: SAFE_ACTION_ERROR }
@@ -90,9 +96,9 @@ export async function rollbackAgenda(releaseId: string) {
 }
 
 export async function publishSiteSettings() {
-  return runPublicationAction("publish_site_settings", undefined, ["/admin/settings", "/"])
+  return runPublicationAction("publish_site_settings", undefined, ["/", "/admin/settings", "/cfp", "/about", "/attend", "/venue", "/sponsors", "/privacy", "/code-of-conduct"])
 }
 
 export async function rollbackSiteSettings(releaseId: string) {
-  return runPublicationAction("rollback_site_settings_release", { p_release_id: releaseId }, ["/admin/settings", "/"])
+  return runPublicationAction("rollback_site_settings_release", { p_release_id: releaseId }, ["/", "/admin/settings", "/cfp", "/about", "/attend", "/venue", "/sponsors", "/privacy", "/code-of-conduct"])
 }

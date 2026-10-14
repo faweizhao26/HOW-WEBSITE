@@ -1,7 +1,9 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js"
 import { z } from "zod"
+import { getCFPState, parseCFPSettings } from "./settings.ts"
+import type { CFPPolicy } from "./settings.ts"
 
-export type CFPErrorCode = "login_required" | "email_not_verified" | "invalid_input" | "load_failed" | "operation_failed" | "request_conflict" | "account_changed"
+export type CFPErrorCode = "login_required" | "email_not_verified" | "invalid_input" | "load_failed" | "operation_failed" | "request_conflict" | "account_changed" | "cfp_closed" | "cfp_options_changed"
 export class CFPError extends Error {
   code: CFPErrorCode
   constructor(code: CFPErrorCode) { super(code); this.name = "CFPError"; this.code = code }
@@ -29,17 +31,26 @@ export type Proposal = {
   duration: number; type: "talk" | "workshop" | "panel"
   status: "pending" | "approved" | "rejected"; admin_feedback: string | null; created_at: string
 }
-export type CFPData = { user: User | null; sessions: Proposal[] }
+export type CFPData = { user: User | null; sessions: Proposal[]; policy: CFPPolicy | null }
 const columns = "id,user_id,title,title_zh,abstract,abstract_zh,duration,type,status,admin_feedback,created_at"
+
+async function readPolicy(client: SupabaseClient): Promise<CFPPolicy> {
+  const result = await client.from("site_settings_releases").select("payload").eq("is_current", true).maybeSingle()
+  if (result.error || !result.data?.payload) throw new Error("settings_unavailable")
+  return parseCFPSettings(result.data.payload)
+}
 
 export async function loadCFPData(client: SupabaseClient): Promise<CFPData> {
   try {
     const { data: { user }, error } = await client.auth.getUser()
     if (error && error.name !== "AuthSessionMissingError") throw new CFPError("load_failed")
-    if (!user) return { user: null, sessions: [] }
-    const sessions = await client.from("sessions").select(columns).eq("user_id", user.id).order("created_at", { ascending: false })
+    if (!user) return { user: null, sessions: [], policy: null }
+    const [policy, sessions] = await Promise.all([
+      readPolicy(client),
+      client.from("sessions").select(columns).eq("user_id", user.id).order("created_at", { ascending: false }),
+    ])
     if (sessions.error || !sessions.data) throw new CFPError("load_failed")
-    return { user, sessions: sessions.data }
+    return { user, sessions: sessions.data, policy }
   } catch { throw new CFPError("load_failed") }
 }
 
@@ -61,6 +72,10 @@ export async function submitProposal(client: SupabaseClient, input: unknown): Pr
   }
   const existing = await existingProposal()
   if (existing) return existing
+  let policy: CFPPolicy
+  try { policy = await readPolicy(client) } catch { throw new CFPError("operation_failed") }
+  if (getCFPState(policy) !== "open") throw new CFPError("cfp_closed")
+  if (!policy.sessionTypes.includes(values.type) || !policy.durations.includes(values.duration as 15 | 30 | 45 | 60)) throw new CFPError("cfp_options_changed")
   const { data, error } = await client.from("sessions").insert({
     id: values.requestId, ...fields, status: "pending", publication_status: "draft",
   }).select(columns).single()
@@ -68,6 +83,8 @@ export async function submitProposal(client: SupabaseClient, input: unknown): Pr
   if (error) {
     const recovered = await existingProposal()
     if (recovered) return recovered
+    if (error.message === "cfp_closed") throw new CFPError("cfp_closed")
+    if (error.message === "cfp_option_not_allowed") throw new CFPError("cfp_options_changed")
     throw new CFPError("operation_failed")
   }
   if (!data?.id || data.id !== values.requestId) throw new CFPError("operation_failed")

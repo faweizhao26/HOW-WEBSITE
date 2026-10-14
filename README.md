@@ -64,6 +64,41 @@ accounts, then all test accounts and files were removed. See `docs/STATUS.md`.
 
 ## Content Publishing
 
+### Ticket, Channel and CFP Configuration
+
+`/admin/tickets` manages custom bilingual ticket names/descriptions, free/code
+flags, activation and display order. Channels have a custom code/name, linked
+ticket and activation switch. These changes take effect when saved.
+
+`/admin/settings` manages CFP activation, an inclusive Beijing-time deadline,
+allowed session types/durations, bilingual instructions/review notes and contact
+email. CFP settings use the same explicit draft/publish/rollback flow as other
+site settings. An empty deadline means no date restriction, not a fabricated date.
+Options are subsets of the existing talk/workshop/panel types and 15/30/45/60-minute
+durations. Saved proposals remain readable and idempotent retries recover the
+original submission after closure.
+
+Apply `supabase/migrations/20261014083201_cfp_settings_enforcement.sql` before
+deploying this feature. It validates published CFP settings and enforces ordinary
+user inserts against the current release. It does not change existing proposals
+or administrator program-management permissions. As of 2026-10-14 this migration
+is applied in production; see `docs/ADMIN_CONFIGURATION.md` and `docs/STATUS.md`.
+
+Other operational content is edited under Page content in `/admin/settings`:
+venue/contacts, home sections, about, attendee guide, sponsor recruitment, FAQ,
+privacy and conduct. Bilingual blocks support links/images, adding, removing,
+ordering and visibility. Plain text is escaped; raw HTML is not supported.
+Special contact addresses fall back to the general contact email when blank.
+Use HTTP(S) URLs with an ASCII/punycode hostname or site-relative paths for media
+and documents. Layout and visual styles remain code-owned.
+
+`20261014083206_managed_site_content.sql` validates the same typed content contract
+at publication time using pg_jsonschema. Both new migration filenames match actual
+production history; existing business rows and release pointers were not changed.
+FAQ refreshes the published snapshot when opened or when navigating while open.
+
+### Publication Model
+
 - Speakers, approved sessions, sponsors and news are saved as drafts. Explicit
   publish copies them into public projections. Editing a published draft does
   not change its public snapshot until republish.

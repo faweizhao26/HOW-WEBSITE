@@ -4,14 +4,18 @@ import { test } from "node:test"
 import vm from "node:vm"
 import ts from "typescript"
 import { conference } from "../src/lib/conference.ts"
+import { getConferenceAnswer } from "../src/lib/content/conference-faq.ts"
+import { contentText, parseSiteContent } from "../src/lib/content/site-content.ts"
+import { defaultSiteSettings } from "../src/lib/content/settings.ts"
 
 const js = ts.transpileModule(readFileSync(new URL("../src/components/chatbot.tsx", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
 }).outputText
 
 // Keep hook values across renders and control the actual component's delayed replies.
-function widget(locale = "zh") {
+function widget(locale = "zh", path = "/") {
   const slots = [], timers = []
+  const published = { settings: defaultSiteSettings, content: parseSiteContent({}) }
   let cursor = 0, tree
   const Button = Symbol("Button"), Input = Symbol("Input")
   const element = (type, props) => ({ type, props })
@@ -26,20 +30,23 @@ function widget(locale = "zh") {
         }]
       },
       useRef(initial) { const index = cursor++; slots[index] ??= { value: { current: initial } }; return slots[index].value },
-      useEffect() {},
+      useEffect(effect) { effect() },
     },
     "@/lib/i18n/provider": { useLocale: () => locale },
+    "next/navigation": { usePathname: () => path },
     "@/lib/conference": { conference },
+    "@/lib/content/conference-faq": { getConferenceAnswer, loadConferenceFAQ: () => ({ then: done => { done(published); return { catch() {} } } }) },
+    "@/lib/content/site-content": { contentText },
     "@/components/ui/button": { Button },
     "@/components/ui/input": { Input },
     "lucide-react": {},
   }
   const context = {
-    exports: {}, require: name => { assert.ok(name in modules, `Unexpected dependency: ${name}`); return modules[name] },
+    exports: {}, AbortController, fetch() {}, require: name => { assert.ok(name in modules, `Unexpected dependency: ${name}`); return modules[name] },
     setTimeout(callback) { timers.push(callback); return timers.length },
   }
   vm.runInNewContext(js, context)
-  function render() { cursor = 0; tree = context.exports.ChatbotWidget() }
+  function render() { cursor = 0; tree = context.exports.ChatbotWidget({ published }) }
   function nodes(node) {
     if (Array.isArray(node)) return node.flatMap(nodes)
     if (!node || typeof node !== "object") return []
@@ -47,6 +54,7 @@ function widget(locale = "zh") {
   }
   function control(type) { return nodes(tree).find(node => node.type === type).props }
   render()
+  if (tree === null) return { isHidden: () => true }
   control("button").onClick()
   render()
   return {
@@ -61,6 +69,10 @@ function widget(locale = "zh") {
     messages() { return Array.from(slots[1].value, message => ({ ...message })) },
   }
 }
+
+test("public FAQ widget does not cover administrator editing controls", () => {
+  assert.equal(widget("zh", "/admin/settings").isHidden?.(), true)
+})
 
 test("rapid questions retain both questions and their corresponding replies", () => {
   const h = widget()

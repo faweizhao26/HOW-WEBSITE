@@ -51,7 +51,7 @@ test("Locale-sensitive labels use explicit fallback grouping", () => {
   const adminLayout = read("src/app/admin/layout.tsx")
 
   assert.match(home, /formatConferenceDateRange\(settings\.conference_date, locale\)/)
-  assert.match(home, /const venueLine = conference\.venue\[locale\]/)
+  assert.match(home, /content\.venue\.confirmed.*contentText\(content\.venue\.name, locale\).*conference\.venue\[locale\]/)
   assert.match(adminLayout, /\(adminLabels\.how2027Admin\?\.\[locale\]\) \|\| \(locale === "zh"/)
 })
 
@@ -73,8 +73,9 @@ test("Conference dates and venue come from one canonical source", () => {
   assert.match(countdown, /conference\.startDate/)
   assert.match(conference, /export function getConferenceStartDate/)
   assert.match(home, /getConferenceStartDate\(settings\.conference_date\)/)
-  assert.match(venue, /conference\.venue/)
-  assert.match(chatbot, /conference\.venue/)
+  assert.match(venue, /getPublishedSiteContent\(\)/)
+  assert.match(venue, /venue\.confirmed/)
+  assert.match(chatbot, /getConferenceAnswer\(q, locale, currentPublished\)/)
   assert.doesNotMatch([conference, schedule, countdown, venue, chatbot].join("\n"), /2027-04-1[45]/)
 })
 
@@ -97,7 +98,8 @@ test("Attend placeholder content is wired into the public site", () => {
   assert.match(translations, /attend: \{ en: "Attend", zh: "参会指南" \}/)
   assert.match(header, /href: "\/attend", key: "attend"/)
   assert.match(footer, /href="\/attend"/)
-  assert.match(home, /href="\/attend"/)
+  assert.match(home, /ContentBlocks blocks=\{content\.home\.sections/)
+  assert.match(read("src/lib/content/site-defaults.ts"), /"linkUrl": "\/attend"/)
 })
 
 test("Public site has a persistent day and night theme toggle", () => {
@@ -162,13 +164,13 @@ test("Sponsor recruitment contact is visible on public sponsor surfaces", () => 
   const privacy = read("src/app/privacy/page.tsx")
   const settings = read("src/app/admin/settings/page.tsx")
 
-  assert.match(sponsors, /faweizhao26@gmail\.com/)
-  assert.match(sponsors, /mailto:faweizhao26@gmail\.com/)
-  assert.match(attend, /faweizhao26@gmail\.com/)
+  assert.match(sponsors, /contacts\.sponsor \|\| site\.settings\.contact_email/)
+  assert.match(attend, /contacts\.sponsor \|\| result\.settings\.contact_email/)
   for (const source of [chatbot, conduct, privacy, settings, read("src/lib/content/settings.ts")]) {
-    assert.match(source, /faweizhao26@gmail\.com/)
     assert.doesNotMatch(source, /conference@how2027\.org/)
   }
+  assert.match(read("src/lib/content/settings.ts"), /faweizhao26@gmail\.com/)
+  assert.match(read("src/components/content/content-blocks.tsx"), /mailto:\$\{email\}/)
   assert.match(footer, /settings\.contact_email/)
 })
 
@@ -193,7 +195,7 @@ test("Unannounced content is honest without calling published content fictional"
 
   assert.match(schedule, /The program will be announced once confirmed/)
   assert.match(schedule, /正式议程将在确认后公布/)
-  assert.match(chatbot, /The Speakers page lists announced speakers/)
+  assert.match(read("src/lib/content/conference-faq.ts"), /The Speakers page lists announced speakers/)
   assert.doesNotMatch(chatbot, /provisional agenda|占位信息|占位示例/)
   assert.doesNotMatch(chatbot, /IvorySQL, Supabase, Alibaba Cloud, AWS, GitLab, ByteDance/)
   assert.match(updates, /planning updates will appear here/i)

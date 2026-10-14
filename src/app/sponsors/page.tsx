@@ -4,6 +4,8 @@ import { ExternalLink } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { getPublishedSponsors } from "@/lib/content/public"
 import { getLocale } from "@/lib/i18n/utils"
+import { getPublishedSiteContent } from "@/lib/content/site-public"
+import { ContentBlocks, ContentContact } from "@/components/content/content-blocks"
 
 const tiers = ["diamond", "gold", "silver", "bronze"] as const
 
@@ -24,7 +26,7 @@ const tierAccents = {
 export default async function SponsorsPage() {
   const cookieStore = await cookies()
   const locale = getLocale(cookieStore.get("lang")?.value)
-  const result = await getPublishedSponsors()
+  const [result, site] = await Promise.all([getPublishedSponsors(), getPublishedSiteContent()])
   const sponsors = result.status === "ready" ? result.data : []
 
   return (
@@ -38,20 +40,16 @@ export default async function SponsorsPage() {
           : "Thank you to all sponsors for supporting HOW 2027!"}
       </p>
 
-      <div className="mb-12 border-y border-emerald-200 bg-emerald-50/70 px-1 py-5 dark:border-emerald-900/60 dark:bg-emerald-950/20 sm:px-5">
-        <h2 className="mb-2 text-lg font-semibold text-zinc-950 dark:text-white">
-          {locale === "zh" ? "赞助商招募中" : "Sponsor recruitment is open"}
-        </h2>
-        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-          {locale === "zh"
-            ? "如果你的团队希望支持 HOW 2027 或了解赞助方案，请联系 "
-            : "If your team would like to support HOW 2027 or learn about sponsorship options, contact "}
-          <a href="mailto:faweizhao26@gmail.com" className="font-medium text-emerald-700 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300">
-            faweizhao26@gmail.com
-          </a>
-          {locale === "zh" ? "。" : "."}
-        </p>
-      </div>
+      {site.status === "error" ? (
+        <div data-content-state="error" className="mb-12 border-y border-zinc-200 py-5 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+          {locale === "zh" ? "赞助招募信息暂时无法加载，请稍后再试。" : "Sponsor recruitment information is temporarily unavailable. Please try again later."}
+        </div>
+      ) : site.content.sponsorRecruitment.enabled && (
+        <section data-content-state="ready" className="mb-12 space-y-4 border-y border-emerald-200 bg-emerald-50/70 px-1 py-5 dark:border-emerald-900/60 dark:bg-emerald-950/20 sm:px-5">
+          <ContentBlocks blocks={[site.content.sponsorRecruitment]} locale={locale} />
+          <ContentContact email={site.content.contacts.sponsor || site.settings.contact_email} locale={locale} sponsor />
+        </section>
+      )}
 
       {result.status === "error" && (
         <div className="border-y border-zinc-200 py-12 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">

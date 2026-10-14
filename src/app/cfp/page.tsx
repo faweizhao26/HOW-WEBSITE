@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import { CFPError, loadCFPData, parseProposalInput } from "@/lib/cfp/service"
 import type { CFPData, CFPErrorCode } from "@/lib/cfp/service"
 import { cfpErrors } from "@/lib/cfp/messages"
+import { getCFPState } from "@/lib/cfp/settings"
 import { submitCFP } from "./actions"
 import { cfp, common } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
@@ -43,13 +44,16 @@ export default function CFPPage() {
   const [loadVersion, setLoadVersion] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<CFPErrorCode | null>(null)
+  const [hasAttempt, setHasAttempt] = useState(false)
   const [tab, setTab] = useState("new")
   const pending = useRef(false)
-  const attempt = useRef<{ fingerprint: string; id: string } | null>(null)
+  const attempt = useRef<{ fingerprint: string; id: string; values: ReturnType<typeof parseProposalInput> } | null>(null)
   const draftOwner = useRef<string | null | undefined>(undefined)
   const identity = useRef<{ userId: string | null | undefined; version: number }>({ userId: undefined, version: 0 })
   const user = data?.user
   const sessions = data?.sessions || []
+  const policy = data?.policy
+  const policyState = policy ? getCFPState(policy) : "closed"
 
   const [title, setTitle] = useState("")
   const [titleZh, setTitleZh] = useState("")
@@ -57,6 +61,8 @@ export default function CFPPage() {
   const [abstractZh, setAbstractZh] = useState("")
   const [duration, setDuration] = useState("30")
   const [sessionType, setSessionType] = useState("talk")
+  const selectedDuration = policy?.durations.includes(Number(duration) as 15 | 30 | 45 | 60) ? duration : String(policy?.durations[0] ?? 30)
+  const selectedType = policy?.sessionTypes.includes(sessionType as "talk" | "workshop" | "panel") ? sessionType : policy?.sessionTypes[0] ?? "talk"
 
   useEffect(() => {
     let active = true
@@ -88,6 +94,7 @@ export default function CFPPage() {
       identity.current.version++
       draftOwner.current = undefined
       attempt.current = null
+      setHasAttempt(false)
       setData(null)
       setAccountChanged(true)
       setLoading(false)
@@ -105,18 +112,24 @@ export default function CFPPage() {
     setLoadVersion(version => version + 1)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SyntheticEvent, recover = false) {
     e.preventDefault()
     if (pending.current) return
     setSubmitError(null)
     if (!user) { setSubmitError("login_required"); return }
-    const fields = { title, titleZh, abstract, abstractZh, duration: Number(duration), type: sessionType }
-    const fingerprint = JSON.stringify(fields)
-    const id = attempt.current?.fingerprint === fingerprint ? attempt.current.id : crypto.randomUUID()
+    const savedAttempt = recover ? attempt.current : null
+    if (recover && !savedAttempt) return
+    if (policyState !== "open" && !savedAttempt) { setSubmitError("cfp_closed"); return }
+    const fields = { title, titleZh, abstract, abstractZh, duration: Number(selectedDuration), type: selectedType }
+    const fingerprint = savedAttempt?.fingerprint ?? JSON.stringify(fields)
+    const id = savedAttempt?.id ?? (attempt.current?.fingerprint === fingerprint ? attempt.current.id : crypto.randomUUID())
     let values
-    try { values = parseProposalInput({ ...fields, requestId: id, expectedUserId: user.id }) }
+    try { values = savedAttempt?.values ?? parseProposalInput({ ...fields, requestId: id, expectedUserId: user.id }) }
     catch (error) { setSubmitError(error instanceof CFPError ? error.code : "invalid_input"); return }
-    attempt.current = { fingerprint, id }
+    if (values.expectedUserId !== user.id) { setSubmitError("account_changed"); return }
+    const preserveDraft = recover && fingerprint !== JSON.stringify(fields)
+    attempt.current = { fingerprint, id, values }
+    setHasAttempt(true)
     pending.current = true
     setSubmitting(true)
     const owner = user.id
@@ -128,13 +141,16 @@ export default function CFPPage() {
         if (!result.success) { setSubmitError(result.code); return }
         setData(previous => previous ? { ...previous, sessions: [result.data, ...previous.sessions.filter(session => session.id !== result.data.id)] } : previous)
         attempt.current = null
+        setHasAttempt(false)
         toast.success(cfp.success[locale])
-        setTitle("")
-        setTitleZh("")
-        setAbstract("")
-        setAbstractZh("")
-        setDuration("30")
-        setSessionType("talk")
+        if (!preserveDraft) {
+          setTitle("")
+          setTitleZh("")
+          setAbstract("")
+          setAbstractZh("")
+          setDuration("30")
+          setSessionType("talk")
+        }
         setTab("submissions")
       } catch { if (draftOwner.current === owner && identity.current.version === version) setSubmitError("operation_failed") }
       finally { pending.current = false; setSubmitting(false) }
@@ -168,6 +184,16 @@ export default function CFPPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <h1 className="text-4xl font-bold mb-8">{cfp.title[locale]}</h1>
+      {policy && <section className="mb-8 space-y-5 border-y py-5">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Badge variant="outline">{policyState === "open" ? (locale === "zh" ? "征稿开放中" : "CFP open") : policyState === "expired" ? (locale === "zh" ? "征稿已截止" : "CFP deadline passed") : (locale === "zh" ? "征稿已关闭" : "CFP closed")}</Badge>
+          <span className="text-muted-foreground">{policy.deadline ? `${locale === "zh" ? "截止" : "Deadline"}: ${policy.deadline} 23:59 (UTC+8)` : (locale === "zh" ? "截止日期待公布" : "Deadline to be announced")}</span>
+        </div>
+        {(policy.intro[locale] || policy.intro.en) && <p className="whitespace-pre-line break-words text-sm leading-6 text-muted-foreground">{policy.intro[locale] || policy.intro.en}</p>}
+        {(policy.requirements[locale] || policy.requirements.en) && <div><h2 className="mb-2 text-sm font-semibold">{locale === "zh" ? "提交要求" : "Submission requirements"}</h2><p className="whitespace-pre-line break-words text-sm leading-6 text-muted-foreground">{policy.requirements[locale] || policy.requirements.en}</p></div>}
+        {(policy.reviewNotes[locale] || policy.reviewNotes.en) && <div><h2 className="mb-2 text-sm font-semibold">{locale === "zh" ? "审核及结果通知" : "Review and result notification"}</h2><p className="whitespace-pre-line break-words text-sm leading-6 text-muted-foreground">{policy.reviewNotes[locale] || policy.reviewNotes.en}</p></div>}
+        {policy.contactEmail && <a href={`mailto:${policy.contactEmail}`} className="block break-all text-sm text-emerald-700 underline dark:text-emerald-400">{policy.contactEmail}</a>}
+      </section>}
 
       <Tabs value={tab} onValueChange={value => { if (!pending.current) setTab(value) }}>
         <TabsList className="bg-zinc-900 border border-zinc-800 mb-8">
@@ -184,6 +210,14 @@ export default function CFPPage() {
         </TabsList>
 
         <TabsContent value="new">
+          {policyState !== "open" ? <div className="space-y-4 border-y py-8">
+            <p role="status" className="text-muted-foreground">{locale === "zh" ? "当前不接受新提案，已提交提案仍可在“我的提案”查看。" : "New proposals are not being accepted. Existing proposals remain available in My Proposals."}</p>
+            {submitError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{cfpErrors[submitError][locale]}</p>}
+            <div className="flex flex-wrap gap-3">
+              {hasAttempt && <Button type="button" variant="outline" disabled={submitting} onClick={event => handleSubmit(event, true)}><RotateCw />{locale === "zh" ? "确认上次提交结果" : "Check last submission"}</Button>}
+              <Button type="button" variant="outline" onClick={retryLoad} disabled={submitting}><RotateCw />{locale === "zh" ? "更新征稿信息" : "Refresh CFP information"}</Button>
+            </div>
+          </div> :
           <Card className="bg-zinc-900/50 border-zinc-800">
             <CardHeader>
               <CardTitle>{cfp.submitTitle[locale]}</CardTitle>
@@ -194,7 +228,7 @@ export default function CFPPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-5" aria-busy={submitting}>
+              <form onSubmit={event => handleSubmit(event)} className="space-y-5" aria-busy={submitting}>
                 <fieldset disabled={submitting} className="space-y-5 min-w-0">
                 <div className="space-y-2">
                   <Label htmlFor="title">{cfp.titleLabel[locale]} *</Label>
@@ -243,40 +277,37 @@ export default function CFPPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="cfp-duration">{cfp.durationLabel[locale]} *</Label>
-                    <Select value={duration} disabled={submitting} onValueChange={(v) => setDuration(v || "30")}>
+                    <Select value={selectedDuration} disabled={submitting} onValueChange={(v) => setDuration(v || selectedDuration)}>
                       <SelectTrigger id="cfp-duration">
-                        <SelectValue>{duration} {locale === "zh" ? "分钟" : "min"}</SelectValue>
+                        <SelectValue>{selectedDuration} {locale === "zh" ? "分钟" : "min"}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="15">15 min</SelectItem>
-                        <SelectItem value="30">30 min</SelectItem>
-                        <SelectItem value="45">45 min</SelectItem>
-                        <SelectItem value="60">60 min</SelectItem>
+                        {policy?.durations.map(value => <SelectItem key={value} value={String(value)}>{value} {locale === "zh" ? "分钟" : "min"}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cfp-type">{cfp.typeLabel[locale]} *</Label>
-                    <Select value={sessionType} disabled={submitting} onValueChange={(v) => setSessionType(v || "talk")}>
+                    <Select value={selectedType} disabled={submitting} onValueChange={(v) => setSessionType(v || selectedType)}>
                       <SelectTrigger id="cfp-type">
-                        <SelectValue>{sessionType === "workshop" ? cfp.workshop[locale] : sessionType === "panel" ? cfp.panel[locale] : cfp.talk[locale]}</SelectValue>
+                        <SelectValue>{selectedType === "workshop" ? cfp.workshop[locale] : selectedType === "panel" ? cfp.panel[locale] : cfp.talk[locale]}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="talk">{cfp.talk[locale]}</SelectItem>
-                        <SelectItem value="workshop">{cfp.workshop[locale]}</SelectItem>
-                        <SelectItem value="panel">{cfp.panel[locale]}</SelectItem>
+                        {policy?.sessionTypes.map(value => <SelectItem key={value} value={value}>{cfp[value][locale]}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 </fieldset>
                 {submitError && <div role="alert" className="flex gap-2 text-sm text-red-700 dark:text-red-300"><AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /><p>{cfpErrors[submitError][locale]}</p></div>}
+                {submitError && hasAttempt && <Button type="button" variant="outline" disabled={submitting} onClick={event => handleSubmit(event, true)}><RotateCw />{locale === "zh" ? "确认上次提交结果" : "Check last submission"}</Button>}
+                {(submitError === "cfp_options_changed" || submitError === "cfp_closed" || submitError === "operation_failed") && <Button type="button" variant="outline" onClick={retryLoad} disabled={submitting}><RotateCw />{locale === "zh" ? "更新征稿信息" : "Refresh CFP information"}</Button>}
                 <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 w-full" disabled={submitting}>
                   {submitting ? cfp.submitting[locale] : cfp.submit[locale]}
                 </Button>
               </form>
             </CardContent>
-          </Card>
+          </Card>}
         </TabsContent>
 
         <TabsContent value="submissions">
