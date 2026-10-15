@@ -81,6 +81,7 @@ export const cfp = {
 }
 
 export const admin = {
+  accounts: { en: "Accounts", zh: "账号管理" },
   dashboard: { en: "Dashboard", zh: "仪表盘" },
   sessions: { en: "Sessions", zh: "提案管理" },
   agenda: { en: "Agenda", zh: "议程编排" },

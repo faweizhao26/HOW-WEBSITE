@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X } from "lucide-react"
+import { LayoutDashboard, Menu, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import type { User } from "@supabase/supabase-js"
-import { watchAuthUser } from "@/lib/auth/watch-auth-user"
+import { watchNavigationUser } from "@/lib/auth/watch-navigation-user"
+import type { NavigationUser } from "@/lib/auth/watch-navigation-user"
 import { Locale } from "@/lib/i18n/utils"
 import { navigation } from "@/lib/i18n/translations"
 import { LanguageSwitcher } from "./language-switcher"
@@ -29,7 +29,7 @@ const navLinks = [
 
 export function Header({ locale, initialTheme }: { locale: Locale; initialTheme: "dark" | "light" }) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
+  const [{ user, isAdmin }, setNavigationUser] = useState<NavigationUser>({ user: null, isAdmin: false })
   const pathname = usePathname()
 
   useEffect(() => {
@@ -37,13 +37,13 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
 
     try {
       const supabase = createClient()
-      return watchAuthUser(supabase.auth, setUser)
+      return watchNavigationUser(supabase, setNavigationUser)
     } catch {}
   }, [])
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80 dark:shadow-none dark:backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap">
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
@@ -51,7 +51,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
             </span>
           </Link>
 
-          <nav className="hidden xl:flex items-center gap-1">
+          <nav className="hidden min-[1440px]:flex items-center gap-1">
             {navLinks.map(({ href, key }) => (
               <Link
                 key={href}
@@ -67,7 +67,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
             ))}
           </nav>
 
-          <div className="hidden xl:flex shrink-0 items-center gap-3">
+          <div className="hidden min-[1440px]:flex shrink-0 items-center gap-3">
             <ThemeToggle initialTheme={initialTheme} />
             <LanguageSwitcher locale={locale} />
             <Link href="/cfp">
@@ -77,6 +77,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
             </Link>
             {user ? (
               <div className="flex items-center gap-1">
+                {isAdmin && <Link href="/admin" className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-emerald-400 dark:hover:bg-emerald-950/50"><LayoutDashboard className="size-4" aria-hidden="true" />{locale === "zh" ? "管理后台" : "Admin"}</Link>}
                 <Link href="/profile">
                   <Button variant="ghost" size="sm" className="text-zinc-400">
                     {locale === "zh" ? "个人中心" : "Profile"}
@@ -97,18 +98,21 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
             )}
           </div>
 
-          <button
-            className="xl:hidden p-2 text-zinc-600 dark:text-zinc-400"
-            aria-label={mobileOpen ? (locale === "zh" ? "关闭菜单" : "Close menu") : (locale === "zh" ? "打开菜单" : "Open menu")}
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <div className="flex items-center gap-2 min-[1440px]:hidden">
+            {isAdmin && <Link href="/admin" onClick={() => setMobileOpen(false)} className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-emerald-400 dark:hover:bg-emerald-950/50"><LayoutDashboard className="size-4" aria-hidden="true" />{locale === "zh" ? "管理后台" : "Admin"}</Link>}
+            <button
+              className="min-[1440px]:hidden p-2 text-zinc-600 dark:text-zinc-400"
+              aria-label={mobileOpen ? (locale === "zh" ? "关闭菜单" : "Close menu") : (locale === "zh" ? "打开菜单" : "Open menu")}
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-zinc-200 bg-white xl:hidden dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-zinc-200 bg-white min-[1440px]:hidden dark:border-zinc-800 dark:bg-zinc-950">
           <div className="px-4 py-3 space-y-1">
             {navLinks.map(({ href, key }) => (
               <Link
