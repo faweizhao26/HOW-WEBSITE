@@ -5,18 +5,25 @@
 
 ## 当前版本
 
-- 已授权发布：`codex/admin-entry-navigation` 新增前台管理员入口和后台账号管理，正在提交推送。
+- 最新已发布：`codex/admin-entry-navigation` 新增前台管理员入口和后台账号管理，已推送至 `main`。
   管理员可搜索账号、授予及撤销权限，具备自身/最后管理员保护及变更记录。
   完整测试 160/160、lint、构建、真实隔离数据库及浏览器验证通过；
   生产已应用 `20261015061725_admin_account_management`，没有修改现有账号角色。
   功能边界、发布顺序和现有人工授权步骤见 `ADMIN_ACCESS.md`。
-- 当前批次：`codex/admin-editor-workflow`，图片/PDF 上传、草稿预览和精确校验已发布。
+- 上一批次：`codex/admin-editor-workflow`，图片/PDF 上传、草稿预览和精确校验已发布。
   2026-10-15 用户授权后完成 Production 部署和正式只读验收，详见下文发布回执。
 - 正式网站：https://how-website.vercel.app/
-- 最新运行代码：`main`，`67ef7b0c8a121f7a5ba5b1f7895c978318548a38`，
-  工作分支 `codex/admin-editor-workflow`；提交和 SSH 推送均使用 `faweizhao26`。
-- Vercel Production 部署 `dpl_DQHTdQ4UK2WS3Bxk9rfpxhbqZuuv` 为 `READY`，
-  对应后台编辑体验提交，正式域名已分配成功；不是仅 Preview。
+- 最新运行代码：`main`，`ec376bdb58dac618f419433cf3977e10a1f0161a`，
+  工作分支 `codex/admin-entry-navigation`；提交和 SSH 推送均使用 `faweizhao26`。
+- Vercel Production 部署 `dpl_9jkNye5RUoeeHo9r1WznQBqYq5Db` 为 `READY`，
+  对应账号管理提交，正式域名已分配成功；不是仅 Preview。
+- 2026-10-15 账号管理正式只读验收：现有登录账号 `faweizhao26@gmail.com` 显示为唯一管理员，
+  列表正常读取，当前账号无撤权按钮，权限变更记录为零。桌面及手机均可从首页入口进入后台，
+  再进入账号管理，无页面溢出或检查器发现的文字对比度问题；未提交正式授权或撤销。
+  迁移 SQL MD5 与生产记录一致，匿名执行与直接角色更新仍被禁止，权限历史 RLS 已启用。
+  新部署短时 error/fatal 日志未见记录。安全检查只返回既有的泄露密码保护未启用提示，
+  未发现本次新增数据库问题；没有修改 Auth 配置。
+  相关平台说明：[泄露密码保护](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)。
 - 2026-10-14 正式只读验收：公开内容 API HTTP 200；会场仍未确认、日期不变、
   未混入隔离测试文案。已登录正式后台可见征稿及页面内容编辑入口，未保存正式设置。
   以下早期批次记录保留各自的验证范围；当前后续工作见文末“尚待处理”。
@@ -223,7 +230,6 @@ ego-lite 验证九页 72 个语言/主题/预览宽度组合，无横向溢出�
 
 | 顺序 | 工作 | 性质与当前状态 | 完成标准 |
 | --- | --- | --- | --- |
-| 当前批次 | 前台管理员入口及账号管理发布 | 已获授权，生产迁移已执行，代码正在发布 | 使用 `faweizhao26` 推送并核对 Production |
 | 1 | 正式内容补全 | 运营资料缺口已核对，详见 `CONTENT_READINESS.md`；不是一组未复现的代码缺陷 | 补讲者与演讲、三天议程及公告；核对票务权益，场地和参会安排确定后发布 |
 | 延期 | 邮件服务与完整生产验收 | 用户明确暂缓。独立测试注册、收件、未确认登录拒绝、邮箱确认及密码登录通过；找回请求被邮件限额拒绝。测试账号与凭据已清理，生产仍用内置邮件，非团队投递未验收 | 用户决定恢复后，确定发信域名、接入 SMTP；完成非团队邮箱投递、独立账号真实密码重置及新密码登录 |
 | 可选 | 弱密码保护 | Supabase 安全检查仅剩既有的泄露密码保护未启用提示；不属于本批头像问题 | 按运营需要另行评估 Auth 设置，不在本批改动 |
