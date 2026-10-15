@@ -1,5 +1,6 @@
 "use client"
 
+import { CFPPolicySummary } from "@/components/content/cfp-policy-summary"
 import { useLocale } from "@/lib/i18n/provider"
 
 import { startTransition, useState, useEffect, useRef } from "react"
@@ -184,16 +185,7 @@ export default function CFPPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <h1 className="text-4xl font-bold mb-8">{cfp.title[locale]}</h1>
-      {policy && <section className="mb-8 space-y-5 border-y py-5">
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <Badge variant="outline">{policyState === "open" ? (locale === "zh" ? "征稿开放中" : "CFP open") : policyState === "expired" ? (locale === "zh" ? "征稿已截止" : "CFP deadline passed") : (locale === "zh" ? "征稿已关闭" : "CFP closed")}</Badge>
-          <span className="text-muted-foreground">{policy.deadline ? `${locale === "zh" ? "截止" : "Deadline"}: ${policy.deadline} 23:59 (UTC+8)` : (locale === "zh" ? "截止日期待公布" : "Deadline to be announced")}</span>
-        </div>
-        {(policy.intro[locale] || policy.intro.en) && <p className="whitespace-pre-line break-words text-sm leading-6 text-muted-foreground">{policy.intro[locale] || policy.intro.en}</p>}
-        {(policy.requirements[locale] || policy.requirements.en) && <div><h2 className="mb-2 text-sm font-semibold">{locale === "zh" ? "提交要求" : "Submission requirements"}</h2><p className="whitespace-pre-line break-words text-sm leading-6 text-muted-foreground">{policy.requirements[locale] || policy.requirements.en}</p></div>}
-        {(policy.reviewNotes[locale] || policy.reviewNotes.en) && <div><h2 className="mb-2 text-sm font-semibold">{locale === "zh" ? "审核及结果通知" : "Review and result notification"}</h2><p className="whitespace-pre-line break-words text-sm leading-6 text-muted-foreground">{policy.reviewNotes[locale] || policy.reviewNotes.en}</p></div>}
-        {policy.contactEmail && <a href={`mailto:${policy.contactEmail}`} className="block break-all text-sm text-emerald-700 underline dark:text-emerald-400">{policy.contactEmail}</a>}
-      </section>}
+      {policy && <CFPPolicySummary policy={policy} locale={locale} />}
 
       <Tabs value={tab} onValueChange={value => { if (!pending.current) setTab(value) }}>
         <TabsList className="bg-zinc-900 border border-zinc-800 mb-8">

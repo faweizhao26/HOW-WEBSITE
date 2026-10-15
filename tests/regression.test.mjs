@@ -47,7 +47,7 @@ test("Header has working sign-out routes for desktop and mobile", () => {
 })
 
 test("Locale-sensitive labels use explicit fallback grouping", () => {
-  const home = read("src/app/page.tsx")
+  const home = read("src/components/content/site-views.tsx")
   const adminLayout = read("src/app/admin/layout.tsx")
 
   assert.match(home, /formatConferenceDateRange\(settings\.conference_date, locale\)/)
@@ -57,10 +57,10 @@ test("Locale-sensitive labels use explicit fallback grouping", () => {
 
 test("Conference dates and venue come from one canonical source", () => {
   const conference = read("src/lib/conference.ts")
-  const home = read("src/app/page.tsx")
+  const home = read("src/components/content/site-views.tsx")
   const schedule = read("src/app/schedule/page.tsx")
   const countdown = read("src/components/countdown.tsx")
-  const venue = read("src/app/venue/page.tsx")
+  const venue = read("src/app/venue/page.tsx") + home
   const chatbot = read("src/components/chatbot.tsx")
 
   assert.match(conference, /startDate: "2027-04-16"/)
@@ -93,7 +93,8 @@ test("Attend placeholder content is wired into the public site", () => {
   const translations = read("src/lib/i18n/translations.ts")
   const header = read("src/components/layout/header.tsx")
   const footer = read("src/components/layout/footer.tsx")
-  const home = read("src/app/page.tsx")
+  const home = read("src/components/content/site-views.tsx")
+  assert.match(read("src/app/page.tsx"), /<HomeView settings=\{settings\} content=\{content\}/)
 
   assert.match(translations, /attend: \{ en: "Attend", zh: "参会指南" \}/)
   assert.match(header, /href: "\/attend", key: "attend"/)
@@ -123,7 +124,7 @@ test("Public site has a persistent day and night theme toggle", () => {
 })
 
 test("Home page has explicit sharp light-mode styling", () => {
-  const home = read("src/app/page.tsx")
+  const home = read("src/components/content/site-views.tsx")
   const countdown = read("src/components/countdown.tsx")
 
   assert.match(home, /bg-white dark:bg-zinc-900\/80/)
@@ -137,7 +138,7 @@ test("Home page has explicit sharp light-mode styling", () => {
 test("Home page uses an interactive motion hero background", () => {
   assert.equal(existsSync(new URL("../src/components/home/hero-motion.tsx", import.meta.url)), true)
 
-  const home = read("src/app/page.tsx")
+  const home = read("src/components/content/site-views.tsx")
   const motion = read("src/components/home/hero-motion.tsx")
 
   assert.match(home, /import \{ HeroMotion \} from "@\/components\/home\/hero-motion"/)
@@ -156,16 +157,17 @@ test("Home page uses an interactive motion hero background", () => {
 })
 
 test("Sponsor recruitment contact is visible on public sponsor surfaces", () => {
-  const sponsors = read("src/app/sponsors/page.tsx")
-  const attend = read("src/app/attend/page.tsx")
+  const views = read("src/components/content/site-views.tsx")
   const chatbot = read("src/components/chatbot.tsx")
   const footer = read("src/components/layout/footer.tsx")
   const conduct = read("src/app/code-of-conduct/page.tsx")
   const privacy = read("src/app/privacy/page.tsx")
   const settings = read("src/app/admin/settings/page.tsx")
 
-  assert.match(sponsors, /contacts\.sponsor \|\| site\.settings\.contact_email/)
-  assert.match(attend, /contacts\.sponsor \|\| result\.settings\.contact_email/)
+  assert.match(views, /contacts\.sponsor \|\| site\.settings\.contact_email/)
+  assert.match(views, /page === "attend" \? content\.contacts\.sponsor \|\| settings\.contact_email/)
+  assert.match(read("src/app/sponsors/page.tsx"), /<SponsorsView sponsors=\{result\}/)
+  assert.match(read("src/app/attend/page.tsx"), /<SitePageView page="attend"/)
   for (const source of [chatbot, conduct, privacy, settings, read("src/lib/content/settings.ts")]) {
     assert.doesNotMatch(source, /conference@how2027\.org/)
   }
@@ -175,7 +177,7 @@ test("Sponsor recruitment contact is visible on public sponsor surfaces", () => 
 })
 
 test("Sponsor logos render on a theme-neutral safe surface", () => {
-  const sponsors = read("src/app/sponsors/page.tsx")
+  const sponsors = read("src/components/content/site-views.tsx")
   const adminSponsors = read("src/app/admin/sponsors/page.tsx")
   const styles = read("src/app/globals.css")
 

@@ -193,8 +193,13 @@ test("sponsor and news drafts publish through public projections", () => {
   for (const publicPage of [publicSponsors, publicUpdates]) {
     assert.doesNotMatch(publicPage, /^['\"]use client['\"]/)
     assert.doesNotMatch(publicPage, /createClient|localStorage|from\(["'](?:sponsors|news_posts)["']\)|getSponsors\(|getNews\(/)
-    assert.match(publicPage, /result\.status === "error"/)
-    assert.match(publicPage, /result\.status === "empty"/)
+  }
+
+  const sponsorsView = read("src/components/content/site-views.tsx")
+  assert.match(publicSponsors, /SponsorsView/)
+  for (const display of [sponsorsView, publicUpdates]) {
+    assert.match(display, /result\.status === "error"/)
+    assert.match(display, /result\.status === "empty"/)
   }
 
   assert.match(publicSponsors, /getPublishedSponsors\(\)/)

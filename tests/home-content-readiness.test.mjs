@@ -14,12 +14,16 @@ import { contentText, parseSiteContent } from "../src/lib/content/site-content.t
 const js = ts.transpileModule(readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
 }).outputText
+const viewsJs = ts.transpileModule(readFileSync(new URL("../src/components/content/site-views.tsx", import.meta.url), "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
+}).outputText
 
 async function render(sessions, locale = "en") {
   const block = ({ children, className }) => createElement("div", { className }, children)
   const modules = {
     "react/jsx-runtime": jsxRuntime,
     "next/link": { default: ({ children, href }) => createElement("a", { href }, children) },
+    "next/image": { default: () => null },
     "next/headers": { cookies: async () => ({ get: () => ({ value: locale }) }) },
     "@/lib/i18n/utils": { getLocale: () => locale },
     "@/lib/i18n/translations": translations,
@@ -36,8 +40,11 @@ async function render(sessions, locale = "en") {
     "@/components/ui/card": { Card: block, CardContent: block },
     "@/components/countdown": { Countdown: () => null },
     "@/components/home/hero-motion": { HeroMotion: () => null },
-    "lucide-react": Object.fromEntries(["CheckCircle", "ArrowRight", "Calendar", "MapPin", "Users", "Mic"].map(name => [name, () => null])),
+    "lucide-react": Object.fromEntries(["CheckCircle", "ArrowRight", "Calendar", "MapPin", "Users", "Mic", "ExternalLink"].map(name => [name, () => null])),
   }
+  const viewContext = { exports: {}, require: name => { assert.ok(name in modules, `Unexpected view dependency: ${name}`); return modules[name] } }
+  vm.runInNewContext(viewsJs, viewContext)
+  modules["@/components/content/site-views"] = viewContext.exports
   const context = { exports: {}, require: name => { assert.ok(name in modules, `Unexpected dependency: ${name}`); return modules[name] } }
   vm.runInNewContext(js, context)
   return renderToStaticMarkup(await context.exports.default())

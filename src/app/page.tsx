@@ -1,18 +1,9 @@
-import Link from "next/link"
 import { cookies } from "next/headers"
 import { getLocale } from "@/lib/i18n/utils"
-import { home, schedule as sched } from "@/lib/i18n/translations"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRight, Calendar, MapPin, Users, Mic } from "lucide-react"
-import { Countdown } from "@/components/countdown"
-import { HeroMotion } from "@/components/home/hero-motion"
-import { conference, formatConferenceDateRange, getConferenceStartDate } from "@/lib/conference"
 import { getPublishedSessions, getPublishedSettings } from "@/lib/content/public"
 import { defaultSiteSettings } from "@/lib/content/settings"
-import { contentText, parseSiteContent } from "@/lib/content/site-content"
-import { ContentBlocks } from "@/components/content/content-blocks"
+import { parseSiteContent } from "@/lib/content/site-content"
+import { HomeView } from "@/components/content/site-views"
 
 export default async function HomePage() {
   const cookieStore = await cookies()
@@ -23,80 +14,5 @@ export default async function HomePage() {
   let content
   try { content = parseSiteContent(settings) } catch { return <div data-content-state="error" role="alert" className="mx-auto max-w-7xl px-4 py-16">{locale === "zh" ? "页面内容暂时无法加载。" : "Page content is temporarily unavailable."}</div> }
 
-  const heroTitle = settings.hero_title
-  const heroTitleZh = settings.hero_title_zh
-  const heroSub = settings.hero_subtitle
-  const heroSubZh = settings.hero_subtitle_zh
-  const date = formatConferenceDateRange(settings.conference_date, locale)
-  const location = settings.conference_location
-  const locationZh = settings.conference_location_zh
-  const venueLine = content.venue.confirmed ? contentText(content.venue.name, locale) : conference.venue[locale]
-  const pending = locale === "zh" ? "待公布" : "TBA"
-  const sessionCount = sessions.status === "ready" ? String(sessions.data.length)
-    : sessions.status === "empty" ? pending : locale === "zh" ? "暂不可用" : "Unavailable"
-
-  const stats = [
-    { icon: Mic, label: locale === "zh" ? "已公布演讲" : "Published Sessions", value: sessionCount },
-    { icon: Users, label: locale === "zh" ? "参会规模" : "Attendance", value: pending },
-    { icon: MapPin, label: locale === "zh" ? "地点" : "Location", value: locale === "zh" ? locationZh : location },
-    { icon: Calendar, label: locale === "zh" ? "天数" : "Days", value: String(conference.dayCount) },
-  ]
-
-  return (
-    <div data-content-state={result.status}>
-      <section className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden bg-slate-50 text-zinc-950 dark:bg-zinc-950 dark:text-white">
-        <HeroMotion />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(248_250_252_/_0.88)_0%,rgb(248_250_252_/_0.6)_42%,rgb(248_250_252_/_0.12)_100%)] dark:bg-[linear-gradient(90deg,rgb(2_6_23_/_0.74)_0%,rgb(2_6_23_/_0.38)_42%,rgb(2_6_23_/_0.06)_100%)]" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-300 to-transparent dark:via-emerald-800/70" />
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 lg:py-40">
-          <div className="max-w-3xl">
-            <Badge className="mb-6 bg-white/80 text-emerald-700 border-emerald-200 shadow-sm backdrop-blur hover:bg-white/90 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 dark:hover:bg-emerald-950/50">
-              {settings.conference_name}
-            </Badge>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-zinc-950 dark:text-white">
-              {locale === "zh" ? heroTitleZh : heroTitle}
-              <br />
-              <span className="block bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent text-3xl sm:text-4xl lg:text-6xl">
-                {locale === "zh" ? heroSubZh : heroSub}
-              </span>
-            </h1>
-            <p className="text-lg sm:text-xl text-zinc-700 dark:text-zinc-300 mb-8 max-w-xl">
-              {date}
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/register">
-                <Button size="lg" className="bg-emerald-700 hover:bg-emerald-800 text-white gap-2">
-                  {home.registerNow[locale]} <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/schedule">
-                <Button size="lg" variant="outline" className="border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-transparent dark:text-zinc-300 dark:hover:bg-zinc-800/50">
-                  {sched.title[locale]}
-                </Button>
-              </Link>
-            </div>
-
-            <Countdown target={getConferenceStartDate(settings.conference_date)} locale={locale} />
-          </div>
-        </div>
-      </section>
-
-      <section className="relative -mt-16 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <Card key={stat.label} className="bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
-              <CardContent className="p-6 text-center">
-                <stat.icon className="h-6 w-6 text-emerald-400 mx-auto mb-3" />
-                <div className={`${stat.value === "Unavailable" ? "text-base" : "text-2xl"} font-bold text-zinc-950 dark:text-white`}>{stat.value}</div>
-                <div className="text-sm text-zinc-600 dark:text-zinc-400">{stat.label}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"><ContentBlocks blocks={content.home.sections.map(block => block.id === "cta" ? { ...block, body: { en: [block.body.en, venueLine].filter(Boolean).join("\n"), zh: [block.body.zh, venueLine].filter(Boolean).join("\n") } } : block)} locale={locale} /></div>
-    </div>
-  )
+  return <HomeView settings={settings} content={content} locale={locale} sessions={sessions} contentState={result.status} />
 }

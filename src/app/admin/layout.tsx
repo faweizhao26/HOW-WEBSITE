@@ -101,6 +101,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!authorized) return null
 
+  if (pathname === "/admin/preview") return <>{children}</>
+
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col md:flex-row">
       <aside className={`w-full ${collapsed ? "md:w-16" : "md:w-60"} shrink-0 border-b border-zinc-800 bg-zinc-950/50 transition-all duration-200 md:flex md:flex-col md:border-b-0 md:border-r`}>

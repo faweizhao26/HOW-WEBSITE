@@ -2,8 +2,8 @@
 
 import { useLocale } from "@/lib/i18n/provider"
 
-import { useCallback, useEffect, useState, useTransition } from "react"
-import { Save, Send } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
+import { Eye, Save, Send } from "lucide-react"
 import { toast } from "sonner"
 import { publishSiteSettings } from "@/app/admin/actions/publication"
 import { PublicationActions } from "@/components/admin/publication-actions"
@@ -13,11 +13,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { MediaUploadContext } from "@/components/admin/site-media-field"
+import { SettingsPreview } from "@/components/admin/settings-preview"
+import { UnsavedSettingsGuard } from "@/components/admin/unsaved-settings-guard"
+import { getSettingsIssues } from "@/lib/content/settings-validation"
 import { SiteContentEditor } from "@/components/admin/site-content-editor"
 import { parseSiteContent, parseSiteContentDraft } from "@/lib/content/site-content"
 import { Skeleton } from "@/components/ui/skeleton"
 import { conference } from "@/lib/conference"
-import { defaultSiteSettings, hasSettingsChanges, validateSettingsDraft } from "@/lib/content/settings"
+import { defaultSiteSettings, hasSettingsChanges } from "@/lib/content/settings"
 import { cfpDurations, cfpSessionTypes, defaultCFPSettings } from "@/lib/cfp/settings"
 import type { SiteSettingsRelease } from "@/lib/db/schema"
 import { admin as adminT, cfp as cfpT } from "@/lib/i18n/translations"
@@ -55,6 +59,12 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [publishing, startPublishing] = useTransition()
   const [publishError, setPublishError] = useState("")
+  const [uploads, setUploads] = useState(0)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [validationAttempted, setValidationAttempted] = useState(false)
+  const issues = useMemo(() => validationAttempted ? getSettingsIssues(settings) : [], [settings, validationAttempted])
+  const busy = saving || publishing || uploads > 0
+  const reportUpload = useCallback((active: boolean) => setUploads(count => Math.max(0, count + (active ? 1 : -1))), [])
 
   const loadSettings = useCallback(async () => {
     if (mockMode) return
@@ -85,6 +95,7 @@ export default function AdminSettingsPage() {
 
   async function saveSettings(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (busy) return
     setSaving(true)
     try {
       const draft = Object.fromEntries(Object.entries(settings).map(([key, value]) => [key, value.trim()]))
@@ -100,17 +111,36 @@ export default function AdminSettingsPage() {
     finally { setSaving(false) }
   }
 
-  function publish() {
-    if (unsaved) { setPublishError(locale === "zh" ? "请先保存草稿。" : "Save the draft first."); return }
-    const issue = validateSettingsDraft(data.draft)
-    if (issue) {
-      setPublishError(issue === "required"
-        ? (locale === "zh" ? "请补全大会信息和中英文首页标题。" : "Complete the conference information and both hero translations.")
-        : issue === "date" ? (locale === "zh" ? "大会日期必须为 2027.4.16-4.18。" : "The conference period must be 2027.4.16-4.18.")
-          : issue === "cfp" ? (locale === "zh" ? "请核对征稿日期和联系邮箱，并至少选择一种演讲类型和时长；说明文字最多 10000 字。" : "Check the CFP date and contact email, select at least one type and duration, and keep each description within 10000 characters.")
-            : (locale === "zh" ? "页面内容格式不完整，请检查邮箱、图片和资料链接，以及问答关键词。" : "Check page content, emails, image/document URLs and FAQ keywords."))
-      return
+  function locateIssue(path: string) {
+    let target: HTMLElement | null = null
+    const parts = path.split(".")
+    while (parts.length && !target) {
+      target = document.querySelector<HTMLElement>(`[data-setting-path="${CSS.escape(parts.join("."))}"]`)
+      parts.pop()
     }
+    target ||= document.querySelector<HTMLElement>('[data-setting-path="site_content"]')
+    if (!target) return
+    for (let parent: HTMLElement | null = target; parent; parent = parent.parentElement) if (parent instanceof HTMLDetailsElement) parent.open = true
+    const control = target.matches("input,textarea,button") ? target : target.querySelector<HTMLElement>("input:not([type=hidden]),textarea,button,summary")
+    target.scrollIntoView({ block: "center", behavior: "smooth" })
+    control?.focus({ preventScroll: true })
+  }
+
+  function preview() {
+    if (busy) return
+    setValidationAttempted(true)
+    const found = getSettingsIssues(settings)
+    if (found.length) { locateIssue(found[0].path); return }
+    setPublishError("")
+    setPreviewOpen(true)
+  }
+
+  function publish() {
+    if (busy) return
+    if (unsaved) { setPublishError(locale === "zh" ? "请先保存草稿。" : "Save the draft first."); return }
+    const found = getSettingsIssues(data.draft)
+    setValidationAttempted(true)
+    if (found.length) { setPublishError(""); locateIssue(found[0].path); return }
     setPublishError("")
     startPublishing(async () => {
       const result = await publishSiteSettings()
@@ -155,38 +185,43 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <form onSubmit={saveSettings} className="max-w-3xl space-y-6">
+    <form noValidate onSubmit={saveSettings} className="max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{adminT.siteSettings[locale]}</h1>
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" variant="outline" disabled={saving || publishing || loadError}><Save />{saving ? adminT.saving[locale] : (locale === "zh" ? "保存草稿" : "Save draft")}</Button>
-          {!mockMode && <Button type="button" onClick={publish} disabled={saving || publishing || loadError}><Send />{publishing ? (locale === "zh" ? "发布中" : "Publishing") : (locale === "zh" ? "发布整版设置" : "Publish complete settings")}</Button>}
+          <Button type="button" variant="outline" onClick={preview} disabled={busy || loadError}><Eye />{locale === "zh" ? "预览草稿" : "Preview draft"}</Button>
+          <Button type="submit" variant="outline" disabled={busy || loadError}><Save />{saving ? adminT.saving[locale] : (locale === "zh" ? "保存草稿" : "Save draft")}</Button>
+          {!mockMode && <Button type="button" onClick={publish} disabled={busy || loadError}><Send />{publishing ? (locale === "zh" ? "发布中" : "Publishing") : (locale === "zh" ? "发布整版设置" : "Publish complete settings")}</Button>}
         </div>
       </div>
       <div className="space-y-2 border-y py-4 text-sm text-muted-foreground">
         <p>{currentRelease ? `${locale === "zh" ? "当前公开版本" : "Current public release"}: v${currentRelease.version} · ${new Date(currentRelease.published_at).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}` : (locale === "zh" ? "尚未发布网站设置" : "No settings release yet")}</p>
         <Badge variant="outline">{unsaved ? (locale === "zh" ? "有未保存修改" : "Unsaved changes") : pending ? (locale === "zh" ? "草稿待发布" : "Draft pending publication") : (locale === "zh" ? "与公开版本一致" : "Matches public release")}</Badge>
+        {uploads > 0 && <p role="status">{locale === "zh" ? "素材上传中" : "Uploading media"}</p>}
+        {issues.length > 0 && <div role="alert" className="space-y-1 border-l-2 border-red-500 pl-3">{issues.map(issue => <button key={issue.path} type="button" className="block max-w-full break-words text-left text-red-700 underline underline-offset-4 dark:text-red-400" onClick={() => locateIssue(issue.path)}>{issue.label[locale]}: {issue.message[locale]}</button>)}</div>}
         {publishError && <p role="alert" className="text-red-700 dark:text-red-400">{publishError}</p>}
       </div>
       {loadError ? <div className="flex flex-wrap items-center gap-3 text-muted-foreground"><p>{locale === "zh" ? "设置加载失败" : "Unable to load settings"}</p><Button type="button" variant="outline" onClick={loadSettings}>{locale === "zh" ? "重试" : "Retry"}</Button></div> : <>
-        <section className="space-y-5"><h2 className="text-lg font-semibold">{adminT.conferenceInfo[locale]}</h2><div className="grid gap-5 sm:grid-cols-2">{fields.map(({ key, label, type, placeholder }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Input id={`setting-${key}`} type={type || "text"} value={settings[key] || ""} placeholder={placeholder} disabled={saving || publishing} onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))} /></div>)}</div></section>
+        <section className="space-y-5"><h2 className="text-lg font-semibold">{adminT.conferenceInfo[locale]}</h2><div className="grid gap-5 sm:grid-cols-2">{fields.map(({ key, label, type, placeholder }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Input data-setting-path={key} aria-invalid={issues.some(issue => issue.path === key)} id={`setting-${key}`} type={type || "text"} value={settings[key] || ""} placeholder={placeholder} disabled={busy} onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))} /></div>)}</div></section>
         <section className="space-y-5 border-t pt-6">
           <h2 className="text-lg font-semibold">{locale === "zh" ? "征稿设置" : "Call for proposals"}</h2>
-          <fieldset disabled={saving || publishing} className="space-y-5 min-w-0">
-            <div className="flex items-center justify-between gap-4"><Label htmlFor="setting-cfp_enabled">{locale === "zh" ? "开放征稿" : "Accepting proposals"}</Label><Switch id="setting-cfp_enabled" checked={settings.cfp_enabled !== "false"} onCheckedChange={checked => setSettings(current => ({ ...current, cfp_enabled: String(checked) }))} /></div>
+          <fieldset disabled={busy} className="space-y-5 min-w-0">
+            <div data-setting-path="cfp_enabled" className="flex items-center justify-between gap-4"><Label htmlFor="setting-cfp_enabled">{locale === "zh" ? "开放征稿" : "Accepting proposals"}</Label><Switch id="setting-cfp_enabled" checked={settings.cfp_enabled !== "false"} onCheckedChange={checked => setSettings(current => ({ ...current, cfp_enabled: String(checked) }))} /></div>
             <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2"><Label htmlFor="setting-cfp_deadline">{locale === "zh" ? "征稿截止日期（北京时间）" : "CFP deadline (Beijing time)"}</Label><Input id="setting-cfp_deadline" type="date" value={settings.cfp_deadline || ""} onChange={event => setSettings(current => ({ ...current, cfp_deadline: event.target.value }))} /></div>
-              <div className="space-y-2"><Label htmlFor="setting-cfp_contact_email">{locale === "zh" ? "投稿咨询邮箱" : "CFP contact email"}</Label><Input id="setting-cfp_contact_email" type="email" value={settings.cfp_contact_email || ""} placeholder={settings.contact_email || ""} onChange={event => setSettings(current => ({ ...current, cfp_contact_email: event.target.value }))} /></div>
+              <div className="space-y-2"><Label htmlFor="setting-cfp_deadline">{locale === "zh" ? "征稿截止日期（北京时间）" : "CFP deadline (Beijing time)"}</Label><Input data-setting-path="cfp_deadline" id="setting-cfp_deadline" type="date" value={settings.cfp_deadline || ""} onChange={event => setSettings(current => ({ ...current, cfp_deadline: event.target.value }))} /></div>
+              <div className="space-y-2"><Label htmlFor="setting-cfp_contact_email">{locale === "zh" ? "投稿咨询邮箱" : "CFP contact email"}</Label><Input data-setting-path="cfp_contact_email" id="setting-cfp_contact_email" type="email" value={settings.cfp_contact_email || ""} placeholder={settings.contact_email || ""} onChange={event => setSettings(current => ({ ...current, cfp_contact_email: event.target.value }))} /></div>
             </div>
-            <fieldset className="space-y-3"><legend className="mb-3 text-sm font-medium">{locale === "zh" ? "允许的演讲类型" : "Allowed session types"}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{cfpSessionTypes.map(type => <label key={type} className="flex items-center gap-2 text-sm"><input type="checkbox" name="cfp_types" value={type} checked={selectedOptions(settings.cfp_types, defaultCFPSettings.cfp_types, cfpSessionTypes).includes(type)} onChange={event => changeOption("cfp_types", type, event.target.checked, cfpSessionTypes)} className="size-4 accent-emerald-600" />{cfpT[type][locale]}</label>)}</div></fieldset>
-            <fieldset className="space-y-3"><legend className="mb-3 text-sm font-medium">{locale === "zh" ? "允许的演讲时长" : "Allowed session durations"}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{cfpDurations.map(duration => <label key={duration} className="flex items-center gap-2 text-sm"><input type="checkbox" name="cfp_durations" value={duration} checked={selectedOptions(settings.cfp_durations, defaultCFPSettings.cfp_durations, cfpDurations).includes(duration)} onChange={event => changeOption("cfp_durations", duration, event.target.checked, cfpDurations)} className="size-4 accent-emerald-600" />{duration} {locale === "zh" ? "分钟" : "min"}</label>)}</div></fieldset>
-            <div className="grid gap-5 sm:grid-cols-2">{cfpFields.map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Textarea id={`setting-${key}`} value={settings[key] || ""} rows={4} maxLength={10000} onChange={event => setSettings(current => ({ ...current, [key]: event.target.value }))} /></div>)}</div>
+            <fieldset data-setting-path="cfp_types" className="space-y-3"><legend className="mb-3 text-sm font-medium">{locale === "zh" ? "允许的演讲类型" : "Allowed session types"}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{cfpSessionTypes.map(type => <label key={type} className="flex items-center gap-2 text-sm"><input type="checkbox" name="cfp_types" value={type} checked={selectedOptions(settings.cfp_types, defaultCFPSettings.cfp_types, cfpSessionTypes).includes(type)} onChange={event => changeOption("cfp_types", type, event.target.checked, cfpSessionTypes)} className="size-4 accent-emerald-600" />{cfpT[type][locale]}</label>)}</div></fieldset>
+            <fieldset data-setting-path="cfp_durations" className="space-y-3"><legend className="mb-3 text-sm font-medium">{locale === "zh" ? "允许的演讲时长" : "Allowed session durations"}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{cfpDurations.map(duration => <label key={duration} className="flex items-center gap-2 text-sm"><input type="checkbox" name="cfp_durations" value={duration} checked={selectedOptions(settings.cfp_durations, defaultCFPSettings.cfp_durations, cfpDurations).includes(duration)} onChange={event => changeOption("cfp_durations", duration, event.target.checked, cfpDurations)} className="size-4 accent-emerald-600" />{duration} {locale === "zh" ? "分钟" : "min"}</label>)}</div></fieldset>
+            <div className="grid gap-5 sm:grid-cols-2">{cfpFields.map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Textarea data-setting-path={key} aria-invalid={issues.some(issue => issue.path === key)} id={`setting-${key}`} value={settings[key] || ""} rows={4} maxLength={10000} onChange={event => setSettings(current => ({ ...current, [key]: event.target.value }))} /></div>)}</div>
           </fieldset>
         </section>
-        <section className="space-y-5 border-t pt-6"><h2 className="text-lg font-semibold">{adminT.heroSection[locale]}</h2><div className="grid gap-5 sm:grid-cols-2">{heroFields.map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Input id={`setting-${key}`} value={settings[key] || ""} disabled={saving || publishing} onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))} /></div>)}</div></section>
-        {siteContent ? <SiteContentEditor value={siteContent} locale={locale} disabled={saving || publishing} onChange={content => setSettings(current => ({ ...current, site_content: JSON.stringify(content) }))} /> : <div className="space-y-3 border-t pt-6"><p role="alert">{locale === "zh" ? "页面内容草稿无法解析。其他设置已保留。" : "Page content draft cannot be parsed. Other settings are retained."}</p><Button type="button" variant="outline" disabled={saving || publishing} onClick={() => setSettings(current => ({ ...current, site_content: JSON.stringify(parseSiteContent({})) }))}>{locale === "zh" ? "恢复默认页面内容" : "Restore default page content"}</Button></div>}
+        <section className="space-y-5 border-t pt-6"><h2 className="text-lg font-semibold">{adminT.heroSection[locale]}</h2><div className="grid gap-5 sm:grid-cols-2">{heroFields.map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Input data-setting-path={key} aria-invalid={issues.some(issue => issue.path === key)} id={`setting-${key}`} value={settings[key] || ""} disabled={busy} onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))} /></div>)}</div></section>
+        <MediaUploadContext.Provider value={reportUpload}>{siteContent ? <SiteContentEditor value={siteContent} locale={locale} disabled={busy} onChange={content => setSettings(current => ({ ...current, site_content: JSON.stringify(content) }))} /> : <div data-setting-path="site_content" className="space-y-3 border-t pt-6"><p role="alert">{locale === "zh" ? "页面内容草稿无法解析。其他设置已保留。" : "Page content draft cannot be parsed. Other settings are retained."}</p><Button type="button" variant="outline" disabled={busy} onClick={() => setSettings(current => ({ ...current, site_content: JSON.stringify(parseSiteContent({})) }))}>{locale === "zh" ? "恢复默认页面内容" : "Restore default page content"}</Button></div>}</MediaUploadContext.Provider>
       </>}
-      {data.releases.length > 0 && <section className="border-t pt-6"><h2 className="mb-3 text-lg font-semibold">{locale === "zh" ? "发布历史" : "Release history"}</h2><div className="divide-y">{data.releases.map((release) => <div key={release.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-sm">v{release.version} · {new Date(release.published_at).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}{release.is_current && <Badge className="ml-2" variant="outline">{locale === "zh" ? "当前" : "Current"}</Badge>}</span>{!release.is_current && <PublicationActions id={release.id} kind="settings-release" locale={locale} onCompleted={loadSettings} />}</div>)}</div></section>}
+      {data.releases.length > 0 && <fieldset disabled={busy || unsaved}><section className="border-t pt-6"><h2 className="mb-3 text-lg font-semibold">{locale === "zh" ? "发布历史" : "Release history"}</h2><div className="divide-y">{data.releases.map((release) => <div key={release.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-sm">v{release.version} · {new Date(release.published_at).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}{release.is_current && <Badge className="ml-2" variant="outline">{locale === "zh" ? "当前" : "Current"}</Badge>}</span>{!release.is_current && <PublicationActions id={release.id} kind="settings-release" locale={locale} onCompleted={loadSettings} />}</div>)}</div></section></fieldset>}
+      <UnsavedSettingsGuard active={unsaved || uploads > 0} locale={locale} />
+      <SettingsPreview open={previewOpen} onOpenChange={setPreviewOpen} settings={settings} locale={locale} />
     </form>
   )
 }
