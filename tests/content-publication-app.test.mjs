@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { existsSync, readFileSync } from "node:fs"
 import { test } from "node:test"
+import { renderAdminNavigation } from "./helpers/render-admin-navigation.mjs"
 
 const root = new URL("../", import.meta.url)
 const read = (path) => readFileSync(new URL(path, root), "utf8")
@@ -148,10 +149,10 @@ test("speaker lifecycle is available in admin and public navigation", () => {
 
   const header = read("src/components/layout/header.tsx")
   const footer = read("src/components/layout/footer.tsx")
-  const adminLayout = read("src/app/admin/layout.tsx")
+  const adminNavigation = renderAdminNavigation("/admin/speakers")
   assert.match(header, /href:\s*"\/speakers"/)
   assert.match(footer, /href="\/speakers"/)
-  assert.match(adminLayout, /href:\s*"\/admin\/speakers"/)
+  assert.match(adminNavigation, /href="\/admin\/speakers"/)
 })
 
 test("session review remains separate from website publication", () => {
@@ -181,7 +182,7 @@ test("session review remains separate from website publication", () => {
   assert.match(read("src/lib/admin/data.ts"), /from\("speakers"\)/)
   assert.doesNotMatch(dashboard, /new Set\(sessions\.map\(\(s\) => s\.user_id\)\)/)
   assert.match(adminLayout, /flex-col md:flex-row/)
-  assert.match(adminLayout, /overflow-x-auto/)
+  assert.match(renderAdminNavigation("/admin/sessions"), /<summary[^>]*aria-label="后台导航: 提案管理"/)
 })
 
 test("sponsor and news drafts publish through public projections", () => {

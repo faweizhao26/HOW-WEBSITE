@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { existsSync, readFileSync } from "node:fs"
 import { test } from "node:test"
+import { renderAdminNavigation } from "./helpers/render-admin-navigation.mjs"
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8")
 
@@ -46,13 +47,13 @@ test("Header has working sign-out routes for desktop and mobile", () => {
   assert.doesNotMatch(header, /href="#"\s+onClick=\{\(\) => \{\}\}/)
 })
 
-test("Locale-sensitive labels use explicit fallback grouping", () => {
+test("Locale-sensitive labels use the selected language", () => {
   const home = read("src/components/content/site-views.tsx")
-  const adminLayout = read("src/app/admin/layout.tsx")
 
   assert.match(home, /formatConferenceDateRange\(settings\.conference_date, locale\)/)
   assert.match(home, /content\.venue\.confirmed.*contentText\(content\.venue\.name, locale\).*conference\.venue\[locale\]/)
-  assert.match(adminLayout, /\(adminLabels\.how2027Admin\?\.\[locale\]\) \|\| \(locale === "zh"/)
+  assert.match(renderAdminNavigation("/admin", "zh"), /HOW 2027 管理后台/)
+  assert.match(renderAdminNavigation("/admin", "en"), /HOW 2027 Admin/)
 })
 
 test("Conference dates and venue come from one canonical source", () => {
