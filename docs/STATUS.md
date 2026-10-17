@@ -5,11 +5,13 @@
 
 ## 当前版本
 
-- 本地待发布：`codex/admin-mobile-navigation` 完成手机后台折叠菜单、当前栏目指示、
-  自动收起和键盘操作，保留电脑端可折叠侧栏。163 项测试、lint、构建及 24 个显示组合通过。
-  尚未提交、未推送；本轮仅在显式 mock 预览验证导航，不改业务数据或鉴权。
-  预览为 `http://127.0.0.1:3035/admin`，详见 `ADMIN_NAVIGATION.md`。
-- 最新已发布：`codex/admin-entry-navigation` 新增前台管理员入口和后台账号管理，已推送至 `main`。
+- 最新已发布：`codex/admin-mobile-navigation` 完成手机后台折叠菜单、当前栏目指示、
+  自动收起和键盘操作，保留电脑端可折叠侧栏。163 项测试、lint、构建及 24 个本地显示组合通过。
+  2026-10-17 用户确认后用 `faweizhao26` 推送至 `main`，Production 已 READY 并分配正式域名。
+  已用现有正式管理员会话验证菜单展开、全部 11 个入口、换页自动收起、Esc 与桌面折叠；
+  真实数据正常读取，没有混入演示内容，没有业务写入或数据库迁移，短时 error/fatal 日志未见记录。
+  本地展示预览为 `http://127.0.0.1:3035/admin`，详见 `ADMIN_NAVIGATION.md`。
+- 已发布：`codex/admin-entry-navigation` 新增前台管理员入口和后台账号管理，已推送至 `main`。
   管理员可搜索账号、授予及撤销权限，具备自身/最后管理员保护及变更记录。
   完整测试 160/160、lint、构建、真实隔离数据库及浏览器验证通过；
   生产已应用 `20261015061725_admin_account_management`，没有修改现有账号角色。
@@ -17,10 +19,10 @@
 - 上一批次：`codex/admin-editor-workflow`，图片/PDF 上传、草稿预览和精确校验已发布。
   2026-10-15 用户授权后完成 Production 部署和正式只读验收，详见下文发布回执。
 - 正式网站：https://how-website.vercel.app/
-- 最新运行代码：`main`，`ec376bdb58dac618f419433cf3977e10a1f0161a`，
-  工作分支 `codex/admin-entry-navigation`；提交和 SSH 推送均使用 `faweizhao26`。
-- Vercel Production 部署 `dpl_9jkNye5RUoeeHo9r1WznQBqYq5Db` 为 `READY`，
-  对应账号管理提交，正式域名已分配成功；不是仅 Preview。
+- 最新运行代码：`main`，`81604bdd08bf6f4b0e217c5a0b0dda0fa4a7db85`，
+  工作分支 `codex/admin-mobile-navigation`；提交和 SSH 推送均使用 `faweizhao26`。
+- Vercel Production 部署 `dpl_FExUo79j4fbVuhtfFcSLdsD16EG4` 为 `READY`，
+  对应手机后台导航提交，正式域名已分配成功；不是仅 Preview。
 - 2026-10-15 账号管理正式只读验收：现有登录账号 `faweizhao26@gmail.com` 显示为唯一管理员，
   列表正常读取，当前账号无撤权按钮，权限变更记录为零。桌面及手机均可从首页入口进入后台，
   再进入账号管理，无页面溢出或检查器发现的文字对比度问题；未提交正式授权或撤销。
@@ -234,7 +236,6 @@ ego-lite 验证九页 72 个语言/主题/预览宽度组合，无横向溢出�
 
 | 顺序 | 工作 | 性质与当前状态 | 完成标准 |
 | --- | --- | --- | --- |
-| 当前批次 | 手机后台导航发布 | 本地实现和导航验收完成，未提交、未推送 | 用户确认后用 `faweizhao26` 推送并核对 Production |
 | 1 | 正式内容补全 | 运营资料缺口已核对，详见 `CONTENT_READINESS.md`；不是一组未复现的代码缺陷 | 补讲者与演讲、三天议程及公告；核对票务权益，场地和参会安排确定后发布 |
 | 延期 | 邮件服务与完整生产验收 | 用户明确暂缓。独立测试注册、收件、未确认登录拒绝、邮箱确认及密码登录通过；找回请求被邮件限额拒绝。测试账号与凭据已清理，生产仍用内置邮件，非团队投递未验收 | 用户决定恢复后，确定发信域名、接入 SMTP；完成非团队邮箱投递、独立账号真实密码重置及新密码登录 |
 | 可选 | 弱密码保护 | Supabase 安全检查仅剩既有的泄露密码保护未启用提示；不属于本批头像问题 | 按运营需要另行评估 Auth 设置，不在本批改动 |

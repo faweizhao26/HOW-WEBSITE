@@ -1,6 +1,7 @@
 # 后台手机导航
 
-更新：2026-10-17。工作分支 `codex/admin-mobile-navigation`，本地完成，未提交、未推送。
+更新：2026-10-17。工作分支 `codex/admin-mobile-navigation`，已推送至 `main` 并发布到 Production。
+运行提交 `81604bdd08bf6f4b0e217c5a0b0dda0fa4a7db85`；提交与推送账号均为 `faweizhao26`。
 
 ## 范围
 
@@ -32,6 +33,20 @@
 没有连接正式数据库，没有保存演示或正式业务内容，也不把本次预览当作业务接口或真实登录验收。
 构建时显式使用 `NEXT_PUBLIC_CONTENT_MODE=mock` 和 placeholder 数据库地址，
 没有把展示配置写入源码或正式环境。
+
+## 正式发布验收
+
+用户确认推送后，代码已原子推送到工作分支与 `main`。
+Vercel Production `dpl_FExUo79j4fbVuhtfFcSLdsD16EG4` 为 READY，
+部署 SHA 与运行提交一致，`how-website.vercel.app` 已分配成功，`aliasError` 为空。
+无需数据库迁移，没有改变任何账号权限或保存正式业务数据。
+
+ego-lite TaskSpace 4 使用原有正式管理员会话验收：账号管理正常读取，
+手机导航默认关闭，展开可见全部 11 个栏目与退出入口；点击仪表盘后导航自动关闭，
+Enter 展开、Esc 关闭及焦点返回通过。电脑端折叠到 64px，再展开到 240px。
+手机夜间截图已人工检查；无横向溢出或检查器发现的文字对比度问题。
+正式仪表盘显示真实 1 条投稿及会议管理概览，不含本地演示模式内容。
+上线后短时 error/fatal 日志未见记录，不作为长期运行监控的替代。
 
 本地预览：`http://127.0.0.1:3035/admin`。
 服务信息保存在 `/private/tmp/how-admin-mobile-navigation-preview.json`，日志为
