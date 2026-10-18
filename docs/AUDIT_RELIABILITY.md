@@ -1,7 +1,7 @@
 # 整体审查修复记录
 
 日期：2026-10-18。分支：`codex/audit-reliability-fixes`，基线：`e23c9b0`。
-当前状态：本地验收完成，用户已授权推送和 Production 发布；两份新迁移已应用生产，应用发布中。
+当前状态：已用 `faweizhao26` 推送至工作分支及 `main`，Production 已上线并完成正式只读验收；两份迁移已应用生产。
 
 ## 本轮变化
 
@@ -57,3 +57,23 @@
 用户明确授权后，通过已连接的 Supabase 工具执行两份审查过的 SQL，均返回成功。
 平台分配版本 `20261018124149`、`20261018124202`，仓库文件名已与真实迁移记录对齐，SQL 内容未改；
 未使用 migration repair，也未修改历史记录或重跑旧迁移。
+
+## 发布回执
+
+功能提交：`2cca6653774a25701062d4efeffac3c3693eb9a4`，作者、提交者和 SSH 身份均为 `faweizhao26`，
+原子推送到 `main` 及 `codex/audit-reliability-fixes`。
+已验证功能部署：`dpl_AzTQhk2N6UCayTZqtMx25cHsN8um`，`target=production`、`readyState=READY`、
+SHA 一致，正式别名包含 `how-website.vercel.app`，`aliasError=null`，构建约 27 秒。
+正式网址：<https://how-website.vercel.app/>。此发布回执随后作为文档提交推送，不改变运行代码。
+
+两份迁移历史 SQL 的 MD5 分别为 `f23961880c3d2d77fea3507dfd14f66b`、`f3d9be308094c5d85d466c8d8d184ef9`，
+与仓库逐字一致。保存 RPC 的私有 definer / 公共 invoker、空 search_path、执行权限与 INSERT 触发器均核对；
+authenticated 直接设置写入权限已撤销，SELECT 与新 RPC 保留，anon 不能调用保存 RPC。
+迁移前后设置及公开版本校验值均为 `c972dc3e8ac60a10395012bc627828e6`，设置 11 行、
+账号 1、投稿 1、报名 1 均未变化。未保存正式草稿、发布内容、上传附件、改权限、账号或报名记录。
+
+ego-lite TaskSpace 13 使用现有正式会话，只读验收了前台管理员入口、手机个人中心导航与换页收起、
+真实账号资料、后台设置读取、日间主题、减少动态效果时 Canvas 非空和无横向溢出；日期仍为 2027 年 4 月 16-18 日。
+公开内容 API HTTP 200，浏览器任务已结束。发布后短时 error/fatal 日志没有记录；
+安全检查仅有既存的泄露密码保护未启用提示，没有本轮新增项，未改 Auth 配置。
+正式环境未重复隔离测试中的破坏性、并发写入或跨账号测试，不将只读验收表述为这些流程已在生产重新执行。
