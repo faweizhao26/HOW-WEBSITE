@@ -7,6 +7,7 @@ import type { User as AuthUser } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { watchAuthUser } from "@/lib/auth/watch-auth-user"
 import { navigation, cfp as cfpT, common } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -55,6 +56,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mutationInFlight = useRef(false)
   const loadRequest = useRef(0)
+  const identity = useRef<{ userId: string | null | undefined; version: number }>({ userId: undefined, version: 0 })
   const busy = saving || uploading || updating
 
   const [fullName, setFullName] = useState("")
@@ -70,8 +72,11 @@ export default function ProfilePage() {
     try {
       const supabase = createClient()
       const { data: { user }, error } = await supabase.auth.getUser()
+      if (request !== loadRequest.current) return
       if (error && error.name !== "AuthSessionMissingError") throw error
       if (!user) { router.replace("/auth/login?redirect=/profile"); return }
+      if (identity.current.userId !== undefined && identity.current.userId !== user.id) throw new Error("account_changed")
+      identity.current.userId = user.id
       const data = await loadProfileData(supabase, user.id)
       if (request !== loadRequest.current) return
       setUser(user)
@@ -92,9 +97,25 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const request = loadRequest
-    const timer = setTimeout(() => { void loadData() }, 0)
-    return () => { clearTimeout(timer); request.current++ }
-  }, [loadData])
+    const account = identity
+    let timer = setTimeout(() => { void loadData() }, 0)
+    const stop = watchAuthUser(createClient().auth, user => {
+      const next = user?.id || null
+      if (identity.current.userId === next) return
+      identity.current = { userId: next, version: identity.current.version + 1 }
+      loadRequest.current++
+      clearTimeout(timer)
+      mutationInFlight.current = false
+      setUser(null); setProfile(null); setSessions([]); setRegistrations([])
+      setFullName(""); setCompany(""); setBio(""); setBioZh(""); setPhone(""); setWechat(""); setAvatarUrl("")
+      setEditing(false); setSaving(false); setUploading(false); setUpdating(false)
+      setSaveError(false); setRegistrationError(false); setConfirmRegistration(null); setCopied(false); setLoadError(false)
+      setLoading(Boolean(next))
+      if (next) timer = setTimeout(() => { void loadData() }, 0)
+      else router.replace("/auth/login?redirect=/profile")
+    })
+    return () => { clearTimeout(timer); stop(); request.current++; account.current.version++ }
+  }, [loadData, router])
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -102,13 +123,15 @@ export default function ProfilePage() {
     if (!file || !user || mutationInFlight.current) return
     mutationInFlight.current = true
     setUploading(true)
+    const version = identity.current.version
     try {
       const saved = await uploadProfileAvatar(createClient(), user.id, file)
+      if (version !== identity.current.version) return
       setAvatarUrl(saved.avatar_url || "")
       setProfile(saved)
       toast.success(locale === "zh" ? "头像已更新" : "Avatar updated")
-    } catch { toast.error(locale === "zh" ? "头像更新失败，请重试。" : "Unable to update avatar. Please try again.") }
-    finally { mutationInFlight.current = false; setUploading(false) }
+    } catch { if (version === identity.current.version) toast.error(locale === "zh" ? "头像更新失败，请重试。" : "Unable to update avatar. Please try again.") }
+    finally { if (version === identity.current.version) { mutationInFlight.current = false; setUploading(false) } }
   }
 
   async function handleSave() {
@@ -116,6 +139,7 @@ export default function ProfilePage() {
     mutationInFlight.current = true
     setSaving(true)
     setSaveError(false)
+    const version = identity.current.version
     try {
       const saved = await saveProfile(createClient(), user.id, {
       full_name: fullName,
@@ -125,11 +149,12 @@ export default function ProfilePage() {
       phone: phone || null,
       wechat: wechat || null,
       })
+      if (version !== identity.current.version) return
       setProfile(saved)
       toast.success(locale === "zh" ? "资料已保存" : "Profile saved")
       setEditing(false)
-    } catch { setSaveError(true) }
-    finally { mutationInFlight.current = false; setSaving(false) }
+    } catch { if (version === identity.current.version) setSaveError(true) }
+    finally { if (version === identity.current.version) { mutationInFlight.current = false; setSaving(false) } }
   }
 
   async function handleLogout() {
@@ -145,13 +170,15 @@ export default function ProfilePage() {
     setUpdating(true)
     setRegistrationError(false)
     const newStatus = currentStatus === "cancelled" ? "confirmed" : "cancelled"
+    const version = identity.current.version
     try {
       const saved = await updateOwnRegistration(createClient(), user.id, regId, newStatus)
+      if (version !== identity.current.version) return
       setRegistrations(prev => prev.map(r => r.id === saved.id ? { ...r, status: saved.status } : r))
       setConfirmRegistration(null)
       toast.success(saved.status === "cancelled" ? (locale === "zh" ? "已取消报名" : "Registration cancelled") : (locale === "zh" ? "已恢复报名" : "Registration restored"))
-    } catch { setRegistrationError(true) }
-    finally { mutationInFlight.current = false; setUpdating(false) }
+    } catch { if (version === identity.current.version) setRegistrationError(true) }
+    finally { if (version === identity.current.version) { mutationInFlight.current = false; setUpdating(false) } }
   }
 
   async function copyId() {

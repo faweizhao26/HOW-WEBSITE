@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { LayoutDashboard, Menu, X } from "lucide-react"
+import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { watchNavigationUser } from "@/lib/auth/watch-navigation-user"
 import type { NavigationUser } from "@/lib/auth/watch-navigation-user"
@@ -29,8 +30,27 @@ const navLinks = [
 
 export function Header({ locale, initialTheme }: { locale: Locale; initialTheme: "dark" | "light" }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const logoutPending = useRef(false)
   const [{ user, isAdmin }, setNavigationUser] = useState<NavigationUser>({ user: null, isAdmin: false })
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (logoutPending.current) return
+    logoutPending.current = true
+    try {
+      // The browser SDK broadcasts SIGNED_OUT; a cookie-only POST leaves other tabs stale.
+      const { error } = await createClient().auth.signOut()
+      if (error) throw error
+      router.replace("/")
+      router.refresh()
+    } catch {
+      logoutPending.current = false
+      toast.error(locale === "zh" ? "退出失败，请重试。" : "Unable to sign out. Please retry.")
+    }
+  }
 
   useEffect(() => {
     if (isMockMode()) return
@@ -42,7 +62,13 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
   }, [])
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80 dark:shadow-none dark:backdrop-blur-md">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80 dark:shadow-none dark:backdrop-blur-md" onKeyDown={event => {
+      if (event.key === "Escape" && mobileOpen) {
+        event.preventDefault()
+        setMobileOpen(false)
+        menuButtonRef.current?.focus()
+      }
+    }}>
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap">
@@ -83,7 +109,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
                     {locale === "zh" ? "个人中心" : "Profile"}
                   </Button>
                 </Link>
-                <form action="/auth/signout" method="post">
+                <form action="/auth/signout" method="post" onSubmit={handleLogout}>
                   <Button type="submit" variant="ghost" size="sm" className="text-zinc-400">
                     {navigation.logout[locale]}
                   </Button>
@@ -99,11 +125,15 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
           </div>
 
           <div className="flex items-center gap-2 min-[1440px]:hidden">
-            {isAdmin && <Link href="/admin" onClick={() => setMobileOpen(false)} className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-emerald-400 dark:hover:bg-emerald-950/50"><LayoutDashboard className="size-4" aria-hidden="true" />{locale === "zh" ? "管理后台" : "Admin"}</Link>}
+            {isAdmin && <Link href="/admin" onNavigate={() => setMobileOpen(false)} className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-emerald-400 dark:hover:bg-emerald-950/50"><LayoutDashboard className="size-4" aria-hidden="true" />{locale === "zh" ? "管理后台" : "Admin"}</Link>}
             <button
+              ref={menuButtonRef}
+              type="button"
               className="min-[1440px]:hidden p-2 text-zinc-600 dark:text-zinc-400"
               aria-label={mobileOpen ? (locale === "zh" ? "关闭菜单" : "Close menu") : (locale === "zh" ? "打开菜单" : "Open menu")}
-              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation"
+              onClick={() => setMobileOpen(open => !open)}
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -112,13 +142,13 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
       </div>
 
       {mobileOpen && (
-        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-zinc-200 bg-white min-[1440px]:hidden dark:border-zinc-800 dark:bg-zinc-950">
+        <div id="mobile-navigation" className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-zinc-200 bg-white min-[1440px]:hidden dark:border-zinc-800 dark:bg-zinc-950">
           <div className="px-4 py-3 space-y-1">
             {navLinks.map(({ href, key }) => (
               <Link
                 key={href}
                 href={href}
-                onClick={() => setMobileOpen(false)}
+                onNavigate={() => setMobileOpen(false)}
                 className={`block px-3 py-2 rounded-lg text-sm ${
                   pathname === href ? "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-white" : "text-zinc-600 dark:text-zinc-400"
                 }`}
@@ -133,17 +163,22 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
                 <LanguageSwitcher locale={locale} />
               </div>
               <div className="flex items-center gap-3">
-                <Link href="/cfp" className="text-sm text-emerald-400 font-medium">
+                <Link href="/cfp" onNavigate={() => setMobileOpen(false)} className="text-sm text-emerald-400 font-medium">
                   {navigation.cfp[locale]}
                 </Link>
                 {user ? (
-                  <form action="/auth/signout" method="post">
-                    <button type="submit" className="text-sm text-zinc-400">
-                      {navigation.logout[locale]}
-                    </button>
-                  </form>
+                  <>
+                    <Link href="/profile" onNavigate={() => setMobileOpen(false)} className="text-sm text-zinc-400">
+                      {locale === "zh" ? "个人中心" : "Profile"}
+                    </Link>
+                  <form action="/auth/signout" method="post" onSubmit={handleLogout}>
+                      <button type="submit" className="text-sm text-zinc-400">
+                        {navigation.logout[locale]}
+                      </button>
+                    </form>
+                  </>
                 ) : (
-                  <Link href="/auth/login" className="text-sm text-zinc-400">
+                  <Link href="/auth/login" onNavigate={() => setMobileOpen(false)} className="text-sm text-zinc-400">
                     {navigation.login[locale]}
                   </Link>
                 )}

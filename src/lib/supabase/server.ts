@@ -19,7 +19,8 @@ export async function createServerSupabase(options: { writeCookies?: boolean } =
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
-          if (options.writeCookies === false) return
+          // Business responses must not replace an account selected in another tab.
+          if (options.writeCookies !== true) return
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)

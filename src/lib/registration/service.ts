@@ -2,7 +2,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js"
 import { parsePhoneNumberFromString } from "libphonenumber-js/max"
 import { z } from "zod"
 
-export type RegistrationErrorCode = "login_required" | "email_not_verified" | "invalid_input" | "invalid_phone" | "invalid_ticket" | "invalid_channel" | "already_registered" | "load_failed" | "operation_failed"
+export type RegistrationErrorCode = "login_required" | "email_not_verified" | "account_changed" | "invalid_input" | "invalid_phone" | "invalid_ticket" | "invalid_channel" | "already_registered" | "load_failed" | "operation_failed"
 
 export class RegistrationError extends Error {
   code: RegistrationErrorCode
@@ -21,6 +21,7 @@ export function normalizeRegistrationPhone(value: string): string {
 }
 
 const inputSchema = z.object({
+  expectedUserId: z.uuid().optional(),
   name: z.string().trim().min(1).max(128),
   email: z.email().trim().max(254),
   phone: z.string().trim().min(1).max(64),
@@ -71,8 +72,9 @@ export async function loadRegistrationData(client: SupabaseClient): Promise<Regi
   return { user, tickets: tickets.data || [], profile: profile.data, registration: registration.data }
 }
 
-export async function lookupRegistrationChannel(client: SupabaseClient, code: string) {
-  await authenticatedUser(client)
+export async function lookupRegistrationChannel(client: SupabaseClient, code: string, expectedUserId?: string) {
+  const user = await authenticatedUser(client)
+  if (expectedUserId !== undefined && expectedUserId !== user.id) throw new RegistrationError("account_changed")
   const parsed = z.string().trim().min(1).max(128).safeParse(code)
   if (!parsed.success) throw new RegistrationError("invalid_channel")
   const { data, error } = await client.rpc("registration_channel_ticket", { p_code: parsed.data })
@@ -84,6 +86,7 @@ export async function lookupRegistrationChannel(client: SupabaseClient, code: st
 export async function createRegistration(client: SupabaseClient, input: unknown) {
   const user = await authenticatedUser(client)
   const values = parseRegistrationInput(input)
+  if (values.expectedUserId !== undefined && values.expectedUserId !== user.id) throw new RegistrationError("account_changed")
   if (values.email.toLowerCase() !== user.email?.toLowerCase()) throw new RegistrationError("invalid_input")
   if (!user.email_confirmed_at) throw new RegistrationError("email_not_verified")
   const ticket = await client.from("ticket_types").select("id,name,name_zh,is_active,requires_code").eq("id", values.ticketTypeId).eq("is_active", true).maybeSingle()

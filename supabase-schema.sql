@@ -98,7 +98,7 @@ CREATE TABLE public.channel_codes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   code TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
-  ticket_type_id UUID REFERENCES public.ticket_types(id) ON DELETE SET NULL,
+  ticket_type_id UUID REFERENCES public.ticket_types(id),
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -107,7 +107,7 @@ CREATE TABLE public.channel_codes (
 CREATE TABLE public.registrations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  ticket_type_id UUID REFERENCES public.ticket_types(id) ON DELETE SET NULL,
+  ticket_type_id UUID REFERENCES public.ticket_types(id),
   channel_code TEXT,
   name TEXT NOT NULL,
   email TEXT NOT NULL,

@@ -34,7 +34,8 @@ export function HeroMotion() {
     const context = ctx
 
     const pointer = { x: -1000, y: -1000, targetX: -1000, targetY: -1000, active: false }
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)")
+    let reducedMotion = motionPreference.matches
     let animationFrame = 0
     let tick = 0
     let width = 0
@@ -51,6 +52,7 @@ export function HeroMotion() {
       canvasElement.height = Math.floor(height * ratio)
       context.setTransform(ratio, 0, 0, ratio, 0, 0)
       dots = makeDots(width, height)
+      if (reducedMotion) render()
     }
 
     function drawGrid(isLight: boolean) {
@@ -195,9 +197,25 @@ export function HeroMotion() {
       glowElement.style.opacity = "0"
     }
 
-    resize()
-    render()
+    function updateMotionPreference() {
+      if (reducedMotion === motionPreference.matches) return
+      reducedMotion = motionPreference.matches
+      cancelAnimationFrame(animationFrame)
+      leavePointer()
+      render()
+    }
 
+    const themeObserver = new MutationObserver(() => {
+      if (reducedMotion) render()
+    })
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+    const resizeObserver = new ResizeObserver(resize)
+    resizeObserver.observe(canvasElement)
+
+    resize()
+    if (!reducedMotion) render()
+
+    motionPreference.addEventListener("change", updateMotionPreference)
     window.addEventListener("resize", resize)
     window.addEventListener("pointermove", movePointer)
     window.addEventListener("pointerleave", leavePointer)
@@ -205,6 +223,9 @@ export function HeroMotion() {
 
     return () => {
       cancelAnimationFrame(animationFrame)
+      themeObserver.disconnect()
+      resizeObserver.disconnect()
+      motionPreference.removeEventListener("change", updateMotionPreference)
       window.removeEventListener("resize", resize)
       window.removeEventListener("pointermove", movePointer)
       window.removeEventListener("pointerleave", leavePointer)

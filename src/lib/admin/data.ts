@@ -61,16 +61,27 @@ export function deleteChannelRecord(client: Client, id: string): Promise<string>
 export async function loadRegistrationRecords(client: Client): Promise<RegistrationRecord[]> {
   const records: RegistrationRecord[] = []
   const pageSize = 1000
+  const seen = new Set<string>()
+  let boundary: string | undefined
+  let cursor: Pick<RegistrationRecord, "created_at" | "id"> | undefined
   while (true) {
-    const offset = records.length
-    const { data, error, count } = await client.from("registrations")
-      .select("*, ticket_types(name, name_zh)", { count: "exact" })
+    let query = client.from("registrations")
+      .select("*, ticket_types(name, name_zh)")
       .order("created_at", { ascending: false }).order("id")
-      .range(offset, offset + pageSize - 1)
+      .limit(pageSize)
+    if (boundary) query = query.lte("created_at", boundary)
+    if (cursor) query = query.or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.gt.${cursor.id})`)
+    const { data, error } = await query
     if (error) throw error
     if (!data) throw new Error("load_failed")
+    if (!data.length) return records
+    // Retain database timestamp precision; Date would round away microseconds at page boundaries.
+    boundary ??= data[0].created_at
+    for (const row of data) {
+      if (!row.id || !row.created_at || seen.has(row.id)) throw new Error("registration_pagination_failed")
+      seen.add(row.id)
+    }
     records.push(...data)
-    if (count !== null ? records.length >= count : data.length < pageSize) return records
-    if (!data.length) throw new Error("load_failed")
+    cursor = data[data.length - 1]
   }
 }

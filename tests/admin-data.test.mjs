@@ -82,11 +82,11 @@ test("registration reads distinguish no records from a failed request", async ()
 
 test("registration exports include records beyond the first API page", async () => {
   const { loadRegistrationRecords } = await load()
-  const rows = Array.from({ length: 1001 }, (_, id) => ({ id: String(id) }))
+  const rows = Array.from({ length: 1001 }, (_, id) => ({ id: String(id).padStart(4, "0"), created_at: "2026-10-17T00:00:00+00:00" }))
   const db = client(url => {
-    const offset = Number(url.searchParams.get("offset") || 0)
     const limit = Number(url.searchParams.get("limit") || 1000)
-    return json(rows.slice(offset, offset + limit), 200, { "content-range": `${offset}-${Math.min(offset + limit, rows.length) - 1}/${rows.length}` })
+    const after = url.searchParams.get("or")?.match(/id.gt.([^)]*)/)?.[1]
+    return json(rows.filter(row => !after || row.id > after).slice(0, limit))
   })
   assert.equal((await loadRegistrationRecords(db)).length, 1001)
 })

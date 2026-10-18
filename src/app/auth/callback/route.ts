@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
   if (code || (tokenHash && (type === "signup" || type === "recovery"))) {
     try {
-      const supabase = await createServerSupabase()
+      const supabase = await createServerSupabase({ writeCookies: true })
       const result = code ? await supabase.auth.exchangeCodeForSession(code)
         : await supabase.auth.verifyOtp({ token_hash: tokenHash!, type: type as "signup" | "recovery" })
       if (!result.error && result.data.session) {

@@ -132,7 +132,7 @@ test("desktop and mobile headers show an admin link only for a confirmed admin",
     const overrides = {
       react: { ...React, useEffect() {}, useState: initial => [typeof initial === "boolean" ? true : navigation, () => {}] },
       "next/link": { __esModule: true, default: props => React.createElement("a", props) },
-      "next/navigation": { usePathname: () => "/" },
+      "next/navigation": { usePathname: () => "/", useRouter: () => ({ replace() {}, refresh() {} }) },
       "@/lib/supabase/client": {}, "@/lib/auth/watch-auth-user": {}, "@/lib/auth/watch-navigation-user": {},
       "@/lib/i18n/translations": { navigation: new Proxy({}, { get: () => ({ en: "Menu", zh: "菜单" }) }) },
       "./language-switcher": { LanguageSwitcher: () => null }, "./theme-toggle": { ThemeToggle: () => null },

@@ -26,9 +26,12 @@ export async function proxy(request: NextRequest) {
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          // Mutations refresh in the browser before sending; late POSTs cannot reset a newer login.
+          if (request.method === "GET" || request.method === "HEAD") {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            )
+          }
         },
       },
     }

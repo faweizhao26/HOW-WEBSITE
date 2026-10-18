@@ -14,6 +14,6 @@ export async function submitRegistration(input: unknown) {
   return run(async () => createRegistration(await createServerSupabase(), input))
 }
 
-export async function checkRegistrationChannel(code: string) {
-  return run(async () => lookupRegistrationChannel(await createServerSupabase(), code))
+export async function checkRegistrationChannel(code: string, expectedUserId?: string) {
+  return run(async () => lookupRegistrationChannel(await createServerSupabase(), code, expectedUserId))
 }

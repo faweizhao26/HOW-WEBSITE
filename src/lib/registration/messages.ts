@@ -3,6 +3,7 @@ import type { RegistrationErrorCode } from "./service"
 export const registrationMessages: Record<RegistrationErrorCode, { en: string; zh: string }> = {
   login_required: { en: "Please log in again before registering.", zh: "请重新登录后报名。" },
   email_not_verified: { en: "Please confirm your account email before registering.", zh: "请先确认账号邮箱，再提交报名。" },
+  account_changed: { en: "Your account changed. Reload your registration information.", zh: "账号已切换，请重新加载报名信息。" },
   invalid_input: { en: "Check the required fields and their lengths.", zh: "请检查必填信息和输入长度。" },
   invalid_phone: { en: "Enter a valid phone number with its country code.", zh: "请输入有效手机号，国际号码请带国家区号。" },
   invalid_ticket: { en: "This ticket is unavailable. Refresh the ticket list.", zh: "该票种不可用，请刷新票种列表。" },

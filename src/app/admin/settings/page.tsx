@@ -27,6 +27,7 @@ import type { SiteSettingsRelease } from "@/lib/db/schema"
 import { admin as adminT, cfp as cfpT } from "@/lib/i18n/translations"
 import { createClient } from "@/lib/supabase/client"
 import { isMockMode } from "@/lib/utils"
+import { saveSettingsDraft, SettingsDraftConflictError } from "@/lib/admin/settings-draft"
 
 type SettingsData = { draft: Record<string, string>; releases: SiteSettingsRelease[] }
 
@@ -98,16 +99,20 @@ export default function AdminSettingsPage() {
     if (busy) return
     setSaving(true)
     try {
-      const draft = Object.fromEntries(Object.entries(settings).map(([key, value]) => [key, value.trim()]))
-      if (!mockMode) {
-        const { error } = await createClient().from("site_settings").upsert(Object.entries(draft).map(([key, value]) => ({ key, value })))
-        if (error) throw error
-      }
+      const draft = mockMode
+        ? Object.fromEntries(Object.entries(settings).map(([key, value]) => [key, value.trim()]))
+        : await saveSettingsDraft(createClient(), data.draft, settings)
       setSettings(draft)
       setData((current) => ({ ...current, draft }))
       setPublishError("")
       toast.success(locale === "zh" ? "设置草稿已保存" : "Settings draft saved")
-    } catch { toast.error(locale === "zh" ? "保存失败" : "Unable to save settings") }
+    } catch (error) {
+      const message = error instanceof SettingsDraftConflictError
+        ? (locale === "zh" ? "草稿已被其他窗口修改。本地修改已保留，请重新加载后合并再保存。" : "Another window changed this draft. Your edits are retained. Reload and merge before saving.")
+        : (locale === "zh" ? "保存失败" : "Unable to save settings")
+      setPublishError(message)
+      toast.error(message)
+    }
     finally { setSaving(false) }
   }
 

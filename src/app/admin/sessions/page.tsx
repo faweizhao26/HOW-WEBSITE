@@ -20,6 +20,7 @@ import { CheckCircle, XCircle, FileText, Video, Eye, Search, Filter } from "luci
 import { unpublishSession } from "@/app/admin/actions/publication"
 import { PublicationActions } from "@/components/admin/publication-actions"
 import { PublicationBadge } from "@/components/admin/publication-badge"
+import { uploadSessionMedia } from "@/lib/admin/session-media"
 
 type SessionWithProfile = {
   id: string; user_id: string; title: string; title_zh: string | null; abstract: string; abstract_zh: string | null
@@ -165,18 +166,11 @@ export default function AdminSessionsPage() {
     }
     setUploading(true)
     try {
-      const supabase = createClient()
-      const ext = file.name.split(".").pop()
-      const path = `sessions/${id}/${type}-${Date.now()}.${ext}`
-      const { error: uploadError } = await supabase.storage.from("conference-media").upload(path, file)
-      if (uploadError) { toast.error(uploadError.message); setUploading(false); return }
-      const { data: urlData } = supabase.storage.from("conference-media").getPublicUrl(path)
-      const field = type === "slides" ? "slides_url" : "video_url"
-      await supabase.from("sessions").update({ [field]: urlData.publicUrl }).eq("id", id)
+      await uploadSessionMedia(createClient(), id, file, type)
       toast.success(type === "slides" ? adminT.pptUploaded[locale] : adminT.videoUploaded[locale])
-      loadSessions()
-    } catch {}
-    setUploading(false)
+      await loadSessions()
+    } catch { toast.error(locale === "zh" ? "附件上传或保存失败，请重试。" : "Unable to upload or save media. Please try again.") }
+    finally { setUploading(false) }
   }
 
   const filtered = sessions.filter((s) => {

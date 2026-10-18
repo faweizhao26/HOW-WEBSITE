@@ -4,6 +4,8 @@ import { startTransition, useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { AccountRequestError, prepareAccountRequest } from "@/lib/auth/prepare-account-request"
+import { watchAuthUser } from "@/lib/auth/watch-auth-user"
 import type { Locale } from "@/lib/i18n/utils"
 import { loadRegistrationData, parseRegistrationInput, RegistrationError } from "@/lib/registration/service"
 import type { RegistrationData, RegistrationErrorCode } from "@/lib/registration/service"
@@ -40,6 +42,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
   const pending = useRef(false)
   const channelRequest = useRef(0)
   const ticketChoice = useRef(0)
+  const identity = useRef<{ userId: string | null | undefined; version: number }>({ userId: undefined, version: 0 })
   const user = data?.user
   const tickets = data?.tickets || []
   const email = user?.email || ""
@@ -47,10 +50,14 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     let active = true
+    const version = identity.current.version
     async function load() {
       try {
         const result = await loadRegistrationData(createClient())
-        if (!active) return
+        if (!active || version !== identity.current.version) return
+        const owner = result.user?.id || null
+        if (identity.current.userId !== undefined && identity.current.userId !== owner) { setLoadVersion(value => value + 1); return }
+        identity.current.userId = owner
         setData(result)
         if (!initialized.current) {
           setName(result.profile?.full_name || result.user?.user_metadata?.full_name || "")
@@ -61,14 +68,32 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
         }
         setLoadError(false)
       } catch {
-        if (active) setLoadError(true)
+        if (active && version === identity.current.version) setLoadError(true)
       } finally {
-        if (active) setLoading(false)
+        if (active && version === identity.current.version) setLoading(false)
       }
     }
     void load()
     return () => { active = false }
   }, [loadVersion])
+
+  useEffect(() => {
+    const account = identity.current
+    const requests = channelRequest
+    const stop = watchAuthUser(createClient().auth, user => {
+      const next = user?.id || null
+      const previous = identity.current.userId
+      identity.current.userId = next
+      if (previous === undefined || previous === next) return
+      identity.current.version++
+      channelRequest.current++; ticketChoice.current++
+      initialized.current = false; pending.current = false
+      setData(null); setRegisteredTicket(null); setName(""); setPhone(""); setCompany(""); setPosition(""); setSelectedTicket("")
+      setChannelCode(""); setChannel({ code: "", status: "idle" }); setSubmitError(null); setSubmitting(false)
+      setLoadError(false); setLoading(true); setLoadVersion(value => value + 1)
+    })
+    return () => { stop(); account.version++; requests.current++ }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -79,7 +104,9 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
     const timer = setTimeout(() => {
       startTransition(async () => {
         try {
-          const result = await checkRegistrationChannel(code)
+          await prepareAccountRequest(createClient().auth, user!.id)
+          if (!active || request !== channelRequest.current) return
+          const result = await checkRegistrationChannel(code, user!.id)
           if (!active || request !== channelRequest.current) return
           if (!result.success) {
             setChannel({ code, status: result.code === "invalid_channel" ? "invalid" : "error", error: result.code })
@@ -117,24 +144,27 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
     if (channelCode.trim() && channel.status !== "valid") { setSubmitError(channel.error || "invalid_channel"); return }
     let values
     try {
-      values = parseRegistrationInput({ name, email, phone, company, position, ticketTypeId: selectedTicket, channelCode })
+      values = parseRegistrationInput({ expectedUserId: user.id, name, email, phone, company, position, ticketTypeId: selectedTicket, channelCode })
     } catch (error) {
       setSubmitError(error instanceof RegistrationError ? error.code : "invalid_input")
       return
     }
     pending.current = true
     setSubmitting(true)
+    const version = identity.current.version
     startTransition(async () => {
       try {
+        await prepareAccountRequest(createClient().auth, user.id)
+        if (version !== identity.current.version) return
         const result = await submitRegistration(values)
+        if (version !== identity.current.version) return
         if (!result.success) { setSubmitError(result.code); return }
         setRegisteredTicket(locale === "zh" ? result.data.ticketNameZh || result.data.ticketName : result.data.ticketName)
         toast.success(locale === "zh" ? "报名成功" : "Registration confirmed")
-      } catch {
-        setSubmitError("operation_failed")
+      } catch (error) {
+        if (version === identity.current.version) setSubmitError(error instanceof AccountRequestError ? error.code : "operation_failed")
       } finally {
-        pending.current = false
-        setSubmitting(false)
+        if (version === identity.current.version) { pending.current = false; setSubmitting(false) }
       }
     })
   }
@@ -216,7 +246,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
               </div>
             </fieldset>
             {submitError && <div role="alert" className="space-y-2"><p className="text-sm text-red-700 dark:text-red-300">{registrationMessages[submitError][locale]}</p>{submitError === "already_registered" && <Link href="/profile" className="text-sm underline">{locale === "zh" ? "查看报名" : "View in Profile"}</Link>}</div>}
-            {!user || submitError === "login_required" ? <div className="text-center space-y-3"><p className="text-sm text-muted-foreground">{locale === "zh" ? "请先登录后提交报名" : "Please log in to register"}</p><Button render={<Link href="/auth/login?redirect=/register" />} nativeButton={false}>{locale === "zh" ? "登录 / 注册" : "Login / Register"}<ChevronRight className="h-4 w-4" /></Button></div> : <Button type="submit" disabled={submitting || !selectedTicket || !tickets.length || (Boolean(channelCode.trim()) && codeStatus === "checking")} className="w-full">{submitting ? (locale === "zh" ? "提交中..." : "Submitting...") : (locale === "zh" ? "确认报名" : "Confirm Registration")}</Button>}
+            {submitError === "account_changed" ? <Button type="button" variant="outline" onClick={() => { initialized.current = false; setData(null); setName(""); setPhone(""); setCompany(""); setPosition(""); retryLoad() }}><RotateCw />{locale === "zh" ? "重新加载报名信息" : "Reload registration information"}</Button> : !user || submitError === "login_required" ? <div className="text-center space-y-3"><p className="text-sm text-muted-foreground">{locale === "zh" ? "请先登录后提交报名" : "Please log in to register"}</p><Button render={<Link href="/auth/login?redirect=/register" />} nativeButton={false}>{locale === "zh" ? "登录 / 注册" : "Login / Register"}<ChevronRight className="h-4 w-4" /></Button></div> : <Button type="submit" disabled={submitting || !selectedTicket || !tickets.length || (Boolean(channelCode.trim()) && codeStatus === "checking")} className="w-full">{submitting ? (locale === "zh" ? "提交中..." : "Submitting...") : (locale === "zh" ? "确认报名" : "Confirm Registration")}</Button>}
           </form>
         </CardContent>
       </Card>

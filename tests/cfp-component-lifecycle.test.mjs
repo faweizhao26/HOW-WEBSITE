@@ -3,6 +3,7 @@ import { test } from "node:test"
 import { readFileSync } from "node:fs"
 import vm from "node:vm"
 import ts from "typescript"
+import { watchAuthUser } from "../src/lib/auth/watch-auth-user.ts"
 
 const source = readFileSync(new URL("../src/app/cfp/page.tsx", import.meta.url), "utf8")
 const js = ts.transpileModule(source, {
@@ -30,7 +31,9 @@ function mount() {
     "@/lib/i18n/provider": { useLocale: () => "en" },
     "@/lib/i18n/translations": { common: { loading: { en: "Loading" } } },
     "@/lib/cfp/service": { loadCFPData: () => load },
+    "@/lib/auth/watch-auth-user": { watchAuthUser },
     "@/lib/supabase/client": { createClient: () => ({ auth: {
+      getUser: () => new Promise(() => {}),
       onAuthStateChange(callback) {
         listener = callback
         return { data: { subscription: { unsubscribe() { listener = null } } } }

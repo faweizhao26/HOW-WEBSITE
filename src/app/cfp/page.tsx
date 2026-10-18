@@ -6,6 +6,8 @@ import { useLocale } from "@/lib/i18n/provider"
 import { startTransition, useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { AccountRequestError, prepareAccountRequest } from "@/lib/auth/prepare-account-request"
+import { watchAuthUser } from "@/lib/auth/watch-auth-user"
 import { CFPError, loadCFPData, parseProposalInput } from "@/lib/cfp/service"
 import type { CFPData, CFPErrorCode } from "@/lib/cfp/service"
 import { cfpErrors } from "@/lib/cfp/messages"
@@ -87,8 +89,8 @@ export default function CFPPage() {
   }, [loadVersion])
 
   useEffect(() => {
-    const { data: { subscription } } = createClient().auth.onAuthStateChange((_event, session) => {
-      const next = session?.user.id || null
+    const stop = watchAuthUser(createClient().auth, user => {
+      const next = user?.id || null
       const previous = identity.current.userId !== undefined ? identity.current.userId : draftOwner.current
       identity.current.userId = next
       if (previous === undefined || previous === next) return
@@ -100,10 +102,12 @@ export default function CFPPage() {
       setAccountChanged(true)
       setLoading(false)
       setSubmitError(null)
+      pending.current = false
+      setSubmitting(false)
       setTitle(""); setTitleZh(""); setAbstract(""); setAbstractZh("")
       setDuration("30"); setSessionType("talk")
     })
-    return () => subscription.unsubscribe()
+    return stop
   }, [])
 
   function retryLoad() {
@@ -137,6 +141,8 @@ export default function CFPPage() {
     const version = identity.current.version
     startTransition(async () => {
       try {
+        await prepareAccountRequest(createClient().auth, owner)
+        if (draftOwner.current !== owner || identity.current.version !== version) return
         const result = await submitCFP(values)
         if (draftOwner.current !== owner || identity.current.version !== version) return
         if (!result.success) { setSubmitError(result.code); return }
@@ -153,8 +159,8 @@ export default function CFPPage() {
           setSessionType("talk")
         }
         setTab("submissions")
-      } catch { if (draftOwner.current === owner && identity.current.version === version) setSubmitError("operation_failed") }
-      finally { pending.current = false; setSubmitting(false) }
+      } catch (error) { if (draftOwner.current === owner && identity.current.version === version) setSubmitError(error instanceof AccountRequestError ? error.code : "operation_failed") }
+      finally { if (identity.current.version === version) { pending.current = false; setSubmitting(false) } }
     })
   }
 

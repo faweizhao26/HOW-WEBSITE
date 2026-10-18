@@ -8,6 +8,8 @@ import { cfp, common } from "../src/lib/i18n/translations.ts"
 import { cfpErrors } from "../src/lib/cfp/messages.ts"
 import { CFPError, parseProposalInput } from "../src/lib/cfp/service.ts"
 import { getCFPState, parseCFPSettings } from "../src/lib/cfp/settings.ts"
+import { AccountRequestError, prepareAccountRequest } from "../src/lib/auth/prepare-account-request.ts"
+import { watchAuthUser } from "../src/lib/auth/watch-auth-user.ts"
 
 const source = readFileSync(new URL("../src/app/cfp/page.tsx", import.meta.url), "utf8")
 const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText
@@ -44,9 +46,11 @@ function mount() {
     "@/lib/i18n/provider": { useLocale: () => "en" },
     "@/lib/i18n/translations": { cfp, common },
     "@/lib/cfp/messages": { cfpErrors },
+    "@/lib/auth/prepare-account-request": { AccountRequestError, prepareAccountRequest },
+    "@/lib/auth/watch-auth-user": { watchAuthUser },
     "@/lib/cfp/settings": { getCFPState: policy => getCFPState(policy, now) },
     "@/lib/cfp/service": { CFPError, parseProposalInput, loadCFPData: async () => ({ user, sessions: [], policy }) },
-    "@/lib/supabase/client": { createClient: () => ({ auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) } }) },
+    "@/lib/supabase/client": { createClient: () => ({ auth: { getUser: async () => ({ data: { user }, error: null }), getSession: async () => ({ data: { session: { user } }, error: null }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) } }) },
     "./actions": { submitCFP: async values => {
       calls.push(values)
       if (calls.length === 1) { now = afterDeadline; throw new Error("committed response lost") }

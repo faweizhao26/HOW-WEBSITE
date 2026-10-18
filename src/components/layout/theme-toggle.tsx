@@ -1,9 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useSyncExternalStore } from "react"
 import { Moon, Sun } from "lucide-react"
 
 type Theme = "dark" | "light"
+
+function currentTheme(fallback: Theme): Theme {
+  const classes = document.documentElement.classList
+  if (classes.contains("light")) return "light"
+  if (classes.contains("dark")) return "dark"
+  return fallback
+}
+
+function subscribeTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+  return () => observer.disconnect()
+}
 
 function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("light", theme === "light")
@@ -11,14 +24,13 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeToggle({ initialTheme }: { initialTheme: Theme }) {
-  const [theme, setTheme] = useState<Theme>(initialTheme)
+  const theme = useSyncExternalStore(subscribeTheme, () => currentTheme(initialTheme), () => initialTheme)
 
   function toggleTheme() {
-    const nextTheme = theme === "dark" ? "light" : "dark"
+    const nextTheme = currentTheme(initialTheme) === "dark" ? "light" : "dark"
     applyTheme(nextTheme)
     localStorage.setItem("theme", nextTheme)
     document.cookie = `theme=${nextTheme};path=/;max-age=31536000;SameSite=Lax`
-    setTheme(nextTheme)
   }
 
   return (
