@@ -3,6 +3,7 @@ import { requiredSettingsKeys } from "./settings.ts"
 import { parseCFPSettings } from "../cfp/settings.ts"
 import { parseSiteContent } from "./site-content.ts"
 import type { Bilingual } from "./site-content.ts"
+import { parseBadgePrintSettings } from "../admin/badge-settings.ts"
 
 export type SettingsIssue = { path: string; label: Bilingual; message: Bilingual }
 const names: Record<string, Bilingual> = {
@@ -45,6 +46,9 @@ function issueMessage(issue: z.core.$ZodIssue, path: string): Bilingual {
 export function getSettingsIssues(settings: Record<string, string>): SettingsIssue[] {
   const issues: SettingsIssue[] = []
   const add = (path: string, message: Bilingual, label = names[path] || { en: path, zh: path }) => { if (!issues.some(issue => issue.path === path)) issues.push({ path, label, message }) }
+  try { parseBadgePrintSettings(settings) } catch {
+    add("badge_print", { en: "Check paper dimensions and margins: width 40–150 mm, height 25–150 mm, padding 0–8 mm; keep a printable area of at least 30 × 17 mm.", zh: "请检查纸张和内边距：宽 40–150 mm、高 25–150 mm、内边距 0–8 mm；内容区域至少保留 30 × 17 mm。" }, { en: "Badge printing", zh: "胸牌打印" })
+  }
   for (const key of requiredSettingsKeys) if (!settings[key]?.trim()) add(key, { en: "This field is required.", zh: "此项必填。" })
   if (settings.conference_date && !/^2027([.-])4([.-])16-4([.-])18$/.test(settings.conference_date)) add("conference_date", { en: "Use 2027.4.16-4.18.", zh: "日期须为 2027.4.16-4.18。" })
   if (settings.contact_email && !z.email().safeParse(settings.contact_email).success) add("contact_email", { en: "Enter a valid email address.", zh: "请填写有效邮箱。" })

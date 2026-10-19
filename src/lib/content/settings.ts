@@ -1,6 +1,7 @@
 import type { PublishedSiteSettings } from "@/lib/db/schema"
 import { parseCFPSettings } from "../cfp/settings.ts"
 import { parseSiteContent } from "./site-content.ts"
+import { parseBadgePrintSettings } from "../admin/badge-settings.ts"
 
 export const defaultSiteSettings: PublishedSiteSettings = {
   conference_name: "HOW 2027",
@@ -16,11 +17,12 @@ export const defaultSiteSettings: PublishedSiteSettings = {
 
 export const requiredSettingsKeys = Object.keys(defaultSiteSettings)
 
-export function validateSettingsDraft(settings: Record<string, string>): "required" | "date" | "cfp" | "content" | null {
+export function validateSettingsDraft(settings: Record<string, string>): "required" | "date" | "cfp" | "content" | "badge" | null {
   if (requiredSettingsKeys.some((key) => !settings[key]?.trim())) return "required"
   if (!/^2027([.-])4([.-])16-4([.-])18$/.test(settings.conference_date)) return "date"
   try { parseCFPSettings(settings) } catch { return "cfp" }
   try { parseSiteContent(settings) } catch { return "content" }
+  try { parseBadgePrintSettings(settings) } catch { return "badge" }
   return null
 }
 

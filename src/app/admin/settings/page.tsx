@@ -28,6 +28,7 @@ import { admin as adminT, cfp as cfpT } from "@/lib/i18n/translations"
 import { createClient } from "@/lib/supabase/client"
 import { isMockMode } from "@/lib/utils"
 import { saveSettingsDraft, SettingsDraftConflictError } from "@/lib/admin/settings-draft"
+import { BadgePrintSettings } from "@/components/admin/badge-print-settings"
 
 type SettingsData = { draft: Record<string, string>; releases: SiteSettingsRelease[] }
 
@@ -208,6 +209,7 @@ export default function AdminSettingsPage() {
       </div>
       {loadError ? <div className="flex flex-wrap items-center gap-3 text-muted-foreground"><p>{locale === "zh" ? "设置加载失败" : "Unable to load settings"}</p><Button type="button" variant="outline" onClick={loadSettings}>{locale === "zh" ? "重试" : "Retry"}</Button></div> : <>
         <section className="space-y-5"><h2 className="text-lg font-semibold">{adminT.conferenceInfo[locale]}</h2><div className="grid gap-5 sm:grid-cols-2">{fields.map(({ key, label, type, placeholder }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Input data-setting-path={key} aria-invalid={issues.some(issue => issue.path === key)} id={`setting-${key}`} type={type || "text"} value={settings[key] || ""} placeholder={placeholder} disabled={busy} onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))} /></div>)}</div></section>
+        <BadgePrintSettings settings={settings} locale={locale} disabled={busy} onChange={value => setSettings(current => ({ ...current, badge_print: value }))} />
         <section className="space-y-5 border-t pt-6">
           <h2 className="text-lg font-semibold">{locale === "zh" ? "征稿设置" : "Call for proposals"}</h2>
           <fieldset disabled={busy} className="space-y-5 min-w-0">

@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { AdminLoadError } from "@/components/admin/load-error"
 import { loadCheckinStats, searchCheckinRecords, updateCheckin, type CheckinStats } from "@/lib/admin/checkin"
 import { buildBadgeHTML } from "@/lib/admin/badge"
+import { loadBadgePrintSettings } from "@/lib/admin/badge-settings"
+import { openBadgePrintWindow, printBadgeWindow } from "@/lib/admin/badge-print"
 import type { RegistrationRecord } from "@/lib/admin/data"
 import { toast } from "sonner"
 import { Search, CheckCircle, X, UserCheck, Users, QrCode, Printer, LoaderCircle, RefreshCw } from "lucide-react"
@@ -24,6 +26,8 @@ export default function AdminCheckinPage() {
   const [stats, setStats] = useState<CheckinStats | null>(null)
   const [statsError, setStatsError] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [printing, setPrinting] = useState<string | null>(null)
+  const printInFlight = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const searchRequest = useRef(0)
   const statsRequest = useRef(0)
@@ -105,18 +109,28 @@ export default function AdminCheckinPage() {
     }
   }
 
-  function printBadge(reg: RegistrationRecord) {
-    const popup = window.open("", "_blank", "width=400,height=300")
-    if (!popup) {
-      toast.error(locale === "zh" ? "打印窗口被拦截，请允许弹出窗口后重试。" : "The print window was blocked. Allow popups and try again.")
-      return
+  async function printBadge(reg: RegistrationRecord) {
+    if (printInFlight.current || !reg.checked_in) return
+    printInFlight.current = true
+    setPrinting(reg.id)
+    let popup: Window | undefined
+    try {
+      // Open synchronously inside the click; loading settings must not trigger a popup blocker.
+      popup = openBadgePrintWindow()
+      const settings = await loadBadgePrintSettings(createClient())
+      await printBadgeWindow(popup, buildBadgeHTML(reg, locale, settings))
+    } catch (error) {
+      popup?.close()
+      const code = error instanceof Error ? error.message : ""
+      toast.error(code === "popup_blocked"
+        ? (locale === "zh" ? "打印窗口被拦截，请允许弹出窗口后重试。" : "Allow popups and try again.")
+        : code === "badge_overflow"
+          ? (locale === "zh" ? "文字超出标签，请在后台调整纸张或显示字段后重试。" : "Text exceeds the label. Adjust paper size or visible fields in settings.")
+          : (locale === "zh" ? "打印配置读取失败或格式无效，请重试并检查已发布设置。" : "Print settings could not be loaded or are invalid. Retry and check the published settings."))
+    } finally {
+      printInFlight.current = false
+      setPrinting(null)
     }
-    popup.document.open()
-    popup.document.write(buildBadgeHTML(reg, locale))
-    popup.document.close()
-    const print = () => { if (!popup.closed) { popup.focus(); popup.print() } }
-    if (popup.document.readyState === "complete") print()
-    else popup.addEventListener("load", print, { once: true })
   }
 
   return (
@@ -166,14 +180,14 @@ export default function AdminCheckinPage() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button size="sm" variant={reg.checked_in ? "outline" : "default"}
-                  disabled={updating !== null || (!reg.checked_in && reg.status !== "confirmed")}
+                  disabled={updating !== null || printing !== null || (!reg.checked_in && reg.status !== "confirmed")}
                   className={reg.checked_in ? "" : "bg-emerald-700 text-white hover:bg-emerald-800"}
                   onClick={() => { void toggleCheckin(reg) }}>
                   {updating === reg.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                   {reg.checked_in ? (locale === "zh" ? "撤销" : "Undo") : (locale === "zh" ? "签到" : "Check In")}
                 </Button>
-                {reg.checked_in && <Button size="sm" variant="outline" disabled={updating !== null} onClick={() => printBadge(reg)}>
-                  <Printer className="h-4 w-4" />{locale === "zh" ? "打印" : "Print"}
+                {reg.checked_in && <Button size="sm" variant="outline" disabled={updating !== null || printing !== null} onClick={() => { void printBadge(reg) }}>
+                  {printing === reg.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}{locale === "zh" ? "打印" : "Print"}
                 </Button>}
               </div>
             </CardContent>
