@@ -5,12 +5,13 @@
 
 ## 当前版本
 
-- 发布中：`codex/configurable-badge-printing` 新增后台胸牌纸张尺寸、内边距、
+- 最新已发布：`codex/configurable-badge-printing` 新增后台胸牌纸张尺寸、内边距、
   黑白/彩色样式和显示字段配置，以及虚拟信息预览和试打；签到打印使用最新已发布配置。
   211/211 测试、零警告 lint、生产构建、真实隔离保存/发布/打印流程和 8 种显示组合通过。
-  用户已授权推送和 Production 发布，无数据库迁移或正式业务写入，实体打印待选好设备后试打。
+  已用 `faweizhao26` 推送并完成 Production 发布；正式管理员会话只读确认配置入口和样张预览，
+  桌面和手机布局正常，公开设置仍为 v1。无数据库迁移或正式业务写入，实体打印待选好设备后试打。
   详见 [胸牌打印](BADGE_PRINTING.md)。
-- 最新已发布：`codex/site-discovery-performance` 完成 11 个公开页面的中英文搜索/分享元数据、
+- 已发布：`codex/site-discovery-performance` 完成 11 个公开页面的中英文搜索/分享元数据、
   分享封面、sitemap/robots，以及首页画布离屏和后台暂停/恢复。
   206/206 测试、零警告 lint、生产构建及 ego-lite 定向验收通过，详见 [验收记录](DISCOVERY_PERFORMANCE.md)。
   已用 `faweizhao26` 推送并完成 Production 发布；正式 22 个中英文页面元数据、分享图、robots/sitemap
@@ -36,9 +37,9 @@
 - 上一批次：`codex/admin-editor-workflow`，图片/PDF 上传、草稿预览和精确校验已发布。
   2026-10-15 用户授权后完成 Production 部署和正式只读验收，详见下文发布回执。
 - 正式网站：https://how-website.vercel.app/
-- 当前功能提交：`main`，`8524de9d48c0042f01e0de3849f888d16b311528`，
-  工作分支 `codex/site-discovery-performance`；提交和 SSH 推送均使用 `faweizhao26`。
-- 已验证功能的 Vercel Production 部署 `dpl_42tPmwshMSNs31gsH3Y8gsAjDDnW` 为 `READY`，
+- 当前功能提交：`main`，`ae39241fceca4938ed50b9e5c89bab76791860cf`，
+  工作分支 `codex/configurable-badge-printing`；提交和 SSH 推送均使用 `faweizhao26`。
+- 已验证功能的 Vercel Production 部署 `dpl_C2zeMhRQb8WRDw12cy63d3PfoUZA` 为 `READY`，
   正式域名已分配成功；不是仅 Preview。发布回执文档后续提交不改变运行代码。
 - 2026-10-15 账号管理正式只读验收：现有登录账号 `faweizhao26@gmail.com` 显示为唯一管理员，
   列表正常读取，当前账号无撤权按钮，权限变更记录为零。桌面及手机均可从首页入口进入后台，
@@ -253,7 +254,7 @@ ego-lite 验证九页 72 个语言/主题/预览宽度组合，无横向溢出�
 
 | 顺序 | 工作 | 性质与当前状态 | 完成标准 |
 | --- | --- | --- | --- |
-| 发布中 | 后台胸牌打印配置 | 用户已授权推送，本地及隔离验收通过；无数据库迁移 | 核对 Production READY 与正式后台入口；选好标签机后实体试打 |
+| 待设备 | 胸牌实体试打 | 后台配置已上线，隔离打印闭环与正式只读展示验收通过 | 选好标签机和纸张后校准驱动、尺寸与走纸，现场确认实物 |
 | 1 | 正式内容补全 | 运营资料缺口已核对，详见 `CONTENT_READINESS.md`；不是一组未复现的代码缺陷 | 补讲者与演讲、三天议程及公告；核对票务权益，场地和参会安排确定后发布 |
 | 延期 | 邮件服务与完整生产验收 | 用户明确暂缓。独立测试注册、收件、未确认登录拒绝、邮箱确认及密码登录通过；找回请求被邮件限额拒绝。测试账号与凭据已清理，生产仍用内置邮件，非团队投递未验收 | 用户决定恢复后，确定发信域名、接入 SMTP；完成非团队邮箱投递、独立账号真实密码重置及新密码登录 |
 | 可选 | 弱密码保护 | Supabase 安全检查仅剩既有的泄露密码保护未启用提示；不属于本批头像问题 | 按运营需要另行评估 Auth 设置，不在本批改动 |
