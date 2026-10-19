@@ -1,4 +1,7 @@
 import { cookies } from "next/headers"
+import { pageMetadata } from "@/lib/seo/page-metadata"
+
+export function generateMetadata() { return pageMetadata("/schedule") }
 import Image from "next/image"
 import { ChevronDown, Clock, Coffee, MapPin, User } from "lucide-react"
 import { Badge } from "@/components/ui/badge"

@@ -1,4 +1,7 @@
 import { cookies } from "next/headers"
+import { pageMetadata } from "@/lib/seo/page-metadata"
+
+export function generateMetadata() { return pageMetadata("/updates") }
 import Image from "next/image"
 import { Calendar } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

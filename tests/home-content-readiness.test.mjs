@@ -26,6 +26,7 @@ async function render(sessions, locale = "en") {
     "next/image": { default: () => null },
     "next/headers": { cookies: async () => ({ get: () => ({ value: locale }) }) },
     "@/lib/i18n/utils": { getLocale: () => locale },
+    "@/lib/seo/page-metadata": { pageMetadata: () => ({}) },
     "@/lib/i18n/translations": translations,
     "@/lib/conference": conference,
     "@/lib/content/settings": { defaultSiteSettings },

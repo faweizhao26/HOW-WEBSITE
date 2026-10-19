@@ -1,4 +1,7 @@
 import { cookies } from "next/headers"
+import { pageMetadata } from "@/lib/seo/page-metadata"
+
+export function generateMetadata() { return pageMetadata("/speakers") }
 import { AlertCircle, Mic2, UserRound } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"

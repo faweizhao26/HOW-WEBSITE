@@ -1,4 +1,7 @@
 import { cookies } from "next/headers"
+import { pageMetadata } from "@/lib/seo/page-metadata"
+
+export function generateMetadata() { return pageMetadata("/register") }
 import { getLocale } from "@/lib/i18n/utils"
 import RegistrationForm from "./registration-form"
 

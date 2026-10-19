@@ -37,10 +37,15 @@ export function HeroMotion() {
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)")
     let reducedMotion = motionPreference.matches
     let animationFrame = 0
+    let inView = true
     let tick = 0
     let width = 0
     let height = 0
     let dots: Dot[] = []
+
+    function isActive() {
+      return inView && document.visibilityState !== "hidden"
+    }
 
     function resize() {
       const rect = canvasElement.getBoundingClientRect()
@@ -52,7 +57,7 @@ export function HeroMotion() {
       canvasElement.height = Math.floor(height * ratio)
       context.setTransform(ratio, 0, 0, ratio, 0, 0)
       dots = makeDots(width, height)
-      if (reducedMotion) render()
+      if (isActive() && (reducedMotion || !animationFrame)) render()
     }
 
     function drawGrid(isLight: boolean) {
@@ -98,6 +103,8 @@ export function HeroMotion() {
     }
 
     function render() {
+      animationFrame = 0
+      if (!isActive()) return
       const isLight = document.documentElement.classList.contains("light")
       const base = context.createLinearGradient(0, 0, width, height)
       tick += reducedMotion ? 0 : 1
@@ -175,6 +182,7 @@ export function HeroMotion() {
     }
 
     function movePointer(event: PointerEvent) {
+      if (!isActive()) return
       const rect = canvasElement.getBoundingClientRect()
       const x = event.clientX - rect.left
       const y = event.clientY - rect.top
@@ -200,22 +208,37 @@ export function HeroMotion() {
     function updateMotionPreference() {
       if (reducedMotion === motionPreference.matches) return
       reducedMotion = motionPreference.matches
+      updateActivity()
+    }
+
+    function updateActivity() {
       cancelAnimationFrame(animationFrame)
+      animationFrame = 0
       leavePointer()
-      render()
+      if (isActive()) render()
     }
 
     const themeObserver = new MutationObserver(() => {
-      if (reducedMotion) render()
+      if (reducedMotion && isActive()) render()
     })
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
     const resizeObserver = new ResizeObserver(resize)
     resizeObserver.observe(canvasElement)
+    const intersectionObserver = new IntersectionObserver(entries => {
+      const entry = entries.find(item => item.target === canvasElement)
+      if (!entry) return
+      // At threshold 0, an edge intersection can be the only entry notification.
+      const next = entry.isIntersecting
+      if (next === inView) return
+      inView = next
+      updateActivity()
+    })
+    intersectionObserver.observe(canvasElement)
 
     resize()
-    if (!reducedMotion) render()
 
     motionPreference.addEventListener("change", updateMotionPreference)
+    document.addEventListener("visibilitychange", updateActivity)
     window.addEventListener("resize", resize)
     window.addEventListener("pointermove", movePointer)
     window.addEventListener("pointerleave", leavePointer)
@@ -225,7 +248,9 @@ export function HeroMotion() {
       cancelAnimationFrame(animationFrame)
       themeObserver.disconnect()
       resizeObserver.disconnect()
+      intersectionObserver.disconnect()
       motionPreference.removeEventListener("change", updateMotionPreference)
+      document.removeEventListener("visibilitychange", updateActivity)
       window.removeEventListener("resize", resize)
       window.removeEventListener("pointermove", movePointer)
       window.removeEventListener("pointerleave", leavePointer)

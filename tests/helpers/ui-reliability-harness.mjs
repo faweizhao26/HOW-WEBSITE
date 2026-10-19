@@ -20,7 +20,7 @@ export function eventTarget() {
 
 export function environment({ theme = "dark", reduced = false } = {}) {
   const observers = new Set(), mutations = new Set(), frames = new Map(), classes = new Set([theme])
-  const document = { ...eventTarget(), cookie: "", activeElement: null }
+  const document = { ...eventTarget(), cookie: "", activeElement: null, visibilityState: "visible" }
   const root = { classList: {
     contains: name => classes.has(name),
     toggle(name, force) {
@@ -47,10 +47,16 @@ export function environment({ theme = "dark", reduced = false } = {}) {
     disconnect() { resizeObservers.delete(this) }
   }
   const resizeObservers = new Set()
+  const intersectionObservers = new Set()
+  class IntersectionObserver {
+    constructor(callback) { this.callback = callback; intersectionObservers.add(this) }
+    observe(target) { this.target = target }
+    disconnect() { intersectionObservers.delete(this) }
+  }
   return {
-    document, window, preference, storage, frames, observers, resizeObservers,
+    document, window, preference, storage, frames, observers, resizeObservers, intersectionObservers,
     globals: {
-      document, window, MutationObserver, ResizeObserver,
+      document, window, MutationObserver, ResizeObserver, IntersectionObserver,
       localStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key) ?? null },
       requestAnimationFrame(callback) { const id = ++frameId; frames.set(id, callback); return id },
       cancelAnimationFrame(id) { frames.delete(id) },
@@ -59,6 +65,8 @@ export function environment({ theme = "dark", reduced = false } = {}) {
     nextFrame() { const pending = [...frames.values()]; frames.clear(); pending.forEach(callback => callback(0)) },
     resize() { window.emit("resize"); for (const observer of resizeObservers) observer.callback([]) },
     setReduced(value) { preference.matches = value; preference.emit("change", { matches: value }) },
+    setVisible(value) { document.visibilityState = value ? "visible" : "hidden"; document.emit("visibilitychange") },
+    setIntersecting(value, ratio = value ? 1 : 0) { for (const observer of intersectionObservers) observer.callback([{ target: observer.target, isIntersecting: value, intersectionRatio: ratio }]) },
     createNode(node) { return { props: node.props, focus() { document.activeElement = this } } },
   }
 }

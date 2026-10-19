@@ -8,10 +8,14 @@ import { getLocale } from "@/lib/i18n/utils"
 import { Toaster } from "./toaster"
 import { LocaleProvider } from "@/lib/i18n/provider"
 import { getPublishedSiteContent } from "@/lib/content/site-public"
+import { siteOrigin } from "@/lib/seo/metadata"
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin()),
   title: "HOW 2027 — PostgreSQL Eco Conference",
   description: "A community-driven event focused on open-source innovations and database technology in Jinan, China.",
+  // Public pages opt in with their own canonical metadata; account/admin routes stay unindexed.
+  robots: { index: false, follow: false },
 }
 
 export default async function RootLayout({

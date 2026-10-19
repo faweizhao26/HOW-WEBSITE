@@ -1,4 +1,7 @@
 import { cookies } from "next/headers"
+import { pageMetadata } from "@/lib/seo/page-metadata"
+
+export function generateMetadata() { return pageMetadata("/sponsors") }
 import { getPublishedSponsors } from "@/lib/content/public"
 import { getLocale } from "@/lib/i18n/utils"
 import { getPublishedSiteContent } from "@/lib/content/site-public"

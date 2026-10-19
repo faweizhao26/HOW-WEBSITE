@@ -1,4 +1,7 @@
 import { cookies } from "next/headers"
+import { pageMetadata } from "@/lib/seo/page-metadata"
+
+export function generateMetadata() { return pageMetadata("/venue") }
 import { ContentUnavailable } from "@/components/content/content-blocks"
 import { VenueView } from "@/components/content/site-views"
 import { getPublishedSiteContent } from "@/lib/content/site-public"

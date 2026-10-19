@@ -1,4 +1,7 @@
 import { cookies } from "next/headers"
+import { pageMetadata } from "@/lib/seo/page-metadata"
+
+export function generateMetadata() { return pageMetadata("/") }
 import { getLocale } from "@/lib/i18n/utils"
 import { getPublishedSessions, getPublishedSettings } from "@/lib/content/public"
 import { defaultSiteSettings } from "@/lib/content/settings"
