@@ -1,9 +1,10 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, updateTag } from "next/cache"
 import { requireAdmin } from "@/lib/auth/require-admin"
 import { createServerSupabase } from "@/lib/supabase/server"
 import { validateSettingsDraft } from "@/lib/content/settings"
+import { PUBLIC_CONTENT_CACHE_TAG } from "@/lib/content/cache-policy"
 
 export type PublicationActionResult =
   | { ok: true; id: string }
@@ -43,6 +44,7 @@ async function runPublicationAction(
 
     if (error || typeof data !== "string") return { ok: false, message: SAFE_ACTION_ERROR }
 
+    updateTag(PUBLIC_CONTENT_CACHE_TAG)
     paths.forEach((path) => revalidatePath(path))
     if (rpcName === "publish_site_settings" || rpcName === "rollback_site_settings_release") revalidatePath("/", "layout")
     return { ok: true, id: data }

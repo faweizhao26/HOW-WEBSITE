@@ -11,7 +11,7 @@ import type {
   PublicContentResult,
 } from "@/lib/content/types"
 import { getPublishedMockNews, getPublishedMockSponsors, mockSlots } from "@/lib/mock-data"
-import { createServerSupabase } from "@/lib/supabase/server"
+import { createPublicContentClient } from "@/lib/supabase/public"
 import { defaultSiteSettings } from "@/lib/content/settings"
 
 const CONTENT_UNAVAILABLE = "Published content is temporarily unavailable."
@@ -135,7 +135,7 @@ export async function getPublishedSettings(): Promise<PublicContentResult<Publis
   if (getContentMode() === "mock") return { status: "ready", data: { ...defaultSiteSettings } }
 
   try {
-    const supabase = await createServerSupabase()
+    const supabase = createPublicContentClient()
     const { data, error } = await supabase
       .from("site_settings_releases")
       .select("payload")
@@ -154,7 +154,7 @@ export async function getPublishedSpeakers(): Promise<PublicContentResult<Publis
   if (getContentMode() === "mock") return listResult(getMockSpeakers())
 
   try {
-    const supabase = await createServerSupabase()
+    const supabase = createPublicContentClient()
     const { data, error } = await supabase.from("published_speakers").select("*").order("sort_order")
     if (error) return unavailable()
     return listResult((data ?? []) as PublishedSpeaker[])
@@ -167,7 +167,7 @@ export async function getPublishedSessions(): Promise<PublicContentResult<Publis
   if (getContentMode() === "mock") return listResult(getMockSessions().map(toMockSession))
 
   try {
-    const supabase = await createServerSupabase()
+    const supabase = createPublicContentClient()
     const { data, error } = await supabase.from("published_sessions").select("*").order("published_at", { ascending: false })
     if (error) return unavailable()
     return listResult((data ?? []) as PublishedSession[])
@@ -180,7 +180,7 @@ export async function getPublishedSponsors(): Promise<PublicContentResult<Publis
   if (getContentMode() === "mock") return listResult(getPublishedMockSponsors())
 
   try {
-    const supabase = await createServerSupabase()
+    const supabase = createPublicContentClient()
     const { data, error } = await supabase.from("published_sponsors").select("*").order("sort_order")
     if (error) return unavailable()
     return listResult((data ?? []) as PublishedSponsor[])
@@ -193,7 +193,7 @@ export async function getPublishedNews(): Promise<PublicContentResult<PublishedN
   if (getContentMode() === "mock") return listResult(getPublishedMockNews())
 
   try {
-    const supabase = await createServerSupabase()
+    const supabase = createPublicContentClient()
     const { data, error } = await supabase.from("published_news_posts").select("*").order("published_at", { ascending: false })
     if (error) return unavailable()
     return listResult((data ?? []) as PublishedNewsPost[])
@@ -206,7 +206,7 @@ export async function getPublishedAgenda(): Promise<PublicContentResult<AgendaRe
   if (getContentMode() === "mock") return listResult(getMockAgenda())
 
   try {
-    const supabase = await createServerSupabase()
+    const supabase = createPublicContentClient()
     const { data, error } = await supabase
       .from("agenda_releases")
       .select("payload")
