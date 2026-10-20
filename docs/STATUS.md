@@ -5,11 +5,13 @@
 
 ## 当前版本
 
-- 本地完成、待推送：`codex/public-content-load-testing` 新增公开内容匿名共享缓存、请求去重、
+- 最新已发布：`codex/public-content-load-testing` 新增公开内容匿名共享缓存、请求去重、
   发布/回滚即时刷新，以及只允许本机隔离环境的压测工具。217/217 功能测试、lint、构建及真实后台缓存刷新通过。
   100 连接短测通过；300 档复测不稳定、500 档未通过，不等同正式在线人数。原始失败结果保留，测试数据已清理。
-  没有生产迁移或正式压测，详见 [并发验收](CONCURRENCY_PERFORMANCE.md)。
-- 最新已发布：`codex/configurable-badge-printing` 新增后台胸牌纸张尺寸、内边距、
+  已用 `faweizhao26` 推送至工作分支和 `main`，Production READY、正式别名和提交一致。
+  正式公开内容发布前后完全一致；20 个中英文页面、两次未登录投稿跳转和现有管理员入口/设置只读检查通过。
+  没有生产迁移、正式压测或正式业务写入，详见 [并发验收](CONCURRENCY_PERFORMANCE.md)。
+- 已发布：`codex/configurable-badge-printing` 新增后台胸牌纸张尺寸、内边距、
   黑白/彩色样式和显示字段配置，以及虚拟信息预览和试打；签到打印使用最新已发布配置。
   211/211 测试、零警告 lint、生产构建、真实隔离保存/发布/打印流程和 8 种显示组合通过。
   已用 `faweizhao26` 推送并完成 Production 发布；正式管理员会话只读确认配置入口和样张预览，
@@ -41,9 +43,9 @@
 - 上一批次：`codex/admin-editor-workflow`，图片/PDF 上传、草稿预览和精确校验已发布。
   2026-10-15 用户授权后完成 Production 部署和正式只读验收，详见下文发布回执。
 - 正式网站：https://how-website.vercel.app/
-- 当前功能提交：`main`，`ae39241fceca4938ed50b9e5c89bab76791860cf`，
-  工作分支 `codex/configurable-badge-printing`；提交和 SSH 推送均使用 `faweizhao26`。
-- 已验证功能的 Vercel Production 部署 `dpl_C2zeMhRQb8WRDw12cy63d3PfoUZA` 为 `READY`，
+- 当前功能提交：`main`，`08dbfdd905d64b180eaaf51c75219bfc272f0a3a`，
+  工作分支 `codex/public-content-load-testing`；提交和 SSH 推送均使用 `faweizhao26`。
+- 已验证功能的 Vercel Production 部署 `dpl_CWovWvCo1ahwdQYHG1HuUBqWsPnr` 为 `READY`，
   正式域名已分配成功；不是仅 Preview。发布回执文档后续提交不改变运行代码。
 - 2026-10-15 账号管理正式只读验收：现有登录账号 `faweizhao26@gmail.com` 显示为唯一管理员，
   列表正常读取，当前账号无撤权按钮，权限变更记录为零。桌面及手机均可从首页入口进入后台，
@@ -258,7 +260,6 @@ ego-lite 验证九页 72 个语言/主题/预览宽度组合，无横向溢出�
 
 | 顺序 | 工作 | 性质与当前状态 | 完成标准 |
 | --- | --- | --- | --- |
-| 待推送 | 公开内容缓存优化 | 本地实现、217 项功能测试和发布刷新验收通过，无生产迁移 | 用户授权后发布并正式只读核对 |
 | 待复测 | 高并发容量 | 本机 100 档短测通过；300 档复测不稳定、500 档未通过，纯 HTTP 对照也有连接重置 | 独立压测机和同规格隔离部署复测，不能用本机数字承诺线上人数 |
 | 待设备 | 胸牌实体试打 | 后台配置已上线，隔离打印闭环与正式只读展示验收通过 | 选好标签机和纸张后校准驱动、尺寸与走纸，现场确认实物 |
 | 1 | 正式内容补全 | 运营资料缺口已核对，详见 `CONTENT_READINESS.md`；不是一组未复现的代码缺陷 | 补讲者与演讲、三天议程及公告；核对票务权益，场地和参会安排确定后发布 |

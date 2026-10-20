@@ -1,7 +1,7 @@
 # 公开内容缓存与并发验收
 
 日期：2026-10-20。分支：`codex/public-content-load-testing`，基线：`6020984`。
-状态：优化代码本地完成，未提交、推送或部署，无正式请求压测或正式业务写入。
+状态：已用 `faweizhao26` 推送到工作分支和 `main`，Production 已上线；无正式压测或正式业务写入。
 容量结论：本机 100 连接短时测试通过；300 档复测不稳定，500 档未通过，不能换算成正式网站同时在线人数。
 
 ## 代码变化
@@ -107,3 +107,22 @@ pg_stat_statements calls 差值，结束时可能包含尚未完成响应的查�
 - `/private/tmp/how-load-writes-final-20261020.json`：冲突验证及 300 档复测失败。
 
 本批无生产迁移；发布时仍需核对 Production 和正式只读页面，不自动进行正式写入压测。
+
+## 发布回执
+
+- 功能提交：`08dbfdd905d64b180eaaf51c75219bfc272f0a3a`；作者、提交者和 SSH 推送均为 `faweizhao26`。
+- Vercel 部署 `dpl_CWovWvCo1ahwdQYHG1HuUBqWsPnr` 为 `target=production`、`READY`，
+  SHA 与功能提交一致，正式别名包含 `how-website.vercel.app`，`aliasError=null`，不是仅 Preview。
+- 正式公开内容 API 发布前后 JSON 完全一致，SHA-256 均为
+  `860f0efb432a354eaf1b9b984957e0aeea766c29cc12830f36e31e0c715bb691`，仍为 ready、`Cache-Control: no-store`。
+  公开 API 不缓存响应不影响内部公开数据缓存；没有混入隔离测试内容。
+- 中英文九个公开页面和报名页共 20 个 GET 均为 HTTP 200，语言与标题正常，无内容错误状态；
+  讲者、议程和动态保持既有 empty 状态。两个未登录投稿请求均按设计跳转 `/auth/login?redirect=/cfp`。
+  初始验收脚本误把既有跳转当错误、再误用 next 参数；按 `proxy.ts` 修正验收断言后通过，未改产品行为。
+- ego-lite TaskSpace 6：部署后重新读取正式后台设置和首页，现有管理员入口可见、设置正常加载；
+  首页 ready、无横向溢出，桌面截图人工查看，赞助商页内容正常。未提交任何正式表单，TaskSpace 已结束。
+- 2026-10-20 08:38–09:28 UTC 功能部署短窗口 error/fatal 日志查询未见记录，不代表长期监控。
+- 没有生产迁移，没有修改正式会议设置、账号权限、报名或签到。发布后未在正式站点压测，
+  100/300/500 档容量判断仍只适用于上文的本机实验，未新增线上人数承诺。
+
+本回执随后作为文档提交同步，不改变运行代码；以上验收对应功能部署。
