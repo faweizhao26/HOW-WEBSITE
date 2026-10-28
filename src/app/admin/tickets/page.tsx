@@ -1,6 +1,7 @@
 "use client"
 
 import { useLocale } from "@/lib/i18n/provider"
+import NextLink from "next/link"
 
 import { useCallback, useEffect, useId, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -182,6 +183,7 @@ export default function AdminTicketsPage() {
     <div>
       <h1 className="text-2xl font-bold mb-8">{locale === "zh" ? "票种 & 渠道码" : "Tickets & Channels"}</h1>
 
+      <div className="mb-6"><NextLink href="/admin/group-orders" className="text-sm text-emerald-800 underline underline-offset-4 dark:text-emerald-300">{locale === "zh" ? "管理团票配置与订单" : "Manage group configurations and orders"}</NextLink></div>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="bg-zinc-900 border border-zinc-800 mb-6">
           <TabsTrigger value="tickets"><Ticket className="h-4 w-4 mr-1" />{locale === "zh" ? "票种" : "Tickets"} ({tickets.length})</TabsTrigger>

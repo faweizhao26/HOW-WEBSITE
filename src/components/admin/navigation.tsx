@@ -18,6 +18,7 @@ const navItems = [
   { href: "/admin/checkin", icon: UserCheck, key: "checkin" },
   { href: "/admin/accounts", icon: ShieldCheck, key: "accounts" },
   { href: "/admin/tickets", icon: Ticket, key: "tickets" },
+  { href: "/admin/group-orders", icon: Users, key: "groupOrders" },
   { href: "/admin/sponsors", icon: Star, key: "sponsors" },
   { href: "/admin/updates", icon: Newspaper, key: "updates" },
   { href: "/admin/settings", icon: Settings, key: "settings" },

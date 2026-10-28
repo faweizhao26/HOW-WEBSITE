@@ -59,7 +59,7 @@ async function authenticatedUser(client: SupabaseClient) {
 export async function loadRegistrationData(client: SupabaseClient): Promise<RegistrationData> {
   const [auth, tickets] = await Promise.all([
     client.auth.getUser(),
-    client.from("ticket_types").select("id,name,name_zh,description,description_zh,is_free,requires_code,is_active").eq("is_active", true).order("sort_order"),
+    client.from("ticket_types").select("id,name,name_zh,description,description_zh,is_free,requires_code,is_active").eq("is_active", true).eq("group_only", false).order("sort_order"),
   ])
   if (tickets.error || (auth.error && auth.error.name !== "AuthSessionMissingError")) throw new RegistrationError("load_failed")
   const user = auth.data.user

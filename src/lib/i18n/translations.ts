@@ -88,6 +88,7 @@ export const admin = {
   registrations: { en: "Registrations", zh: "报名管理" },
   checkin: { en: "Check-In", zh: "签到" },
   tickets: { en: "Tickets", zh: "票种 & 渠道" },
+  groupOrders: { en: "Group Orders", zh: "团票订单" },
   sponsors: { en: "Sponsors", zh: "赞助商管理" },
   updates: { en: "Updates", zh: "动态管理" },
   settings: { en: "Settings", zh: "站点设置" },

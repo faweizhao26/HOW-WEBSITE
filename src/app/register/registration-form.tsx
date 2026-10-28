@@ -196,6 +196,10 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
         <h1 className="text-4xl font-bold mb-4">{locale === "zh" ? "报名参加" : "Register"}</h1>
         <p className="text-muted-foreground">{locale === "zh" ? "HOW 2027 PostgreSQL 生态大会" : "HOW 2027 PostgreSQL Eco Conference"}</p>
       </div>
+      <nav aria-label={locale === "zh" ? "团票" : "Group tickets"} className="mb-6 flex flex-wrap justify-center gap-4 text-sm">
+        <Link href="/group-tickets" className="text-emerald-800 underline underline-offset-4 dark:text-emerald-300">{locale === "zh" ? "创建团票订单" : "Create a group order"}</Link>
+        <Link href="/group-tickets/redeem" className="text-emerald-800 underline underline-offset-4 dark:text-emerald-300">{locale === "zh" ? "使用团票兑换码" : "Redeem a group seat"}</Link>
+      </nav>
       <Card className="mb-6">
         <CardHeader><CardTitle className="flex items-center gap-2"><Ticket className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />{locale === "zh" ? "选择票种" : "Select Ticket"}</CardTitle></CardHeader>
         <CardContent>

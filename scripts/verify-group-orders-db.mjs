@@ -1,0 +1,100 @@
+import assert from "node:assert/strict"
+import { spawnSync, spawn } from "node:child_process"
+import { randomUUID } from "node:crypto"
+
+assert.equal(process.env.PUBLICATION_TEST_ISOLATED_PROJECT, "true", "Local isolated QA only")
+const db = "how_audit_reliability_20261018"
+const args = ["exec", "-i", "supabase_db_how-publication-stack", "psql", "-X", "-U", "postgres", "-d", db, "-Atq", "-v", "ON_ERROR_STOP=1"]
+const sql = text => {
+  const r = spawnSync("docker", args, { input: text, encoding: "utf8" })
+  if (r.status !== 0) throw new Error(r.stderr)
+  return r.stdout.trim()
+}
+assert.equal(sql("select current_database()"), db)
+// Fails before the migration; no fixtures are inserted when the feature is absent.
+assert.equal(sql("select to_regprocedure('public.group_order_create(uuid,uuid,uuid,integer,text)') is not null"), "t", "Atomic group order creation is missing")
+const [admin, owner, member, other, unverified, ticket, request] = Array.from({ length: 7 }, () => randomUUID())
+const act = (uid, query) => `BEGIN; SET LOCAL ROLE authenticated; SET LOCAL request.jwt.claim.sub='${uid}'; ${query}; COMMIT;`
+const run = (uid, query) => sql(act(uid, query))
+const fails = (uid, query, expected) => assert.throws(() => run(uid, query), expected)
+const asyncRun = (uid, query) => new Promise(resolve => {
+  const p = spawn("docker", args); let out = "", error = ""
+  p.stdout.on("data", d => { out += d }); p.stderr.on("data", d => { error += d })
+  p.on("error", e => resolve({ error: e.message, status: -1 }))
+  p.on("close", status => resolve({ status, out: out.trim(), error }))
+  p.stdin.end(act(uid, query))
+})
+let order
+try {
+  sql(`insert into auth.users(id,email,email_confirmed_at) values ${[admin, owner, member, other, unverified].map(id => `('${id}','group-${id}@example.test',${id === unverified ? "null" : "now()"})`).join(",")}; update public.profiles set role='admin' where id='${admin}'; insert into public.ticket_types(id,name,is_free,requires_code,is_active) values('${ticket}','Group QA',false,true,true);`)
+  fails(owner, `select public.group_ticket_config_save('${owner}','${ticket}',true,2,10,12345,null)`, /forbidden/)
+  run(admin, `select public.group_ticket_config_save('${admin}','${ticket}',true,2,10,12345,now()+interval '2 days')`)
+  fails(unverified, `select public.group_order_create('${unverified}','${request}','${ticket}',2,'Team')`, /email_not_verified/)
+  fails(owner, `select public.group_order_create('${other}','${request}','${ticket}',2,'Team')`, /account_changed/)
+  fails(owner, `select public.group_order_create('${owner}','${request}','${ticket}',11,'Team')`, /invalid_input/)
+  order = run(owner, `select public.group_order_create('${owner}','${request}','${ticket}',2,'Team')`)
+  assert.match(order, /^[a-f0-9-]{36}$/)
+  assert.equal(run(owner, `select public.group_order_create('${owner}','${request}','${ticket}',2,'Team')`), order)
+  fails(owner, `select public.group_order_create('${owner}','${request}','${ticket}',3,'Team')`, /invalid_input/)
+  assert.equal(sql(`select total_cents from public.group_orders where id='${order}'`), "24690")
+  fails(owner, `update public.group_orders set status='active' where id='${order}'`, /permission denied/)
+  fails(other, `select public.group_order_detail('${order}')`, /forbidden/)
+  fails(other, "select public.group_ticket_workspace(true,0,'')", /forbidden/)
+  assert.equal(run(other, `select count(*) from public.group_orders where id='${order}'`), "0")
+  assert.equal(sql(`select count(*) from public.group_seats where order_id='${order}'`), "0")
+  fails(owner, `select public.group_order_activate('${owner}','${order}','QA-${request}',24690)`, /forbidden/)
+  fails(admin, `select public.group_order_activate('${admin}','${order}','QA-${request}',1)`, /payment_mismatch/)
+  run(admin, `select public.group_order_activate('${admin}','${order}','QA-${request}',24690)`)
+  run(admin, `select public.group_order_activate('${admin}','${order}','QA-${request}',24690)`)
+  assert.equal(sql(`select count(*) from public.group_seats where order_id='${order}'`), "2")
+  // Price updates affect future orders only; references cannot activate a second order.
+  run(admin, `select public.group_ticket_config_save('${admin}','${ticket}',true,2,10,100,null)`)
+  assert.equal(sql(`select total_cents from public.group_orders where id='${order}'`), "24690")
+  const second = run(owner, `select public.group_order_create('${owner}','${randomUUID()}','${ticket}',2,'Other team')`)
+  assert.equal(sql(`select total_cents from public.group_orders where id='${second}'`), "200")
+  fails(admin, `select public.group_order_activate('${admin}','${second}','QA-${request}',200)`, /payment_mismatch/)
+  sql(`update public.group_orders set expires_at=now()-interval '1 second' where id='${second}'`)
+  fails(admin, `select public.group_order_activate('${admin}','${second}','Different reference',200)`, /invalid_state/)
+  assert.equal(JSON.parse(run(owner, `select public.group_order_detail('${second}')`)).order.status, "expired")
+  run(owner, `select public.group_order_cancel('${owner}','${second}')`)
+  run(owner, `select public.group_order_cancel('${owner}','${second}')`)
+  const seats = JSON.parse(sql(`select json_agg(json_build_object('id',id,'code',code)) from public.group_seats where order_id='${order}'`))
+  fails(owner, `insert into public.registrations(user_id,ticket_type_id,name,email,phone,status,checked_in) values('${owner}','${ticket}','Bypass','group-${owner}@example.test','+8613812345678','confirmed',false)`, /required|denied/)
+  fails(other, `select public.group_seat_rotate('${other}','${seats[0].id}')`, /forbidden/)
+  run(owner, `select public.group_seat_rotate('${owner}','${seats[0].id}')`)
+  const claim = (uid, code) => `select public.group_seat_redeem('${uid}','${code}','Member','+8613812345678','QA','Engineer')`
+  fails(member, claim(member, seats[0].code), /code_unavailable/)
+  const code = sql(`select code from public.group_seats where id='${seats[0].id}'`)
+  sql(`update public.group_orders set claim_deadline=now()-interval '1 second' where id='${order}'`)
+  fails(member, claim(member, code), /code_unavailable/)
+  sql(`update public.group_orders set claim_deadline=null where id='${order}'`)
+  const results = await Promise.all([asyncRun(member, claim(member, code)), asyncRun(other, claim(other, code))])
+  assert.equal(results.filter(r => r.status === 0).length, 1, JSON.stringify(results))
+  assert.match(results.find(r => r.status !== 0).error, /code_unavailable/)
+  const winner = results[0].status === 0 ? member : other
+  assert.equal(run(winner, claim(winner, code)), results.find(r => r.status === 0).out)
+  fails(winner, claim(winner, seats[1].code), /already_registered/)
+  assert.equal(sql(`select count(*) from public.registrations where ticket_type_id='${ticket}'`), "1")
+  const detail = JSON.parse(run(owner, `select public.group_order_detail('${order}')`))
+  assert.equal(detail.order.claimed_count, 1)
+  assert.equal(detail.seats.filter(s => s.code !== null).length, 1)
+  fails(owner, `select public.group_order_cancel('${owner}','${order}')`, /invalid_state/)
+  run(admin, `select public.group_order_close('${admin}','${order}','QA closed without refund')`)
+  fails(owner, claim(owner, seats[1].code), /code_unavailable/)
+  assert.equal(sql(`select count(*) from public.registrations where ticket_type_id='${ticket}' and status='confirmed'`), "1")
+  run(winner, `update public.registrations set status='cancelled' where user_id='${winner}'`)
+  run(winner, `update public.registrations set status='confirmed' where user_id='${winner}'`)
+  assert.equal(sql(`select count(*) from public.registrations where ticket_type_id='${ticket}' and status='confirmed'`), "1")
+  assert.ok(Number(sql(`select count(*) from public.group_order_events where order_id='${order}'`)) >= 4)
+  assert.equal(JSON.parse(run(owner, "select public.group_ticket_workspace(false,0,'Other team')")).total, 1)
+  assert.equal(JSON.parse(run(other, "select public.group_ticket_workspace(false,0,'')")).total, 0)
+  for (let i=0;i<3;i++) run(owner, `select public.group_order_create('${owner}','${randomUUID()}','${ticket}',2,'Pending ${i}')`)
+  fails(owner, `select public.group_order_create('${owner}','${randomUUID()}','${ticket}',2,'Too many')`, /too_many_orders/)
+  assert.equal(sql("select count(*) from pg_class where relname in ('group_orders','group_seats','group_ticket_configs','group_order_events') and relrowsecurity"), "4")
+  assert.equal(sql("select count(*) from pg_proc p join pg_namespace n on p.pronamespace=n.oid where n.nspname='public' and p.proname like 'group_%' and p.prosecdef"), "0")
+  console.log("PASS group orders: auth/RLS, immutable prices, idempotent create/activation, no direct bypass, code rotation, two-user race, one-account limit, closed order, existing registration retained")
+} finally {
+  sql(`delete from public.group_order_events where order_id in (select id from public.group_orders where ticket_type_id='${ticket}'); delete from public.group_orders where ticket_type_id='${ticket}'; delete from public.registrations where ticket_type_id='${ticket}'; delete from public.group_ticket_configs where ticket_type_id='${ticket}'; delete from public.ticket_types where id='${ticket}'; delete from auth.users where id in (${[admin,owner,member,other,unverified].map(id => `'${id}'`).join(",")});`)
+  assert.equal(sql(`select count(*) from auth.users where id in (${[admin,owner,member,other,unverified].map(id => `'${id}'`).join(",")})`), "0")
+  console.log("PASS isolated test fixtures removed; no production access")
+}

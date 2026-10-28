@@ -16,7 +16,7 @@ test("mobile navigation starts closed and identifies the active page in both lan
 test("collapsed mobile navigation retains access to every admin section and logout", () => {
   const html = navigation("/admin/settings")
   const details = html.match(/<details\b[^>]*>([\s\S]*?)<\/details>/)?.[1] ?? ""
-  for (const href of ["/admin", "/admin/sessions", "/admin/speakers", "/admin/agenda", "/admin/registrations", "/admin/checkin", "/admin/accounts", "/admin/tickets", "/admin/sponsors", "/admin/updates", "/admin/settings"]) {
+  for (const href of ["/admin", "/admin/sessions", "/admin/speakers", "/admin/agenda", "/admin/registrations", "/admin/checkin", "/admin/accounts", "/admin/tickets", "/admin/group-orders", "/admin/sponsors", "/admin/updates", "/admin/settings"]) {
     assert.ok(details.includes(`href="${href}"`), `Missing mobile destination: ${href}`)
   }
   assert.match(details, /<button[^>]*>[\s\S]*退出登录/)

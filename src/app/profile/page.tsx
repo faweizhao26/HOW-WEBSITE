@@ -231,6 +231,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      <nav aria-label={locale === "zh" ? "团票" : "Group tickets"} className="mb-6 flex flex-wrap gap-4 text-sm">
+        <Link href="/group-tickets" className="text-emerald-800 underline underline-offset-4 dark:text-emerald-300">{locale === "zh" ? "我的团票订单" : "My group orders"}</Link>
+        <Link href="/group-tickets/redeem" className="text-emerald-800 underline underline-offset-4 dark:text-emerald-300">{locale === "zh" ? "领取团票名额" : "Claim a group seat"}</Link>
+      </nav>
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left: Profile card */}
         <div className="lg:col-span-1 space-y-6">
