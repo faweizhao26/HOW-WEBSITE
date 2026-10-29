@@ -307,6 +307,7 @@ export type TicketType = {
   is_free: boolean
   requires_code: boolean
   is_active: boolean
+  group_only: boolean
   sort_order: number
   created_at: string
 }

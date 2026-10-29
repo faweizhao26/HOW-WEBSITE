@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { ChannelCode, TicketType, Registration } from "../db/schema"
+import type { GroupConfig } from "../group-tickets/types"
 
 type Client = Pick<SupabaseClient, "from">
 export type RegistrationRecord = Registration & { ticket_types: Pick<TicketType, "name" | "name_zh"> | null }
@@ -22,12 +23,13 @@ export async function loadDashboardStats(client: Client): Promise<DashboardStats
   return { totalSessions, pending, approved, rejected, speakers, agendaSlots }
 }
 
-export async function loadTicketWorkspace(client: Client): Promise<{ tickets: TicketType[]; channels: ChannelCode[] }> {
+export async function loadTicketWorkspace(client: Client): Promise<{ tickets: TicketType[]; channels: ChannelCode[]; configs: GroupConfig[] }> {
   const tickets = await client.from("ticket_types").select("*").order("sort_order")
   const channels = await client.from("channel_codes").select("*").order("created_at", { ascending: false })
-  for (const result of [tickets, channels]) if (result.error) throw result.error
-  if (!tickets.data || !channels.data) throw new Error("load_failed")
-  return { tickets: tickets.data, channels: channels.data }
+  const configs = await client.from("group_ticket_configs").select("*")
+  for (const result of [tickets, channels, configs]) if (result.error) throw result.error
+  if (!tickets.data || !channels.data || !configs.data) throw new Error("load_failed")
+  return { tickets: tickets.data, channels: channels.data, configs: configs.data }
 }
 
 async function savedId(query: PromiseLike<{ data: { id: string } | null; error: unknown }>): Promise<string> {

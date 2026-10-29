@@ -15,6 +15,8 @@ const errors = {
   already_registered: ["当前账号已有报名记录，请先在个人中心核对。", "This account already has a registration. Check your profile first."],
   payment_mismatch: ["实收金额必须与订单金额一致，且付款凭证不可重复使用。", "The received amount must match the order and the payment reference must be unique."],
   ticket_in_use: ["请选择尚无个人报名记录的独立团体票种。", "Choose a dedicated ticket type without existing individual registrations."],
+  ticket_kind_locked: ["团体票不能改回个人票，请新建个人票种。", "A group ticket cannot become an individual ticket. Create a new ticket instead."],
+  ticket_has_channels: ["该票种已关联渠道码，请新建独立团体票种。", "This ticket has channel codes. Create a dedicated group ticket instead."],
   too_many_orders: ["待处理订单过多，请先取消或处理已有订单。", "Resolve or cancel existing pending orders first."],
   invalid_phone: ["请输入有效的手机号码。", "Enter a valid phone number."],
   operation_failed: ["操作未能确认，请刷新核对后重试。", "The operation could not be confirmed. Refresh to check before retrying."],
@@ -29,7 +31,15 @@ export function groupErrorMessage(error: unknown, locale: "zh" | "en") {
 }
 const actor = z.object({ expectedUserId: z.uuid() })
 const order = actor.extend({ orderId: z.uuid() }).strict()
-const config = actor.extend({ ticketTypeId: z.uuid(), enabled: z.boolean(), minSize: z.number().int().min(2).max(100), maxSize: z.number().int().min(2).max(100), unitPriceCents: z.number().int().min(0).max(100000000), claimDeadline: z.iso.datetime({ offset: true }).nullable() }).strict().refine(v => v.minSize <= v.maxSize)
+const groupFields = z.object({ enabled: z.boolean(), minSize: z.number().int().min(2).max(100), maxSize: z.number().int().min(2).max(100), unitPriceCents: z.number().int().min(0).max(100000000), claimDeadline: z.iso.datetime({ offset: true }).nullable() }).strict()
+const config = actor.extend({ ticketTypeId: z.uuid(), ...groupFields.shape }).strict().refine(v => v.minSize <= v.maxSize)
+const groupRules = groupFields.refine(v => v.minSize <= v.maxSize)
+const ticketFields = actor.extend({ ticketTypeId: z.uuid(), name: z.string().trim().min(1).max(200), nameZh: z.string().trim().max(200), description: z.string().trim().max(5000), descriptionZh: z.string().trim().max(5000), active: z.boolean(), sortOrder: z.number().int().min(0).max(9999) })
+const ticketSettings = z.discriminatedUnion("kind", [
+  ticketFields.extend({ kind: z.literal("individual"), isFree: z.boolean(), requiresCode: z.boolean() }).strict(),
+  ticketFields.extend({ kind: z.literal("group"), group: groupRules }).strict(),
+])
+export type AdminTicketSettings = z.infer<typeof ticketSettings>
 const creation = actor.extend({ requestId: z.uuid(), ticketTypeId: z.uuid(), quantity: z.number().int().min(2).max(100), teamName: z.string().trim().min(1).max(200) }).strict()
 const activation = order.extend({ paymentReference: z.string().trim().min(1).max(200), receivedCents: z.number().int().min(0).max(10000000000) }).strict()
 const closure = order.extend({ reason: z.string().trim().min(1).max(500) }).strict()
@@ -68,6 +78,15 @@ export async function loadGroupOrder(client: SupabaseClient, orderId: string): P
 export async function saveGroupConfig(client: SupabaseClient, input: unknown): Promise<void> {
   const v = parse(config, input); await user(client, v.expectedUserId, true)
   await rpc(client, "group_ticket_config_save", { p_expected_user: v.expectedUserId, p_ticket_id: v.ticketTypeId, p_enabled: v.enabled, p_min_size: v.minSize, p_max_size: v.maxSize, p_unit_price_cents: v.unitPriceCents, p_claim_deadline: v.claimDeadline })
+}
+export async function saveAdminTicket(client: SupabaseClient, input: unknown): Promise<string> {
+  const v = parse(ticketSettings, input); await user(client, v.expectedUserId, true)
+  return rpc(client, "admin_ticket_save", {
+    p_expected_user: v.expectedUserId, p_ticket_id: v.ticketTypeId, p_name: v.name, p_name_zh: v.nameZh,
+    p_description: v.description, p_description_zh: v.descriptionZh, p_active: v.active, p_sort_order: v.sortOrder,
+    p_is_free: v.kind === "group" ? v.group.unitPriceCents === 0 : v.isFree,
+    p_requires_code: v.kind === "group" ? true : v.requiresCode, p_group: v.kind === "group" ? v.group : null,
+  })
 }
 export async function createGroupOrder(client: SupabaseClient, input: unknown): Promise<string> {
   const v = parse(creation, input); await user(client, v.expectedUserId, true)

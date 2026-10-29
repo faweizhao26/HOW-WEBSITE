@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -18,62 +17,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { Plus, Trash2, Pencil, Copy, Link, Ticket, Tag } from "lucide-react"
 import { AdminLoadError } from "@/components/admin/load-error"
-import { deleteChannelRecord, deleteTicketRecord, loadTicketWorkspace, saveChannel, saveTicket } from "@/lib/admin/data"
+import { deleteChannelRecord, deleteTicketRecord, loadTicketWorkspace, saveChannel } from "@/lib/admin/data"
 import type { ChannelCode, TicketType } from "@/lib/db/schema"
+import type { GroupConfig } from "@/lib/group-tickets/types"
+import { TicketForm } from "@/components/admin/ticket-form"
+import { dateLabel, money, selectClass, useNow } from "@/components/group-tickets/shared"
 
 
-function TicketForm({ ticket, onSaved }: { ticket?: TicketType; onSaved: () => void }) {
-  const locale = useLocale()
-  const formId = useId()
-  const [name, setName] = useState(ticket?.name || "")
-  const [nameZh, setNameZh] = useState(ticket?.name_zh || "")
-  const [desc, setDesc] = useState(ticket?.description || "")
-  const [descZh, setDescZh] = useState(ticket?.description_zh || "")
-  const [isFree, setIsFree] = useState(ticket?.is_free ?? true)
-  const [requiresCode, setRequiresCode] = useState(ticket?.requires_code ?? false)
-  const [isActive, setIsActive] = useState(ticket?.is_active ?? true)
-  const [sortOrder, setSortOrder] = useState(String(ticket?.sort_order ?? 99))
-  const [open, setOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (saving) return
-    setSaving(true)
-    setSaveError(false)
-    try {
-      await saveTicket(createClient(), { name: name.trim(), name_zh: nameZh.trim(), description: desc.trim(), description_zh: descZh.trim(), is_free: isFree, requires_code: requiresCode, is_active: isActive, sort_order: Number(sortOrder) }, ticket?.id)
-      toast.success(ticket ? (locale === "zh" ? "已更新" : "Updated") : (locale === "zh" ? "已创建" : "Created"))
-      setOpen(false)
-      onSaved()
-    } catch { setSaveError(true) }
-    finally { setSaving(false) }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(value) => { if (!saving) { setOpen(value); setSaveError(false) } }}>
-      <DialogTrigger render={ticket ? <Button variant="ghost" size="icon" className="h-8 w-8" title={locale === "zh" ? "编辑票种" : "Edit Ticket"} /> : <Button className="bg-emerald-600 hover:bg-emerald-500" />}>{ticket ? <Pencil className="h-4 w-4" /> : <><Plus className="h-4 w-4 mr-1" />{locale === "zh" ? "添加票种" : "Add Ticket"}</>}</DialogTrigger>
-      <DialogContent className="bg-zinc-900 border-zinc-800">
-        <DialogHeader><DialogTitle>{ticket ? (locale === "zh" ? "编辑票种" : "Edit Ticket") : (locale === "zh" ? "添加票种" : "Add Ticket")}</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <fieldset disabled={saving} className="space-y-4">
-          <div className="space-y-2"><Label htmlFor={`${formId}-name`}>{locale === "zh" ? "名称（英文）" : "Name (English)"}</Label><Input id={`${formId}-name`} value={name} onChange={e => setName(e.target.value)} required /></div>
-          <div className="space-y-2"><Label htmlFor={`${formId}-name-zh`}>{locale === "zh" ? "名称（中文）" : "Name (Chinese)"}</Label><Input id={`${formId}-name-zh`} value={nameZh} onChange={e => setNameZh(e.target.value)} /></div>
-          <div className="space-y-2"><Label htmlFor={`${formId}-description`}>{locale === "zh" ? "说明（英文）" : "Description (English)"}</Label><Textarea id={`${formId}-description`} value={desc} onChange={e => setDesc(e.target.value)} rows={2} /></div>
-          <div className="space-y-2"><Label htmlFor={`${formId}-description-zh`}>{locale === "zh" ? "说明（中文）" : "Description (Chinese)"}</Label><Textarea id={`${formId}-description-zh`} value={descZh} onChange={e => setDescZh(e.target.value)} rows={2} /></div>
-          <div className="flex items-center justify-between"><Label htmlFor={`${formId}-free`}>{locale === "zh" ? "免费票" : "Free Ticket"}</Label><Switch id={`${formId}-free`} checked={isFree} onCheckedChange={setIsFree} /></div>
-          <div className="flex items-center justify-between"><Label htmlFor={`${formId}-code`}>{locale === "zh" ? "需要渠道码" : "Requires Code"}</Label><Switch id={`${formId}-code`} checked={requiresCode} onCheckedChange={setRequiresCode} /></div>
-          <div className="flex items-center justify-between"><Label htmlFor={`${formId}-active`}>{locale === "zh" ? "启用票种" : "Ticket enabled"}</Label><Switch id={`${formId}-active`} checked={isActive} onCheckedChange={setIsActive} /></div>
-          <div className="space-y-2"><Label htmlFor={`${formId}-order`}>{locale === "zh" ? "显示顺序" : "Display order"}</Label><Input id={`${formId}-order`} type="number" min={0} max={9999} step={1} required value={sortOrder} onChange={e => setSortOrder(e.target.value)} /></div>
-          </fieldset>
-          {saveError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{locale === "zh" ? "票种保存失败，请重试。填写内容已保留。" : "Unable to save ticket. Your input has been kept; please try again."}</p>}
-          <Button type="submit" disabled={saving} className="w-full bg-emerald-600 hover:bg-emerald-500">{saving ? (locale === "zh" ? "保存中..." : "Saving...") : ticket ? (locale === "zh" ? "保存" : "Save") : (locale === "zh" ? "创建" : "Create")}</Button>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tickets: TicketType[]; onSaved: () => void }) {
   const locale = useLocale()
@@ -90,7 +40,7 @@ function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tic
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (saving) return
+    if (saving || tickets.some(t => t.id === ticketId && t.group_only)) return
     setSaving(true)
     setSaveError(null)
     try {
@@ -113,23 +63,23 @@ function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tic
       <DialogTrigger render={channel ? <Button variant="ghost" size="icon" className="h-8 w-8" title={locale === "zh" ? "编辑渠道码" : "Edit Channel"} /> : <Button className="bg-cyan-600 hover:bg-cyan-500" />}>
         {channel ? <Pencil className="h-4 w-4" /> : <><Plus className="h-4 w-4 mr-1" />{locale === "zh" ? "添加渠道码" : "Add Channel"}</>}
       </DialogTrigger>
-      <DialogContent className="bg-zinc-900 border-zinc-800">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-lg border border-border bg-popover">
         <DialogHeader><DialogTitle>{channel ? (locale === "zh" ? "编辑渠道码" : "Edit Channel") : (locale === "zh" ? "新建渠道码" : "New Channel")}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset disabled={saving} className="space-y-4">
           <div className="space-y-2"><Label htmlFor={`${formId}-code`}>{locale === "zh" ? "渠道码" : "Code"}</Label><Input id={`${formId}-code`} value={code} onChange={e => setCode(e.target.value)} placeholder="VIP-2027" required /></div>
           <div className="space-y-2"><Label htmlFor={`${formId}-name`}>{locale === "zh" ? "名称" : "Name"}</Label><Input id={`${formId}-name`} value={name} onChange={e => setName(e.target.value)} placeholder={locale === "zh" ? "合作伙伴渠道" : "Partner channel"} required /></div>
           <div className="space-y-2"><Label htmlFor={`${formId}-ticket`}>{locale === "zh" ? "关联票种" : "Linked Ticket"}</Label>
-            <select id={`${formId}-ticket`} value={ticketId} onChange={e => setTicketId(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-300">
+            <select id={`${formId}-ticket`} value={ticketId} onChange={e => setTicketId(e.target.value)} className={selectClass}>
               <option value="">{locale === "zh" ? "不关联" : "None"}</option>
-              {tickets.map(t => <option key={t.id} value={t.id}>{locale === "zh" && t.name_zh ? t.name_zh : t.name}</option>)}
+              {tickets.filter(t => !t.group_only || t.id === ticketId).map(t => <option key={t.id} value={t.id} disabled={t.group_only}>{locale === "zh" && t.name_zh ? t.name_zh : t.name}{t.group_only ? (locale === "zh" ? "（团体专属，不可关联）" : " (Group only, unavailable)") : ""}</option>)}
             </select>
           </div>
           <div className="flex items-center justify-between"><Label htmlFor={`${formId}-active`}>{locale === "zh" ? "启用渠道码" : "Channel enabled"}</Label><Switch id={`${formId}-active`} checked={isActive} onCheckedChange={setIsActive} /></div>
-          {code && <div className="p-3 bg-zinc-800 rounded-lg"><p className="text-xs text-zinc-400 mb-2">{locale === "zh" ? "报名链接" : "Registration Link"}:</p><div className="flex items-center gap-2"><code className="min-w-0 text-xs text-cyan-400 flex-1 truncate">{registerLink}</code><Button type="button" size="icon" variant="ghost" className="h-6 w-6 shrink-0" title={locale === "zh" ? "复制链接" : "Copy link"} onClick={copyLink}><Copy className="h-3 w-3" /></Button></div></div>}
+          {code && <div className="p-3 bg-muted rounded-lg"><p className="text-xs text-muted-foreground mb-2">{locale === "zh" ? "报名链接" : "Registration Link"}:</p><div className="flex items-center gap-2"><code className="min-w-0 text-xs text-cyan-400 flex-1 truncate">{registerLink}</code><Button type="button" size="icon" variant="ghost" className="h-6 w-6 shrink-0" title={locale === "zh" ? "复制链接" : "Copy link"} onClick={copyLink}><Copy className="h-3 w-3" /></Button></div></div>}
           </fieldset>
           {saveError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{saveError === "duplicate" ? (locale === "zh" ? "渠道码已存在，请更换。" : "This code already exists. Please choose another.") : (locale === "zh" ? "渠道码保存失败，请重试。填写内容已保留。" : "Unable to save channel. Your input has been kept; please try again.")}</p>}
-          <Button type="submit" disabled={saving} className="w-full bg-cyan-600 hover:bg-cyan-500">{saving ? (locale === "zh" ? "保存中..." : "Saving...") : channel ? (locale === "zh" ? "保存" : "Save") : (locale === "zh" ? "创建" : "Create")}</Button>
+          <Button type="submit" disabled={saving || tickets.some(t => t.id === ticketId && t.group_only)} className="w-full bg-cyan-600 hover:bg-cyan-500">{saving ? (locale === "zh" ? "保存中..." : "Saving...") : channel ? (locale === "zh" ? "保存" : "Save") : (locale === "zh" ? "创建" : "Create")}</Button>
         </form>
       </DialogContent>
     </Dialog>
@@ -138,8 +88,10 @@ function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tic
 
 export default function AdminTicketsPage() {
   const locale = useLocale()
+  const now = useNow()
   const [tickets, setTickets] = useState<TicketType[]>([])
   const [channels, setChannels] = useState<ChannelCode[]>([])
+  const [configs, setConfigs] = useState<GroupConfig[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -152,6 +104,7 @@ export default function AdminTicketsPage() {
       const data = await loadTicketWorkspace(createClient())
       setTickets(data.tickets)
       setChannels(data.channels)
+      setConfigs(data.configs)
     } catch { setLoadError(true) }
     finally { setLoading(false) }
   }, [])
@@ -159,7 +112,7 @@ export default function AdminTicketsPage() {
   useEffect(() => {
     let cancelled = false
     loadTicketWorkspace(createClient())
-      .then(data => { if (!cancelled) { setTickets(data.tickets); setChannels(data.channels) } })
+      .then(data => { if (!cancelled) { setTickets(data.tickets); setChannels(data.channels); setConfigs(data.configs) } })
       .catch(() => { if (!cancelled) setLoadError(true) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -176,16 +129,16 @@ export default function AdminTicketsPage() {
     finally { setDeleting(null) }
   }
 
-  if (loading) return <div><h1 className="text-2xl font-bold mb-8">{locale === "zh" ? "票种 & 渠道码" : "Tickets & Channels"}</h1><div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-16 bg-zinc-800" />)}</div></div>
+  if (loading) return <div><h1 className="text-2xl font-bold mb-8">{locale === "zh" ? "票种 & 渠道码" : "Tickets & Channels"}</h1><div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-16" />)}</div></div>
   if (loadError) return <div><h1 className="text-2xl font-bold mb-8">{locale === "zh" ? "票种 & 渠道码" : "Tickets & Channels"}</h1><AdminLoadError onRetry={loadAll} /></div>
 
   return (
     <div>
       <h1 className="text-2xl font-bold mb-8">{locale === "zh" ? "票种 & 渠道码" : "Tickets & Channels"}</h1>
 
-      <div className="mb-6"><NextLink href="/admin/group-orders" className="text-sm text-emerald-800 underline underline-offset-4 dark:text-emerald-300">{locale === "zh" ? "管理团票配置与订单" : "Manage group configurations and orders"}</NextLink></div>
+      <div className="mb-6"><NextLink href="/admin/group-orders" className="text-sm text-emerald-800 underline underline-offset-4 dark:text-emerald-300">{locale === "zh" ? "查看团票订单与领取情况" : "View group orders and claims"}</NextLink></div>
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="bg-zinc-900 border border-zinc-800 mb-6">
+        <TabsList className="mb-6">
           <TabsTrigger value="tickets"><Ticket className="h-4 w-4 mr-1" />{locale === "zh" ? "票种" : "Tickets"} ({tickets.length})</TabsTrigger>
           <TabsTrigger value="channels"><Tag className="h-4 w-4 mr-1" />{locale === "zh" ? "渠道码" : "Channels"} ({channels.length})</TabsTrigger>
         </TabsList>
@@ -193,24 +146,27 @@ export default function AdminTicketsPage() {
         <TabsContent value="tickets">
           <div className="flex items-center justify-between mb-4"><p className="text-sm text-muted-foreground">{locale === "zh" ? "管理可选的票种" : "Manage available ticket types"}</p><TicketForm onSaved={loadAll} /></div>
           <div className="space-y-3">
-            {tickets.map(t => (
-              <Card key={t.id} className="bg-zinc-900/50 border-zinc-800">
+            {tickets.map(t => {
+              const group = configs.find(c => c.ticket_type_id === t.id)
+              return (
+              <Card key={t.id} className="border-border bg-card">
                 <CardContent className="p-4 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="font-medium text-white break-words">{locale === "zh" && t.name_zh ? t.name_zh : t.name}</span>
-                      {t.name_zh && <span className="text-muted-foreground text-sm">{t.name_zh}</span>}
-                      {t.is_free ? <Badge variant="outline" className="text-emerald-400 border-emerald-800 text-[10px]">{locale === "zh" ? "免费" : "Free"}</Badge> : <Badge variant="outline" className="text-amber-400 border-amber-800 text-[10px]">{locale === "zh" ? "收费" : "Paid"}</Badge>}
-                      {t.requires_code && <Badge variant="secondary" className="text-[10px]">{locale === "zh" ? "需渠道码" : "Code req'd"}</Badge>}
+                      <span className="font-medium text-foreground break-words">{locale === "zh" && t.name_zh ? t.name_zh : t.name}</span>
+                      <Badge variant="secondary">{t.group_only ? (locale === "zh" ? "团体票" : "Group") : (locale === "zh" ? "个人票" : "Individual")}</Badge>
+                      {!t.group_only && (t.is_free ? <Badge variant="outline" className="text-emerald-800 border-emerald-300 dark:text-emerald-300 dark:border-emerald-800 text-xs">{locale === "zh" ? "免费" : "Free"}</Badge> : <Badge variant="outline" className="text-amber-800 border-amber-300 dark:text-amber-300 dark:border-amber-800 text-xs">{locale === "zh" ? "收费" : "Paid"}</Badge>)}
+                      {!t.group_only && t.requires_code && <Badge variant="secondary" className="text-[10px]">{locale === "zh" ? "需渠道码" : "Code req'd"}</Badge>}
                       <Badge variant="outline">{t.is_active ? (locale === "zh" ? "已启用" : "Enabled") : (locale === "zh" ? "已停用" : "Disabled")}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground break-words">{locale === "zh" ? t.description_zh || t.description : t.description}</p>
+                    {group && <div className="mt-2 space-y-1 text-sm"><p>{money(group.unit_price_cents, locale)}{locale === "zh" ? " / 人" : " / person"} · {group.min_size}–{group.max_size} {locale === "zh" ? "人" : "seats"}</p><p className="text-xs text-muted-foreground">{!t.is_active ? (locale === "zh" ? "票种已停用" : "Ticket disabled") : !group.enabled ? (locale === "zh" ? "暂停新订单" : "New orders paused") : group.claim_deadline && now >= Date.parse(group.claim_deadline) ? (locale === "zh" ? "已截止" : "Deadline passed") : (locale === "zh" ? "开放新订单" : "Accepting new orders")} · {locale === "zh" ? "领取截止：" : "Claim deadline: "}{dateLabel(group.claim_deadline, locale)}</p></div>}
                     <p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? "顺序" : "Order"}: {t.sort_order}</p>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0"><TicketForm ticket={t} onSaved={loadAll} /><Button variant="ghost" size="icon" disabled={!!deleting} title={locale === "zh" ? "删除票种" : "Delete ticket"} className="h-8 w-8 hover:text-red-400" onClick={() => deleteRecord("ticket", t.id)}><Trash2 className="h-4 w-4" /></Button></div>
+                  <div className="flex items-center gap-1 shrink-0"><TicketForm ticket={t} config={group} onSaved={loadAll} /><Button variant="ghost" size="icon" disabled={!!deleting} title={locale === "zh" ? "删除票种" : "Delete ticket"} className="h-8 w-8 hover:text-red-400" onClick={() => deleteRecord("ticket", t.id)}><Trash2 className="h-4 w-4" /></Button></div>
                 </CardContent>
               </Card>
-            ))}
+            )})}
           </div>
         </TabsContent>
 
@@ -218,12 +174,12 @@ export default function AdminTicketsPage() {
           <div className="flex items-center justify-between mb-4"><p className="text-sm text-muted-foreground">{locale === "zh" ? "创建不同渠道的报名链接和渠道码" : "Create channel codes for different registration sources"}</p><ChannelForm tickets={tickets} onSaved={loadAll} /></div>
           <div className="space-y-3">
             {channels.map(c => (
-              <Card key={c.id} className="bg-zinc-900/50 border-zinc-800">
+              <Card key={c.id} className="border-border bg-card">
                 <CardContent className="p-4 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <Badge className="bg-cyan-900/50 text-cyan-300 border-cyan-800 font-mono break-all whitespace-normal">{c.code}</Badge>
-                      <span className="text-zinc-300 text-sm break-words">{c.name}</span>
+                      <span className="text-foreground text-sm break-words">{c.name}</span>
                       <Badge variant="outline">{c.is_active ? (locale === "zh" ? "已启用" : "Enabled") : (locale === "zh" ? "已停用" : "Disabled")}</Badge>
                       {c.ticket_type_id && (
                         <span className="text-xs text-muted-foreground">
