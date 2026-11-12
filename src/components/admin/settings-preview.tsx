@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import type { SettingsPreviewPage } from "./settings-preview-frame"
 
 const pageLabels = {
+  media: { en: "Media resources", zh: "宣传资料" }, speakerGuide: { en: "Speaker guide", zh: "讲者指南" },
   home: { en: "Home", zh: "首页" }, about: { en: "About", zh: "关于" },
   attend: { en: "Attend", zh: "参会指南" }, venue: { en: "Venue", zh: "会场" },
   sponsors: { en: "Sponsors", zh: "赞助商" }, privacy: { en: "Privacy", zh: "隐私条款" },

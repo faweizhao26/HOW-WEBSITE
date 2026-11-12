@@ -17,7 +17,7 @@ if (process.argv.includes("--cleanup")) {
     assert.ifError((await client.auth.signInWithPassword(u)).error)
     assert.ifError((await client.auth.signOut({ scope: "global" })).error)
   }
-  sql(`delete from public.group_order_events where order_id in (select id from public.group_orders where ticket_type_id='${f.ticketId}'); delete from public.group_orders where ticket_type_id='${f.ticketId}'; delete from public.registrations where ticket_type_id='${f.ticketId}'; delete from public.group_ticket_configs where ticket_type_id='${f.ticketId}'; delete from public.ticket_types where id='${f.ticketId}'; delete from auth.users where id in (${f.users.map(u => `'${u.id}'`).join(",")});`)
+  sql(`delete from public.group_order_events where order_id in (select id from public.group_orders where ticket_type_id='${f.ticketId}'); delete from public.group_orders where ticket_type_id='${f.ticketId}'; delete from public.registrations where ticket_type_id='${f.ticketId}'; delete from public.group_ticket_configs where ticket_type_id='${f.ticketId}'; delete from public.ticket_types where id='${f.ticketId}'; delete from auth.users where id in (${f.users.map(u => `'${u.id}'`).join(",") || "NULL"});`)
   await unlink(file)
   console.log("Removed this batch of isolated group-ticket fixtures and private credentials")
 } else {

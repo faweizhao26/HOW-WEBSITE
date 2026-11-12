@@ -1,5 +1,6 @@
 "use client"
 
+import { OutreachPageView } from "@/components/content/outreach-views"
 import { CFPPolicySummary } from "@/components/content/cfp-policy-summary"
 import { useEffect, useState } from "react"
 import type { MouseEvent, FormEvent } from "react"
@@ -14,7 +15,7 @@ import { parseCFPSettings } from "@/lib/cfp/settings"
 import { cfp } from "@/lib/i18n/translations"
 import type { PublishedSession, PublishedSponsor, PublicContentResult } from "@/lib/content/types"
 
-export const settingsPreviewPages = ["home", "about", "attend", "venue", "sponsors", "privacy", "conduct", "cfp", "faq"] as const
+export const settingsPreviewPages = ["home", "about", "attend", "venue", "sponsors", "privacy", "conduct", "cfp", "faq", "media", "speakerGuide"] as const
 export type SettingsPreviewPage = typeof settingsPreviewPages[number]
 export type SettingsPreviewMessage = {
   type: "how-settings-preview"
@@ -132,6 +133,7 @@ body:has([data-settings-preview]) > main { padding-top: 0 !important; }`}</style
           : draft.page === "home" ? <HomeView {...props} sessions={sessions} />
           : draft.page === "venue" ? <VenueView {...props} />
           : draft.page === "sponsors" ? <SponsorsView {...props} sponsors={sponsors} />
+          : (draft.page === "media" || draft.page === "speakerGuide") ? <OutreachPageView {...props} page={draft.page} preview />
           : draft.page === "cfp" ? <CFPPreview settings={props.settings} locale={draft.locale} />
           : draft.page === "faq" ? <FAQPreview {...props} />
           : <SitePageView {...props} page={draft.page} />}

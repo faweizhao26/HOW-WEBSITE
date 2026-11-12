@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { siteContentSchema } from "../src/lib/content/site-content.ts"
 
-const schema = JSON.stringify(z.toJSONSchema(siteContentSchema, { target: "draft-7", unrepresentable: "any" }))
+const schema = JSON.stringify(z.toJSONSchema(siteContentSchema, { target: "draft-7", unrepresentable: "any", io: "input" }))
 process.stdout.write(`BEGIN;
 CREATE EXTENSION IF NOT EXISTS pg_jsonschema WITH SCHEMA extensions;
 
@@ -25,6 +25,10 @@ BEGIN
     SELECT v_content->'home'->'sections'
     UNION ALL SELECT p.value->'sections' FROM jsonb_each(v_content->'pages') p
     UNION ALL SELECT v_content->'faq'->'items'
+    UNION ALL SELECT v_content->'outreach'->'sponsorship'->'tiers'
+    UNION ALL SELECT v_content->'outreach'->'media'->'sections'
+    UNION ALL SELECT v_content->'outreach'->'speakerGuide'->'sections'
+    UNION ALL SELECT v_content->'outreach'->'progress'->'sections'
   LOOP
     IF (SELECT count(DISTINCT row->>'id') FROM jsonb_array_elements(v_rows) row) <> jsonb_array_length(v_rows) THEN
       RAISE EXCEPTION 'invalid_site_content' USING ERRCODE = '23514';

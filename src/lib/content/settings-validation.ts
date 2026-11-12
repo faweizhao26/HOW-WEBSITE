@@ -7,6 +7,7 @@ import { parseBadgePrintSettings } from "../admin/badge-settings.ts"
 
 export type SettingsIssue = { path: string; label: Bilingual; message: Bilingual }
 const names: Record<string, Bilingual> = {
+  outreach: { en: "Conference resources", zh: "筹备资料" }, sponsorship: { en: "Sponsorship packages", zh: "赞助方案" }, tiers: { en: "Tiers", zh: "赞助等级" }, price: { en: "Price description", zh: "价格说明" }, availability: { en: "Availability", zh: "名额说明" }, prospectusUrl: { en: "Sponsorship PDF", zh: "招商 PDF" }, media: { en: "Media resources", zh: "宣传资料" }, speakerGuide: { en: "Speaker guide", zh: "讲者指南" }, progress: { en: "Homepage updates", zh: "筹备进展" },
   conference_name: { en: "Conference name", zh: "大会名称" }, conference_date: { en: "Conference dates", zh: "大会日期" },
   conference_location: { en: "Location (English)", zh: "地点（英文）" }, conference_location_zh: { en: "Location (Chinese)", zh: "地点（中文）" },
   contact_email: { en: "Contact email", zh: "联系邮箱" }, hero_title: { en: "Hero title (English)", zh: "首页标题（英文）" }, hero_title_zh: { en: "Hero title (Chinese)", zh: "首页标题（中文）" }, hero_subtitle: { en: "Hero subtitle (English)", zh: "首页副标题（英文）" }, hero_subtitle_zh: { en: "Hero subtitle (Chinese)", zh: "首页副标题（中文）" },

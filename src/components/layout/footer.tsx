@@ -1,4 +1,6 @@
 import Link from "next/link"
+import { parseSiteContent } from "@/lib/content/site-content"
+import { OutreachLinks } from "@/components/content/outreach-views"
 import { Locale } from "@/lib/i18n/utils"
 import { navigation } from "@/lib/i18n/translations"
 import { getPublishedSettings } from "@/lib/content/public"
@@ -7,6 +9,8 @@ import { defaultSiteSettings } from "@/lib/content/settings"
 export async function Footer({ locale }: { locale: Locale }) {
   const result = await getPublishedSettings()
   const settings = result.status === "error" ? null : result.status === "empty" ? defaultSiteSettings : result.data
+  let content = null
+  try { if (settings) content = parseSiteContent(settings) } catch { /* Keep existing navigation available. */ }
   return (
     <footer className="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -37,6 +41,7 @@ export async function Footer({ locale }: { locale: Locale }) {
             <div className="space-y-2">
               <Link href="/register" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.register[locale]}</Link>
               <Link href="/cfp" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.cfp[locale]}</Link>
+              {content && <OutreachLinks content={content} locale={locale} />}
               <Link href="/code-of-conduct" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.codeOfConduct[locale]}</Link>
             </div>
           </div>

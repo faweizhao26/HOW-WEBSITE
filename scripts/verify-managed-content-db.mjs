@@ -4,6 +4,8 @@ import { parseSiteContent } from "../src/lib/content/site-content.ts"
 
 assert.equal(process.env.PUBLICATION_TEST_ISOLATED_PROJECT, "true", "Isolated local database only")
 const content = parseSiteContent({})
+const database = process.env.PUBLICATION_TEST_DATABASE || "postgres"
+assert.ok(["postgres", "how_audit_reliability_20261018"].includes(database), "Known local isolated databases only")
 content.pages.about.intro = { en: "Managed content QA", zh: "后台内容验收" }
 const value = raw => `'${raw.replaceAll("'", "''")}'`
 const invalid = ["{bad", JSON.stringify({ ...content, contacts: { sponsor: "invalid", report: "" } })]
@@ -20,6 +22,14 @@ invalid.push(JSON.stringify(duplicate))
 const emptyFAQ = structuredClone(content)
 emptyFAQ.faq.items = [{ id: "qa", keywords: [], answer: { en: "", zh: "" }, enabled: true }]
 invalid.push(JSON.stringify(emptyFAQ))
+for (const key of ["media", "speakerGuide", "progress"]) {
+  const duplicate = structuredClone(content)
+  duplicate.outreach[key].sections = [content.home.sections[0], content.home.sections[0]]
+  invalid.push(JSON.stringify(duplicate))
+}
+const badResource = structuredClone(content)
+badResource.outreach.sponsorship.prospectusUrl = "javascript:alert(1)"
+invalid.push(JSON.stringify(badResource))
 const sql = `BEGIN;
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub',(SELECT id FROM public.profiles WHERE role='admin' LIMIT 1),'role','authenticated')::text,true);
 SELECT set_config('how.content_original', (SELECT id::text FROM public.site_settings_releases WHERE is_current), true);
@@ -47,7 +57,7 @@ RESET ROLE;
 DO $$ BEGIN IF (SELECT id::text FROM public.site_settings_releases WHERE is_current) <> current_setting('how.content_original') THEN RAISE EXCEPTION 'Rollback failed'; END IF; END $$;
 SELECT 'PASS legacy release rollback';
 ROLLBACK;`
-const result = spawnSync("docker", ["exec", "-i", "supabase_db_how-publication-stack", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-P", "pager=off"], { input: sql, encoding: "utf8" })
+const result = spawnSync("docker", ["exec", "-i", "supabase_db_how-publication-stack", "psql", "-U", "postgres", "-d", database, "-v", "ON_ERROR_STOP=1", "-P", "pager=off"], { input: sql, encoding: "utf8" })
 if (result.error) throw result.error
 for (const line of (result.stdout || "").split("\n").filter(line => line.includes("PASS"))) console.log(line.trim())
 if (result.status !== 0) console.error(result.stderr)

@@ -1,3 +1,4 @@
+import { OutreachLinks, ProgressView, SponsorshipView } from "./outreach-views"
 import Link from "next/link"
 import Image from "next/image"
 import { home, schedule as sched } from "@/lib/i18n/translations"
@@ -92,7 +93,7 @@ export function HomeView({ settings, content, locale, sessions, contentState = "
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"><ContentBlocks blocks={content.home.sections.map(block => block.id === "cta" ? { ...block, body: { en: [block.body.en, venueLine].filter(Boolean).join("\n"), zh: [block.body.zh, venueLine].filter(Boolean).join("\n") } } : block)} locale={locale} /></div>
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"><ProgressView content={content} locale={locale} /><OutreachLinks content={content} locale={locale} /><ContentBlocks blocks={content.home.sections.map(block => block.id === "cta" ? { ...block, body: { en: [block.body.en, venueLine].filter(Boolean).join("\n"), zh: [block.body.zh, venueLine].filter(Boolean).join("\n") } } : block)} locale={locale} /></div>
     </div>
   )
 }
@@ -105,6 +106,7 @@ export function SitePageView({ page, settings, content, locale }: SiteViewProps 
   const showContact = contactBlock && entry.sections.some(block => block.id === contactBlock && block.enabled)
   return (
     <ContentPage page={entry} locale={locale}>
+      {page === "attend" && <OutreachLinks content={content} locale={locale} />}
       {showContact && <ContentContact email={email} locale={locale} sponsor={page === "attend"} />}
     </ContentPage>
   )
@@ -192,6 +194,7 @@ export function SponsorsView({ sponsors: result, content, settings, locale, site
         </section>
       )}
 
+      {!siteError && <SponsorshipView content={content} locale={locale} />}
       {result.status === "error" && (
         <div className="border-y border-zinc-200 py-12 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
           {locale === "zh" ? "赞助商信息暂时无法加载，请稍后再试。" : "Sponsor information is temporarily unavailable. Please try again later."}

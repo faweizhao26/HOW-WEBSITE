@@ -63,6 +63,36 @@ function hookHarness() {
   }
 }
 
+test("outreach views hide empty modules and render only enabled prepared content", () => {
+  const { OutreachPageView, ProgressView, SponsorshipView, OutreachLinks } = loader()("@/components/content/outreach-views")
+  const content = parseSiteContent({})
+  const render = Component => renderToStaticMarkup(createElement(Component, { content, locale: "zh", page: "media" }))
+  for (const Component of [OutreachPageView, ProgressView, SponsorshipView, OutreachLinks]) assert.equal(render(Component), "")
+  const block = { id: "ready", enabled: true, title: { en: "Logo", zh: "大会标识" }, body: { en: "Approved copy", zh: "已确认介绍" }, items: [], imageUrl: "", imageAlt: { en: "", zh: "" }, linkUrl: "/logo.pdf", linkLabel: { en: "Download", zh: "下载" } }
+  content.outreach.media.enabled = true; content.outreach.media.sections = [block]
+  assert.match(render(OutreachPageView), /大会标识/)
+  assert.match(render(OutreachLinks), /href="\/media"/)
+  content.outreach.sponsorship.enabled = true
+  content.outreach.sponsorship.tiers = [{ ...block, price: { en: "Contact us", zh: "价格面议" }, availability: { en: "", zh: "" } }]
+  assert.match(render(SponsorshipView), /价格面议/)
+  content.outreach.sponsorship.tiers = [{ ...block, body: { en: "", zh: "" }, linkUrl: "", price: { en: "", zh: "" }, availability: { en: "Recruiting", zh: "招募中" } }]
+  assert.match(render(SponsorshipView), /招募中/)
+  content.outreach.sponsorship.tiers[0].availability = { en: "", zh: "" }
+  assert.equal(render(SponsorshipView), "")
+  content.outreach.media.enabled = false
+  assert.equal(render(OutreachPageView), "")
+})
+
+test("unpublished resource routes return 404 even when visited directly", async () => {
+  const content = parseSiteContent({})
+  const load = loader({ "next/headers": { cookies: async () => ({ get: () => null }) }, "next/navigation": { notFound: () => { throw new Error("not_found") } }, "@/lib/content/site-public": { getPublishedSiteContent: async () => ({ status: "ready", settings: defaultSiteSettings, content }) } })
+  for (const path of ["@/app/media/page", "@/app/speaker-guide/page"]) await assert.rejects(load(path).default(), /not_found/)
+  content.outreach.media.enabled = true
+  content.outreach.media.sections = [{ id: "ready", enabled: true, title: { en: "Logo", zh: "标识" }, body: { en: "", zh: "" }, items: [], imageUrl: "", imageAlt: { en: "", zh: "" }, linkUrl: "/logo.pdf", linkLabel: { en: "Download", zh: "下载" } }]
+  const element = await load("@/app/media/page").default()
+  assert.match(renderToStaticMarkup(element), /logo.pdf/)
+})
+
 function nodes(tree) {
   if (Array.isArray(tree)) return tree.flatMap(nodes)
   return tree && typeof tree === "object" ? [tree, ...nodes(tree.props?.children)] : []
@@ -202,7 +232,7 @@ test("controlled dialog sends only to its iframe and uses actual desktop/mobile 
   ready({ source: child, origin: env.window.location.origin, data: { type: "how-settings-preview-ready" } })
   assert.equal(sent.length, 3)
   const selects = nodes(tree).filter(node => node.type === "select")
-  assert.equal(nodes(selects[0]).filter(node => node.type === "option").length, 9)
+  assert.equal(nodes(selects[0]).filter(node => node.type === "option").length, 11)
   selects[0].props.onChange({ target: { value: "privacy" } })
   selects[1].props.onChange({ target: { value: "zh" } })
   selects[2].props.onChange({ target: { value: "dark" } })
