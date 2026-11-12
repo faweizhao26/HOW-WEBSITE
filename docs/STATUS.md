@@ -5,13 +5,15 @@
 
 ## 当前版本
 
-- 发布进行中：`codex/outreach-content-drafts` 新增后台赞助方案及招商 PDF、宣传资料、讲者指南和首页筹备进展。
+- 最新已发布：`codex/outreach-content-drafts` 新增后台赞助方案及招商 PDF、宣传资料、讲者指南和首页筹备进展。
   四个模块默认关闭，空栏目不在前台占位，未开放的资料路由返回 404；沿用保存草稿、预览、整版发布和回滚。
   233/233 测试、零警告 lint、45 路由构建、真实隔离 SQL 发布/回滚及 ego-lite 编辑/预览/发布闭环通过。
   已查看桌面日间、手机夜间预览及 390px 后台截图，无横向溢出；临时资料、账号、票种及发布记录已清理，原设置和版本已恢复。
-  用户授权后新迁移 `20261112092846_outreach_content_drafts.sql` 已应用生产并核对 SQL MD5；原设置、公开 v1 和业务记录数量未变，未启用新增模块。应用提交、推送及部署进行中。
+  用户授权后新迁移 `20261112092846_outreach_content_drafts.sql` 已应用生产并核对 SQL MD5；原设置、公开 v1 和业务记录数量未变，未启用新增模块。
+  已用 `faweizhao26` 推送功能提交 `20d3062` 到工作分支和 `main`，Production READY、SHA 与正式别名一致。
+  正式管理员入口及四个默认关闭模块、桌面日间和 390px 手机夜间只读检查通过；资料页保持 404，原有公开内容一致，接口仅新增关闭的默认资料配置。短时 error/fatal 日志未见记录。
   使用与验收边界见 [筹备资料与赞助方案](OUTREACH_CONTENT.md)，本地预览为 `http://127.0.0.1:3040/admin/settings`。
-- 最新已发布：`codex/unified-ticket-settings` 将个人票/团票规则统一到票种弹窗，列表显示团票价格和人数，团票订单页只管理订单及领取。
+- 已发布：`codex/unified-ticket-settings` 将个人票/团票规则统一到票种弹窗，列表显示团票价格和人数，团票订单页只管理订单及领取。
   票种和团体规则原子保存，免费标记随单价同步，渠道码下拉排除团票；保护已有报名/渠道票种，旧订单金额不变。
   228/228 测试、零警告 lint、43 路由构建、隔离 SQL 和 ego-lite 桌面/390px 日夜验收通过；丢失保存确认后重试没有重复建票。
   本批测试数据已清理；用户授权后生产已应用 `20261029005933_unified_ticket_settings.sql`，已用 `faweizhao26` 推送工作分支和 `main`，Production READY、正式别名和提交一致。
@@ -60,9 +62,9 @@
 - 上一批次：`codex/admin-editor-workflow`，图片/PDF 上传、草稿预览和精确校验已发布。
   2026-10-15 用户授权后完成 Production 部署和正式只读验收，详见下文发布回执。
 - 正式网站：https://how-website.vercel.app/
-- 当前功能提交：`main`，`85d0462f961f13409996cc5e4d759aa041a5b78a`，
-  工作分支 `codex/unified-ticket-settings`；提交和 SSH 推送均使用 `faweizhao26`。
-- 已验证功能的 Vercel Production 部署 `dpl_En2FHv5Aw3tJR15Xu28SJq1btimH` 为 `READY`，
+- 当前功能提交：`main`，`20d3062a061c6ebbac440494cde6260acfe1da91`，
+  工作分支 `codex/outreach-content-drafts`；提交和 SSH 推送均使用 `faweizhao26`。
+- 已验证功能的 Vercel Production 部署 `dpl_GJk7f4aCvt1BpQVai6Xhepxbts16` 为 `READY`，
   正式域名已分配成功；不是仅 Preview。发布回执文档后续提交不改变运行代码。
 - 2026-10-15 账号管理正式只读验收：现有登录账号 `faweizhao26@gmail.com` 显示为唯一管理员，
   列表正常读取，当前账号无撤权按钮，权限变更记录为零。桌面及手机均可从首页入口进入后台，
