@@ -5,11 +5,12 @@
 
 ## 当前版本
 
-- 发布进行中：`codex/conference-home-navigation` 调整首页大会名称层级及信息带和可直接浏览的 FAQ，同步后台草稿预览。用户反馈分组导航不清晰，已恢复原十项平铺导航及独立投稿入口。
+- 最新已发布：`codex/conference-home-navigation` 调整首页大会名称层级及信息带和可直接浏览的 FAQ，同步后台草稿预览。用户反馈分组导航不清晰，已恢复原十项平铺导航及独立投稿入口。
   首页/问答完整 236 项测试通过；恢复平铺后 26 项定向回归、零警告 lint、45 路由构建通过。ego-lite 追加 20 个平铺导航尺寸/语言/主题组合，无横向溢出或头部重叠，本地截图已查看。
   保留全部旧入口、管理员规则和聊天问答；无新增依赖、数据库迁移或生产写入。预览使用展示数据，不代表正式会议内容。
-  本地为 `http://127.0.0.1:3051/`，说明见 [首页与导航](HOME_NAVIGATION.md)。用户已授权推送，提交与 Production 发布进行中。
-- 最新已发布：`codex/outreach-content-drafts` 新增后台赞助方案及招商 PDF、宣传资料、讲者指南和首页筹备进展。
+  已用 `faweizhao26` 推送功能提交 `4f92c97` 到工作分支和 `main`；Production READY、SHA 与正式别名一致。正式桌面日间/手机英文夜间、平铺导航及问答交互验收通过，公开 API 响应 SHA256 与部署前一致，未混入展示数据，短时 error/fatal 日志未见记录。
+  本地为 `http://127.0.0.1:3051/`，说明和正式回执见 [首页与导航](HOME_NAVIGATION.md)。本批没有数据库迁移或业务写入。
+- 已发布：`codex/outreach-content-drafts` 新增后台赞助方案及招商 PDF、宣传资料、讲者指南和首页筹备进展。
   四个模块默认关闭，空栏目不在前台占位，未开放的资料路由返回 404；沿用保存草稿、预览、整版发布和回滚。
   233/233 测试、零警告 lint、45 路由构建、真实隔离 SQL 发布/回滚及 ego-lite 编辑/预览/发布闭环通过。
   已查看桌面日间、手机夜间预览及 390px 后台截图，无横向溢出；临时资料、账号、票种及发布记录已清理，原设置和版本已恢复。
@@ -66,9 +67,9 @@
 - 上一批次：`codex/admin-editor-workflow`，图片/PDF 上传、草稿预览和精确校验已发布。
   2026-10-15 用户授权后完成 Production 部署和正式只读验收，详见下文发布回执。
 - 正式网站：https://how-website.vercel.app/
-- 当前功能提交：`main`，`20d3062a061c6ebbac440494cde6260acfe1da91`，
-  工作分支 `codex/outreach-content-drafts`；提交和 SSH 推送均使用 `faweizhao26`。
-- 已验证功能的 Vercel Production 部署 `dpl_GJk7f4aCvt1BpQVai6Xhepxbts16` 为 `READY`，
+- 当前功能提交：`main`，`4f92c97d01b6e17d18f85ac545f31c959e127328`，
+  工作分支 `codex/conference-home-navigation`；提交和 SSH 推送均使用 `faweizhao26`。
+- 已验证功能的 Vercel Production 部署 `dpl_GsSXEkudoaPXCZmVWtt4gvAyennF` 为 `READY`，
   正式域名已分配成功；不是仅 Preview。发布回执文档后续提交不改变运行代码。
 - 2026-10-15 账号管理正式只读验收：现有登录账号 `faweizhao26@gmail.com` 显示为唯一管理员，
   列表正常读取，当前账号无撤权按钮，权限变更记录为零。桌面及手机均可从首页入口进入后台，

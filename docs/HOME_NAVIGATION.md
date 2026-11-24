@@ -1,6 +1,6 @@
 # 首页、导航与可浏览问答
 
-状态：2026-11-24 本地完成，分支 `codex/conference-home-navigation`，用户已授权推送，Production 发布进行中。
+状态：2026-11-24 用户授权后已用 `faweizhao26` 推送工作分支和 `main`，Production 上线及正式只读验收完成。
 
 ## 变化
 
@@ -24,3 +24,11 @@ ego-lite 使用本机展示数据，在 1512、1280、1024、390、320px 下各�
 验收使用 `NEXT_PUBLIC_CONTENT_MODE=mock` 的本地服务，示例中的演讲数量等不是正式会议数据；没有将这些数据提交到后台。未进行生产发布、真实登录/报名、正式 FAQ 写入或数据库验收。
 
 本地预览：`http://127.0.0.1:3051/`。服务日志：`/private/tmp/how-home-navigation-20261124.log`。
+
+## 正式发布回执
+
+- 功能提交 `4f92c97d01b6e17d18f85ac545f31c959e127328` 已推送至 `codex/conference-home-navigation` 和 `main`，SSH 身份为 `faweizhao26`；未包含原有 AGENTS.md 的未提交改动。
+- Vercel `dpl_GsSXEkudoaPXCZmVWtt4gvAyennF` 为 READY、target=production、SHA 一致，正式别名 `how-website.vercel.app` 已分配，aliasError 为空。回执文档后续提交不改变运行代码。
+- 正式首页 H1 为 HOW 2027，十项导航直接可见、投稿独立，12 条 FAQ 正常。会场问答仍为待公布，鼠标展开及 Enter 收起通过；原会场、日期和联系信息未改。
+- 人工查看中文桌面日间和英文 390px 手机夜间截图；正式数据为已公布演讲待公布，没有出现本地示例的 16 场演讲。手机宽度/滚动宽度同为 390px，菜单完整显示十项链接，进入会场页后自动收起。现有管理员入口仍可见；未提交后台操作或调整角色。
+- 正式公开 API 返回 200，发布前后完整响应 SHA256 均为 `d8ad1a6e93255b91b9a11e34b75247c406e0b4ca2e8a3cb02025c50a497c5ade`。无数据库迁移或业务写入，本次部署短时 error/fatal 日志未见记录。
