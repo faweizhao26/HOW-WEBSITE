@@ -35,3 +35,23 @@ test("FAQ refreshing requests a no-store published snapshot and rejects unavaila
   assert.equal(result.settings.contact_email, "qa@example.test")
   await assert.rejects(api.loadConferenceFAQ(async () => Response.json({ status: "error" }, { status: 503 })))
 })
+
+test("browsable FAQ uses canonical facts and enabled published custom answers with locale titles", () => {
+  assert.equal(typeof api.getBrowsableFAQ, "function")
+  const content = contentApi.parseSiteContent({})
+  content.faq.items = [
+    { id: "custom", enabled: true, keywords: ["Lunch arrangements", "午餐安排"], answer: { en: "Bring your own lunch", zh: "午餐请自行安排" } },
+    { id: "hidden", enabled: false, keywords: ["Hidden"], answer: { en: "Do not publish", zh: "不展示" } },
+    { id: "empty", enabled: true, keywords: ["Empty"], answer: { en: "", zh: "" } },
+  ]
+  const published = { content, settings: { conference_date: "2027.4.16-4.18", conference_location: "Jinan", conference_location_zh: "济南", contact_email: "qa@example.test", cfp_enabled: "false" } }
+  for (const locale of ["en", "zh"]) {
+    const rows = api.getBrowsableFAQ(locale, published)
+    assert.equal(rows.length, 7)
+    assert.equal(rows.find(row => row.id === "custom:custom").question, locale === "zh" ? "午餐安排" : "Lunch arrangements")
+    assert.equal(rows.find(row => row.id === "custom:custom").answer, content.faq.items[0].answer[locale])
+    assert.match(rows.find(row => row.id === "builtin:venue").answer, locale === "zh" ? /待公布/ : /announced/)
+    assert.match(rows.find(row => row.id === "builtin:cfp").answer, locale === "zh" ? /关闭/ : /closed/)
+    assert.equal(rows.some(row => /hidden|empty/.test(row.id)), false)
+  }
+})

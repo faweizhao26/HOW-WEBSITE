@@ -5,6 +5,32 @@ import { getCFPState, parseCFPSettings } from "../cfp/settings.ts"
 
 export type FAQPublishedContent = { settings: Record<string, string>; content: SiteContent }
 
+export function getBrowsableFAQ(locale: "en" | "zh", published: FAQPublishedContent) {
+  const topics = [
+    { id: "dates", query: "date", en: "When and where is HOW 2027?", zh: "大会何时、在哪座城市举办？" },
+    { id: "venue", query: "venue", en: "Where is the venue?", zh: "具体会场和地址在哪里？" },
+    { id: "registration", query: "register", en: "How do I register and choose a ticket?", zh: "如何报名，票种和费用在哪里查看？" },
+    { id: "cfp", query: "cfp", en: "How can I submit a proposal?", zh: "如何投稿，征稿是否开放？" },
+    { id: "sponsorship", query: "sponsor", en: "How can I sponsor the conference?", zh: "如何联系赞助合作？" },
+    { id: "contact", query: "contact", en: "How can I contact the organizers?", zh: "如何联系大会主办方？" },
+  ]
+  const labels: Record<string, { en: string; zh: string }> = {
+    food: { en: "What are the meal and coffee-break arrangements?", zh: "餐饮和茶歇如何安排？" },
+    transport: { en: "How can I travel to the venue?", zh: "如何到达会场？" },
+    hotel: { en: "Are there recommended hotels?", zh: "有推荐酒店或住宿信息吗？" },
+    stream: { en: "Will there be an online livestream?", zh: "是否提供线上直播？" },
+    community: { en: "How can I follow the community and conference updates?", zh: "如何关注社区及大会动态？" },
+    conduct: { en: "What is the conference code of conduct?", zh: "参会需要遵守哪些行为规范？" },
+  }
+  const facts = topics.map(topic => ({ id: `builtin:${topic.id}`, question: topic[locale], answer: getConferenceAnswer(topic.query, locale, published) }))
+  const custom = published.content.faq.items.filter(item => item.enabled && contentText(item.answer, locale).trim()).map(item => ({
+    id: `custom:${item.id}`,
+    question: labels[item.id]?.[locale] || item.keywords.find(keyword => locale === "zh" ? /\p{Script=Han}/u.test(keyword) : !/\p{Script=Han}/u.test(keyword)) || item.keywords[0],
+    answer: contentText(item.answer, locale),
+  }))
+  return [...facts, ...custom]
+}
+
 export async function loadConferenceFAQ(fetcher: typeof fetch = fetch, signal?: AbortSignal): Promise<FAQPublishedContent> {
   const response = await fetcher("/api/conference-content", { cache: "no-store", signal })
   if (!response.ok) throw new Error("faq_unavailable")

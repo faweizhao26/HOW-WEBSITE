@@ -83,6 +83,20 @@ test("outreach views hide empty modules and render only enabled prepared content
   assert.equal(render(OutreachPageView), "")
 })
 
+test("homepage promotes configured conference name and renders accessible FAQ using the same draft content", () => {
+  const load = loader({ "@/components/home/hero-motion": { HeroMotion: () => null }, "@/components/countdown": { Countdown: () => null } })
+  const { HomeView } = load("@/components/content/site-views")
+  const content = parseSiteContent({})
+  content.faq.items = [{ id: "qa", enabled: true, keywords: ["A custom question", "自定义问题"], answer: { en: "Draft answer", zh: "草稿答案" } }]
+  const html = renderToStaticMarkup(createElement(HomeView, { content, locale: "zh", settings: { ...defaultSiteSettings, conference_name: "HOW QA" }, sessions: { status: "empty" } }))
+  assert.match(html, /<h1[^>]*>HOW QA<\/h1>/)
+  assert.equal([...html.matchAll(/<h1\b/g)].length, 1)
+  assert.match(html, /id="faq"/)
+  assert.match(html, /<details[^>]*data-faq="custom:qa"/)
+  assert.match(html, /<summary[^>]*>.*自定义问题/s)
+  assert.match(html, /草稿答案/)
+})
+
 test("unpublished resource routes return 404 even when visited directly", async () => {
   const content = parseSiteContent({})
   const load = loader({ "next/headers": { cookies: async () => ({ get: () => null }) }, "next/navigation": { notFound: () => { throw new Error("not_found") } }, "@/lib/content/site-public": { getPublishedSiteContent: async () => ({ status: "ready", settings: defaultSiteSettings, content }) } })

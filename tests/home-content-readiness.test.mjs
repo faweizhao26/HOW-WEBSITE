@@ -33,6 +33,7 @@ async function render(sessions, locale = "en") {
     "@/lib/content/site-content": { contentText, parseSiteContent },
     "@/components/content/content-blocks": { ContentBlocks: () => null },
     "./outreach-views": { OutreachLinks: () => null, ProgressView: () => null, SponsorshipView: () => null },
+    "./conference-faq": { ConferenceFAQ: () => null },
     "@/lib/content/public": {
       getPublishedSettings: async () => ({ status: "ready", data: defaultSiteSettings }),
       getPublishedSessions: async () => sessions,

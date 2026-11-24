@@ -35,6 +35,8 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
   const [{ user, isAdmin }, setNavigationUser] = useState<NavigationUser>({ user: null, isAdmin: false })
   const pathname = usePathname()
   const router = useRouter()
+  const isCurrent = (href: string) => pathname === href
+  const navClass = (active: boolean) => `inline-flex items-center whitespace-nowrap rounded-md px-2 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${active ? "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-white" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800/50 dark:hover:text-white"}`
 
   async function handleLogout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -77,30 +79,14 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
             </span>
           </Link>
 
-          <nav className="hidden min-[1440px]:flex items-center gap-1">
-            {navLinks.map(({ href, key }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`whitespace-nowrap px-2 py-2 rounded-lg text-sm transition-colors ${
-                  pathname === href
-                    ? "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-white"
-                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-white"
-                }`}
-              >
-                {navigation[key][locale]}
-              </Link>
-            ))}
+          <nav aria-label={locale === "zh" ? "主导航" : "Main navigation"} className="hidden min-[1440px]:flex items-center gap-1">
+            {navLinks.map(({ href, key }) => <Link key={href} href={href} aria-current={isCurrent(href) ? "page" : undefined} className={navClass(isCurrent(href))}>{navigation[key][locale]}</Link>)}
           </nav>
 
-          <div className="hidden min-[1440px]:flex shrink-0 items-center gap-3">
+          <div className="hidden min-[1440px]:flex shrink-0 items-center gap-2">
             <ThemeToggle initialTheme={initialTheme} />
             <LanguageSwitcher locale={locale} />
-            <Link href="/cfp">
-              <Button variant="outline" size="sm" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300">
-                {navigation.cfp[locale]}
-              </Button>
-            </Link>
+            <Link href="/cfp" className="inline-flex h-9 items-center whitespace-nowrap rounded-md border border-emerald-300 px-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/50">{navigation.cfp[locale]}</Link>
             {user ? (
               <div className="flex items-center gap-1">
                 {isAdmin && <Link href="/admin" className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-emerald-400 dark:hover:bg-emerald-950/50"><LayoutDashboard className="size-4" aria-hidden="true" />{locale === "zh" ? "管理后台" : "Admin"}</Link>}
@@ -144,21 +130,12 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
       {mobileOpen && (
         <div id="mobile-navigation" className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-zinc-200 bg-white min-[1440px]:hidden dark:border-zinc-800 dark:bg-zinc-950">
           <div className="px-4 py-3 space-y-1">
-            {navLinks.map(({ href, key }) => (
-              <Link
-                key={href}
-                href={href}
-                onNavigate={() => setMobileOpen(false)}
-                className={`block px-3 py-2 rounded-lg text-sm ${
-                  pathname === href ? "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-white" : "text-zinc-600 dark:text-zinc-400"
-                }`}
-              >
-                {navigation[key][locale]}
-              </Link>
-            ))}
+            <nav aria-label={locale === "zh" ? "手机导航" : "Mobile navigation"} className="space-y-1">
+              {navLinks.map(({ href, key }) => <Link key={href} href={href} aria-current={isCurrent(href) ? "page" : undefined} onNavigate={() => setMobileOpen(false)} className={`w-full ${navClass(isCurrent(href))}`}>{navigation[key][locale]}</Link>)}
+            </nav>
             <hr className="my-2 border-zinc-200 dark:border-zinc-800" />
-            <div className="flex items-center justify-between px-3">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <ThemeToggle initialTheme={initialTheme} />
                 <LanguageSwitcher locale={locale} />
               </div>

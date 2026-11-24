@@ -128,10 +128,9 @@ test("Home page has explicit sharp light-mode styling", () => {
   const home = read("src/components/content/site-views.tsx")
   const countdown = read("src/components/countdown.tsx")
 
-  assert.match(home, /bg-white dark:bg-zinc-900\/80/)
+  assert.match(home, /border-y border-border bg-background/)
   assert.match(home, /text-zinc-950 dark:text-white/)
-  assert.match(home, /border-zinc-200 dark:border-zinc-800/)
-  assert.match(home, /bg-slate-50 text-zinc-950 dark:bg-zinc-950 dark:text-white/)
+  assert.match(home, /bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-white/)
   assert.doesNotMatch(home, /blur-\[128px\]/)
   assert.match(countdown, /from-zinc-950 to-zinc-700 dark:from-white dark:to-zinc-300/)
 })

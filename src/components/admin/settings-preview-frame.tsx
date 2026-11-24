@@ -1,6 +1,7 @@
 "use client"
 
 import { OutreachPageView } from "@/components/content/outreach-views"
+import { ConferenceFAQ } from "@/components/content/conference-faq"
 import { CFPPolicySummary } from "@/components/content/cfp-policy-summary"
 import { useEffect, useState } from "react"
 import type { MouseEvent, FormEvent } from "react"
@@ -70,6 +71,7 @@ function FAQPreview({ settings, content, locale }: { settings: Record<string, st
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-16 [overflow-wrap:anywhere] sm:px-6 lg:px-8">
       <h1 className="text-4xl font-bold">{locale === "zh" ? "常见问题" : "FAQ"}</h1>
+      <ConferenceFAQ settings={settings} content={content} locale={locale} />
       <p className="whitespace-pre-line">{contentText(content.faq.greeting, locale)}</p>
       <div className="flex flex-wrap gap-3">{questions.map(value => <button key={value} type="button" className="text-emerald-700 underline underline-offset-4 dark:text-emerald-400" onClick={() => setQuestion(value)}>{value}</button>)}</div>
       <form onSubmit={ask} className="flex flex-wrap items-end gap-3">

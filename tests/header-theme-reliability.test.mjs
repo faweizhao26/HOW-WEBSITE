@@ -81,6 +81,20 @@ test("mobile links close for normal navigation, not modified or prevented clicks
   h.unmount()
 })
 
+test("flat navigation exposes every destination directly and marks the current page", () => {
+  const env = environment(), h = header(env)
+  const desktop = nodes(h.tree()).find(node => node.type === "nav" && node.props["aria-label"] === "Main navigation")
+  assert.equal(desktop.props.children.length, 10)
+  assert.equal(nodes(desktop).some(node => node.type === "button"), false)
+  open(h)
+  const links = nodes(panel(h)).filter(node => node.props?.href)
+  for (const href of ["/", "/about", "/speakers", "/schedule", "/attend", "/venue", "/code-of-conduct", "/updates", "/sponsors", "/register", "/cfp"]) assert.ok(links.some(node => node.props.href === href), href)
+  assert.equal(links.find(node => node.props.href === "/").props["aria-current"], "page")
+  click(h, links.find(node => node.props.href === "/venue"))
+  assert.equal(panel(h), undefined)
+  h.unmount()
+})
+
 const toggle = (env, initialTheme = "dark") => component("../../src/components/layout/theme-toggle.tsx", "ThemeToggle", { initialTheme }, env)
 const label = h => h.tree().props["aria-label"]
 function settle(env, ...controls) { env.flushMutations(); controls.forEach(control => control.flush()) }

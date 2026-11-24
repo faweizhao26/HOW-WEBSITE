@@ -1,9 +1,9 @@
 import { OutreachLinks, ProgressView, SponsorshipView } from "./outreach-views"
+import { ConferenceFAQ } from "./conference-faq"
 import Link from "next/link"
 import Image from "next/image"
 import { home, schedule as sched } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowRight, Calendar, MapPin, Users, Mic, ExternalLink } from "lucide-react"
 import { Countdown } from "@/components/countdown"
@@ -41,26 +41,22 @@ export function HomeView({ settings, content, locale, sessions, contentState = "
 
   return (
     <div data-content-state={contentState}>
-      <section className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden bg-slate-50 text-zinc-950 dark:bg-zinc-950 dark:text-white">
+      <section className="relative isolate overflow-hidden bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-white">
         <HeroMotion />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(248_250_252_/_0.88)_0%,rgb(248_250_252_/_0.6)_42%,rgb(248_250_252_/_0.12)_100%)] dark:bg-[linear-gradient(90deg,rgb(2_6_23_/_0.74)_0%,rgb(2_6_23_/_0.38)_42%,rgb(2_6_23_/_0.06)_100%)]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-300 to-transparent dark:via-emerald-800/70" />
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 lg:py-40">
-          <div className="max-w-3xl">
-            <Badge className="mb-6 bg-white/80 text-emerald-700 border-emerald-200 shadow-sm backdrop-blur hover:bg-white/90 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 dark:hover:bg-emerald-950/50">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+          <div className="max-w-3xl [overflow-wrap:anywhere]">
+            <p className="mb-4 text-base font-medium text-emerald-800 dark:text-emerald-300">{locale === "zh" ? heroTitleZh : heroTitle}</p>
+            <h1 className="mb-5 text-5xl font-bold leading-tight tracking-normal text-zinc-950 sm:text-6xl lg:text-7xl dark:text-white">
               {settings.conference_name}
-            </Badge>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-zinc-950 dark:text-white">
-              {locale === "zh" ? heroTitleZh : heroTitle}
-              <br />
-              <span className="block bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent text-3xl sm:text-4xl lg:text-6xl">
-                {locale === "zh" ? heroSubZh : heroSub}
-              </span>
             </h1>
-            <p className="text-lg sm:text-xl text-zinc-700 dark:text-zinc-300 mb-8 max-w-xl">
-              {date}
-            </p>
+            <p className="mb-7 max-w-2xl whitespace-pre-line text-xl leading-relaxed text-zinc-700 sm:text-2xl dark:text-zinc-200">{locale === "zh" ? heroSubZh : heroSub}</p>
+            <div className="mb-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <p className="flex items-center gap-2"><Calendar className="size-4 shrink-0" aria-hidden="true" />{date}</p>
+              <p className="flex items-center gap-2"><MapPin className="size-4 shrink-0" aria-hidden="true" />{locale === "zh" ? locationZh : location}</p>
+            </div>
             <div className="flex flex-wrap gap-4">
               <Link href="/register">
                 <Button size="lg" className="bg-emerald-700 hover:bg-emerald-800 text-white gap-2">
@@ -79,21 +75,19 @@ export function HomeView({ settings, content, locale, sessions, contentState = "
         </div>
       </section>
 
-      <section className="relative -mt-16 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section aria-label={locale === "zh" ? "大会信息" : "Conference facts"} className="border-y border-border bg-background">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-y-8 px-4 py-8 sm:px-6 md:grid-cols-4 lg:px-8">
           {stats.map((stat) => (
-            <Card key={stat.label} className="bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
-              <CardContent className="p-6 text-center">
-                <stat.icon className="h-6 w-6 text-emerald-400 mx-auto mb-3" />
+            <div key={stat.label} className="min-w-0 px-3 text-center [overflow-wrap:anywhere]">
+                <stat.icon className="mx-auto mb-2 size-5 text-emerald-700 dark:text-emerald-400" aria-hidden="true" />
                 <div className={`${stat.value === "Unavailable" ? "text-base" : "text-2xl"} font-bold text-zinc-950 dark:text-white`}>{stat.value}</div>
                 <div className="text-sm text-zinc-600 dark:text-zinc-400">{stat.label}</div>
-              </CardContent>
-            </Card>
+            </div>
           ))}
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"><ProgressView content={content} locale={locale} /><OutreachLinks content={content} locale={locale} /><ContentBlocks blocks={content.home.sections.map(block => block.id === "cta" ? { ...block, body: { en: [block.body.en, venueLine].filter(Boolean).join("\n"), zh: [block.body.zh, venueLine].filter(Boolean).join("\n") } } : block)} locale={locale} /></div>
+      <div className="mx-auto max-w-7xl space-y-12 px-4 py-12 sm:px-6 lg:px-8"><ProgressView content={content} locale={locale} /><OutreachLinks content={content} locale={locale} /><ContentBlocks blocks={content.home.sections.map(block => block.id === "cta" ? { ...block, body: { en: [block.body.en, venueLine].filter(Boolean).join("\n"), zh: [block.body.zh, venueLine].filter(Boolean).join("\n") } } : block)} locale={locale} /><ConferenceFAQ settings={settings} content={content} locale={locale} /></div>
     </div>
   )
 }
