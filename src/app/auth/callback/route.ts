@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server"
 import { createServerSupabase } from "@/lib/supabase/server"
-import { safeAuthRedirect } from "@/lib/auth/redirect"
+import { authRequestOrigin, safeAuthRedirect } from "@/lib/auth/redirect"
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
+  let origin
+  try { origin = authRequestOrigin(request) } catch { return new Response(null, { status: 400 }) }
   const code = searchParams.get("code")
   const next = safeAuthRedirect(searchParams.get("next"))
   const recovery = searchParams.get("flow") === "recovery" || searchParams.get("type") === "recovery"

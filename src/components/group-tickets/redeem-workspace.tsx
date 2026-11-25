@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input"
 import { useLocale } from "@/lib/i18n/provider"
 import { createClient } from "@/lib/supabase/client"
 import { watchAuthUser } from "@/lib/auth/watch-auth-user"
-import { redeemGroupSeat } from "@/lib/group-tickets/service"
+import { GroupTicketError } from "@/lib/group-tickets/service"
+import { claimGroupSeat } from "@/app/group-tickets/redeem/actions"
+import { PrivacyConfirmation } from "@/components/privacy-confirmation"
 import { AuthPrompt, ErrorNotice, Field, Loading, text } from "./shared"
 import { useGroupMutation } from "./use-group-workspace"
 
@@ -20,12 +22,14 @@ function ClaimForm({ userId, initialCode }: { userId: string; initialCode: strin
   const [phone, setPhone] = useState("")
   const [company, setCompany] = useState("")
   const [position, setPosition] = useState("")
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [success, setSuccess] = useState(false)
   const mutation = useGroupMutation()
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     const ok = await mutation.run(async () => {
-      await redeemGroupSeat(createClient(), { expectedUserId: userId, code: code.trim(), name: name.trim(), phone: phone.trim(), company: company.trim(), position: position.trim() })
+      const result = await claimGroupSeat({ expectedUserId: userId, code: code.trim(), name: name.trim(), phone: phone.trim(), company: company.trim(), position: position.trim(), privacyAccepted })
+      if (!result.success) throw new GroupTicketError(result.code)
     })
     if (ok) setSuccess(true)
   }
@@ -43,6 +47,7 @@ function ClaimForm({ userId, initialCode }: { userId: string; initialCode: strin
       <Field id="claim-company" label={text(locale, "公司", "Company")}><Input id="claim-company" autoComplete="organization" maxLength={200} value={company} onChange={e => setCompany(e.target.value)} /></Field>
       <Field id="claim-position" label={text(locale, "职位", "Position")}><Input id="claim-position" autoComplete="organization-title" maxLength={200} value={position} onChange={e => setPosition(e.target.value)} /></Field>
     </fieldset>
+    <PrivacyConfirmation id="claim-privacy" locale={locale} checked={privacyAccepted} disabled={mutation.busy} onChange={setPrivacyAccepted} />
     {Boolean(mutation.error) && <div className="space-y-2"><ErrorNotice error={mutation.error} /><Link href="/profile" className="text-sm underline underline-offset-4">{text(locale, "在个人中心核对已有报名", "Check existing registrations in your profile")}</Link></div>}
     <Button type="submit" disabled={mutation.busy || !code.trim() || !name.trim() || !phone.trim()}><TicketCheck />{mutation.busy ? text(locale, "领取中...", "Claiming...") : text(locale, "确认领取本人名额", "Claim my seat")}</Button>
   </form>

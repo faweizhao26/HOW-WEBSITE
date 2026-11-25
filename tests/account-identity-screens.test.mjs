@@ -52,6 +52,7 @@ test("a delayed registration response cannot show the old owner's success after 
   let release
   const h=mountAccountScreen("registration",{initialUser:user(a),submitRegistration:async()=>new Promise(resolve=>{release=resolve})})
   t.after(h.unmount);await h.flush()
+  h.nodes().find(n=>n.type==="PrivacyConfirmation").props.onChange(true);h.render()
   const form=h.nodes().find(n=>n.type==="form")
   assert.ok(form);form.props.onSubmit({preventDefault(){}});await h.flush()
   assert.equal(typeof release,"function")

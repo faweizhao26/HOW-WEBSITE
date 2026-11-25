@@ -36,7 +36,7 @@ function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tic
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<"duplicate" | "failed" | null>(null)
 
-  const registerLink = `https://how-website.vercel.app/register?code=${encodeURIComponent(code)}`
+  const registerPath = `/register?code=${encodeURIComponent(code.trim())}`
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -54,7 +54,7 @@ function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tic
   }
 
   async function copyLink() {
-    try { await navigator.clipboard.writeText(registerLink); toast.success(locale === "zh" ? "链接已复制" : "Link copied") }
+    try { await navigator.clipboard.writeText(new URL(registerPath, window.location.origin).href); toast.success(locale === "zh" ? "链接已复制" : "Link copied") }
     catch { toast.error(locale === "zh" ? "复制失败，请重试" : "Unable to copy. Please try again.") }
   }
 
@@ -76,7 +76,7 @@ function ChannelForm({ channel, tickets, onSaved }: { channel?: ChannelCode; tic
             </select>
           </div>
           <div className="flex items-center justify-between"><Label htmlFor={`${formId}-active`}>{locale === "zh" ? "启用渠道码" : "Channel enabled"}</Label><Switch id={`${formId}-active`} checked={isActive} onCheckedChange={setIsActive} /></div>
-          {code && <div className="p-3 bg-muted rounded-lg"><p className="text-xs text-muted-foreground mb-2">{locale === "zh" ? "报名链接" : "Registration Link"}:</p><div className="flex items-center gap-2"><code className="min-w-0 text-xs text-cyan-400 flex-1 truncate">{registerLink}</code><Button type="button" size="icon" variant="ghost" className="h-6 w-6 shrink-0" title={locale === "zh" ? "复制链接" : "Copy link"} onClick={copyLink}><Copy className="h-3 w-3" /></Button></div></div>}
+          {code.trim() && <div className="p-3 bg-muted rounded-lg"><p className="text-xs text-muted-foreground mb-2">{locale === "zh" ? "报名链接" : "Registration Link"}:</p><div className="flex items-center gap-2"><code className="min-w-0 text-xs text-cyan-400 flex-1 truncate">{registerPath}</code><Button type="button" size="icon" variant="ghost" className="h-6 w-6 shrink-0" title={locale === "zh" ? "复制链接" : "Copy link"} onClick={copyLink}><Copy className="h-3 w-3" /></Button></div></div>}
           </fieldset>
           {saveError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{saveError === "duplicate" ? (locale === "zh" ? "渠道码已存在，请更换。" : "This code already exists. Please choose another.") : (locale === "zh" ? "渠道码保存失败，请重试。填写内容已保留。" : "Unable to save channel. Your input has been kept; please try again.")}</p>}
           <Button type="submit" disabled={saving || tickets.some(t => t.id === ticketId && t.group_only)} className="w-full bg-cyan-600 hover:bg-cyan-500">{saving ? (locale === "zh" ? "保存中..." : "Saving...") : channel ? (locale === "zh" ? "保存" : "Save") : (locale === "zh" ? "创建" : "Create")}</Button>
@@ -190,7 +190,7 @@ export default function AdminTicketsPage() {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                       <Link className="h-3 w-3" />
                       <code className="min-w-0 break-all text-cyan-500">/register?code={encodeURIComponent(c.code)}</code>
-                      <button title={locale === "zh" ? "复制链接" : "Copy link"} onClick={async () => { try { await navigator.clipboard.writeText(`https://how-website.vercel.app/register?code=${encodeURIComponent(c.code)}`); toast.success(locale === "zh" ? "已复制" : "Copied") } catch { toast.error(locale === "zh" ? "复制失败，请重试" : "Unable to copy. Please try again.") } }}><Copy className="h-3 w-3" /></button>
+                      <button title={locale === "zh" ? "复制链接" : "Copy link"} onClick={async () => { try { await navigator.clipboard.writeText(new URL(`/register?code=${encodeURIComponent(c.code)}`, window.location.origin).href); toast.success(locale === "zh" ? "已复制" : "Copied") } catch { toast.error(locale === "zh" ? "复制失败，请重试" : "Unable to copy. Please try again.") } }}><Copy className="h-3 w-3" /></button>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0"><ChannelForm channel={c} tickets={tickets} onSaved={loadAll} /><Button variant="ghost" size="icon" disabled={!!deleting} title={locale === "zh" ? "删除渠道码" : "Delete channel"} className="h-8 w-8 hover:text-red-400" onClick={() => deleteRecord("channel", c.id)}><Trash2 className="h-4 w-4" /></Button></div>

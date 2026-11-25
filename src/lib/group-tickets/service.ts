@@ -4,6 +4,7 @@ import { normalizeRegistrationPhone } from "../registration/service.ts"
 import type { GroupWorkspace, GroupOrderDetail } from "./types.ts"
 
 const errors = {
+  privacy_required: ["请先阅读并同意隐私条款，再领取名额。", "Read and agree to the Privacy Policy before claiming a seat."],
   invalid_input: ["填写内容有误，请检查人数、金额和必填项。", "Check the quantity, amount and required fields."],
   login_required: ["请先登录。", "Please sign in first."],
   email_not_verified: ["请先验证账号邮箱。", "Verify your account email first."],
@@ -44,7 +45,7 @@ const creation = actor.extend({ requestId: z.uuid(), ticketTypeId: z.uuid(), qua
 const activation = order.extend({ paymentReference: z.string().trim().min(1).max(200), receivedCents: z.number().int().min(0).max(10000000000) }).strict()
 const closure = order.extend({ reason: z.string().trim().min(1).max(500) }).strict()
 const rotation = actor.extend({ seatId: z.uuid() }).strict()
-const redemption = actor.extend({ code: z.string().trim().regex(/^HOWG-[a-f0-9]{48}$/i).transform(v => v.toUpperCase()), name: z.string().trim().min(1).max(128), phone: z.string().trim().max(64), company: z.string().trim().max(200).default(""), position: z.string().trim().max(200).default("") }).strict()
+const redemption = actor.extend({ privacyAccepted: z.literal(true), code: z.string().trim().regex(/^HOWG-[a-f0-9]{48}$/i).transform(v => v.toUpperCase()), name: z.string().trim().min(1).max(128), phone: z.string().trim().max(64), company: z.string().trim().max(200).default(""), position: z.string().trim().max(200).default("") }).strict()
 function parse<T>(schema: z.ZodType<T>, input: unknown): T {
   const value = schema.safeParse(input)
   if (!value.success) throw new GroupTicketError("invalid_input")
@@ -109,6 +110,7 @@ export async function rotateGroupSeat(client: SupabaseClient, input: unknown): P
   await rpc(client, "group_seat_rotate", { p_expected_user: v.expectedUserId, p_seat_id: v.seatId })
 }
 export async function redeemGroupSeat(client: SupabaseClient, input: unknown): Promise<{ registrationId: string }> {
+  if (!input || typeof input !== "object" || !("privacyAccepted" in input) || input.privacyAccepted !== true) throw new GroupTicketError("privacy_required")
   const v = parse(redemption, input); await user(client, v.expectedUserId, true)
   let phone: string
   try { phone = normalizeRegistrationPhone(v.phone) } catch { throw new GroupTicketError("invalid_phone") }

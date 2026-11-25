@@ -50,7 +50,7 @@ test("group config validates integer money, size bounds and deadlines", async ()
 })
 test("group seat redemption normalizes phone and rejects unknown attendee identity fields", async () => {
   const { redeemGroupSeat } = await service()
-  const value = { expectedUserId: uid, code: "HOWG-" + "a".repeat(48), name: "  Person  ", phone: "13812345678", company: "Example", position: "Engineer" }
+  const value = { privacyAccepted: true, expectedUserId: uid, code: "HOWG-" + "a".repeat(48), name: "  Person  ", phone: "13812345678", company: "Example", position: "Engineer" }
   const db = client((url, init) => {
     assert.equal(url.pathname, "/rest/v1/rpc/group_seat_redeem")
     const args = JSON.parse(init.body)

@@ -58,7 +58,7 @@ if (env.REGISTRATION_QA_CLEANUP === "true") {
     }
     const admin = client(), attendee = client(), browser = client(), anonymous = client()
     for (const [index, current] of [admin, attendee, browser].entries()) await unwrap(current.auth.signInWithPassword({ email: fixture.emails[index], password: fixture.password }))
-    const fields = { name: "QA Attendee", email: fixture.emails[1], phone: "+1 202-555-0123", ticketTypeId: fixture.tickets[0] }
+    const fields = { privacyAccepted: true, name: "QA Attendee", email: fixture.emails[1], phone: "+1 202-555-0123", ticketTypeId: fixture.tickets[0] }
     await assert.rejects(createRegistration(anonymous, fields), error => error.code === "login_required")
     await assert.rejects(createRegistration(attendee, { ...fields, ticketTypeId: fixture.tickets[2] }), error => error.code === "invalid_ticket")
     await assert.rejects(createRegistration(attendee, { ...fields, ticketTypeId: fixture.tickets[1] }), error => error.code === "invalid_channel")

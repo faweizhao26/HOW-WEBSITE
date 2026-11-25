@@ -1,6 +1,7 @@
 import type { AuthErrorCode } from "./login"
 
 export const authErrors: Record<AuthErrorCode, { en: string; zh: string }> = {
+  privacy_required: { en: "Read and agree to the Privacy Policy before continuing.", zh: "请先阅读并同意隐私条款，再继续。" },
   invalid_input: { en: "Enter a valid email address and password.", zh: "请填写有效邮箱和密码。" },
   invalid_credentials: { en: "The email or password is incorrect.", zh: "邮箱或密码不正确。" },
   email_not_confirmed: { en: "Confirm your account using the email sent to you before signing in.", zh: "请先通过确认邮件激活账号，再登录。" },

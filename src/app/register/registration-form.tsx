@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { PrivacyConfirmation } from "@/components/privacy-confirmation"
 import { toast } from "sonner"
 import { CheckCircle, Ticket, User, Phone, Mail, Building, Briefcase, ChevronRight, AlertCircle, RotateCw } from "lucide-react"
 
@@ -34,6 +35,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
   const [phone, setPhone] = useState("")
   const [company, setCompany] = useState("")
   const [position, setPosition] = useState("")
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState("")
   const [channelCode, setChannelCode] = useState(searchParams.get("code") || "")
   const [channel, setChannel] = useState<ChannelState>({ code: channelCode.trim(), status: channelCode.trim() ? "checking" : "idle" })
@@ -89,6 +91,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
       channelRequest.current++; ticketChoice.current++
       initialized.current = false; pending.current = false
       setData(null); setRegisteredTicket(null); setName(""); setPhone(""); setCompany(""); setPosition(""); setSelectedTicket("")
+      setPrivacyAccepted(false)
       setChannelCode(""); setChannel({ code: "", status: "idle" }); setSubmitError(null); setSubmitting(false)
       setLoadError(false); setLoading(true); setLoadVersion(value => value + 1)
     })
@@ -130,6 +133,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
   }
 
   function retryLoad() {
+    setPrivacyAccepted(false)
     channelRequest.current++
     setLoading(true)
     setLoadError(false)
@@ -144,7 +148,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
     if (channelCode.trim() && channel.status !== "valid") { setSubmitError(channel.error || "invalid_channel"); return }
     let values
     try {
-      values = parseRegistrationInput({ expectedUserId: user.id, name, email, phone, company, position, ticketTypeId: selectedTicket, channelCode })
+      values = parseRegistrationInput({ expectedUserId: user.id, name, email, phone, company, position, ticketTypeId: selectedTicket, channelCode, privacyAccepted })
     } catch (error) {
       setSubmitError(error instanceof RegistrationError ? error.code : "invalid_input")
       return
@@ -249,6 +253,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
                 <div className="space-y-2"><Label htmlFor="registration-position">{locale === "zh" ? "职位" : "Position"}</Label><div className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground shrink-0" /><Input id="registration-position" autoComplete="organization-title" value={position} onChange={event => setPosition(event.target.value)} maxLength={200} /></div></div>
               </div>
             </fieldset>
+            {user && <PrivacyConfirmation id="registration-privacy" locale={locale} checked={privacyAccepted} disabled={submitting} onChange={value => { setPrivacyAccepted(value); if (submitError === "privacy_required") setSubmitError(null) }} />}
             {submitError && <div role="alert" className="space-y-2"><p className="text-sm text-red-700 dark:text-red-300">{registrationMessages[submitError][locale]}</p>{submitError === "already_registered" && <Link href="/profile" className="text-sm underline">{locale === "zh" ? "查看报名" : "View in Profile"}</Link>}</div>}
             {submitError === "account_changed" ? <Button type="button" variant="outline" onClick={() => { initialized.current = false; setData(null); setName(""); setPhone(""); setCompany(""); setPosition(""); retryLoad() }}><RotateCw />{locale === "zh" ? "重新加载报名信息" : "Reload registration information"}</Button> : !user || submitError === "login_required" ? <div className="text-center space-y-3"><p className="text-sm text-muted-foreground">{locale === "zh" ? "请先登录后提交报名" : "Please log in to register"}</p><Button render={<Link href="/auth/login?redirect=/register" />} nativeButton={false}>{locale === "zh" ? "登录 / 注册" : "Login / Register"}<ChevronRight className="h-4 w-4" /></Button></div> : <Button type="submit" disabled={submitting || !selectedTicket || !tickets.length || (Boolean(channelCode.trim()) && codeStatus === "checking")} className="w-full">{submitting ? (locale === "zh" ? "提交中..." : "Submitting...") : (locale === "zh" ? "确认报名" : "Confirm Registration")}</Button>}
           </form>

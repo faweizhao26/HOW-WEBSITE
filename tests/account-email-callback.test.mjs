@@ -12,7 +12,7 @@ function route(auth) {
   const modules = { "next/server": require("next/server"), "@/lib/auth/redirect": redirects, "@/lib/supabase/server": { createServerSupabase: async () => ({ auth }) } }
   const context = { exports: {}, URL, require: name => modules[name] }
   vm.runInNewContext(js, context)
-  return path => context.exports.GET(new Request("https://conference.example" + path))
+  return (path, origin = "https://conference.example", headers) => context.exports.GET(new Request(origin + path, { headers }))
 }
 test("recovery PKCE callback reaches reset page without losing its original internal destination", async () => {
   const get = route({ exchangeCodeForSession: async code => { assert.equal(code, "one-use-code"); return { data: { session: { access_token: "fixture" }, redirectType: "recovery" }, error: null } } })
@@ -37,4 +37,10 @@ test("unsupported email token types are never verified and failed signup callbac
   const get = route({ verifyOtp: async () => { throw Error("must not verify an unsupported type") } })
   const response = await get("/auth/callback?token_hash=token&type=email_change&next=%2Fcfp")
   assert.equal(response.headers.get("location"), "https://conference.example/auth/login?error=auth_failed&redirect=%2Fcfp")
+})
+
+test("a callback behind a reverse proxy redirects to the public host without the internal port", async () => {
+  const get = route({})
+  const response = await get("/auth/callback?next=%2Fregister", "https://0.0.0.0:3000", { Host: "conference.example" })
+  assert.equal(response.headers.get("location"), "https://conference.example/auth/login?error=auth_failed&redirect=%2Fregister")
 })

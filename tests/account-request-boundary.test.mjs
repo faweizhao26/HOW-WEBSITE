@@ -3,6 +3,7 @@ import { test } from "node:test"
 import { existsSync, readFileSync } from "node:fs"
 import vm from "node:vm"
 import ts from "typescript"
+import * as redirects from "../src/lib/auth/redirect.ts"
 
 function moduleAt(path, modules, extra = {}) {
   const js = ts.transpileModule(readFileSync(new URL(path, import.meta.url), "utf8"), {
@@ -56,10 +57,11 @@ for (const route of ["callback", "signout"]) {
         options = value
         return { auth: { exchangeCodeForSession: async () => ({ data: { session: {} }, error: null }), signOut: async () => ({ error: null }) } }
       } },
-      "@/lib/auth/redirect": { safeAuthRedirect: () => "/" },
+      "@/lib/auth/redirect": redirects,
     })
-    await mod[route === "callback" ? "GET" : "POST"](new Request(`http://local.test/auth/${route}?code=synthetic`))
+    const response = await mod[route === "callback" ? "GET" : "POST"](new Request(`https://0.0.0.0:3000/auth/${route}?code=synthetic`, { headers: { Host: "conference.example" } }))
     assert.equal(options?.writeCookies, true)
+    assert.equal(response.headers.get("location"), "https://conference.example/")
   })
 }
 
@@ -79,6 +81,6 @@ test("registration refuses an expected account mismatch before ticket or databas
   const { createRegistration } = await import("../src/lib/registration/service.ts")
   let reads = 0
   const client = { auth: { getUser: async () => ({ data: { user: { id: "11111111-1111-4111-8111-111111111111", email: "same@example.test", email_confirmed_at: "2026-01-01" } }, error: null }) }, from() { reads++; throw Error("Unexpected database call") } }
-  await assert.rejects(createRegistration(client, { expectedUserId: "22222222-2222-4222-8222-222222222222", email: "same@example.test", name: "Test", phone: "13812345678", ticketTypeId: "33333333-3333-4333-8333-333333333333" }), error => error.code === "account_changed")
+  await assert.rejects(createRegistration(client, { privacyAccepted: true, expectedUserId: "22222222-2222-4222-8222-222222222222", email: "same@example.test", name: "Test", phone: "13812345678", ticketTypeId: "33333333-3333-4333-8333-333333333333" }), error => error.code === "account_changed")
   assert.equal(reads, 0)
 })

@@ -2,7 +2,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js"
 import { parsePhoneNumberFromString } from "libphonenumber-js/max"
 import { z } from "zod"
 
-export type RegistrationErrorCode = "login_required" | "email_not_verified" | "account_changed" | "invalid_input" | "invalid_phone" | "invalid_ticket" | "invalid_channel" | "already_registered" | "load_failed" | "operation_failed"
+export type RegistrationErrorCode = "login_required" | "email_not_verified" | "account_changed" | "invalid_input" | "invalid_phone" | "invalid_ticket" | "invalid_channel" | "already_registered" | "load_failed" | "operation_failed" | "privacy_required"
 
 export class RegistrationError extends Error {
   code: RegistrationErrorCode
@@ -21,6 +21,7 @@ export function normalizeRegistrationPhone(value: string): string {
 }
 
 const inputSchema = z.object({
+  privacyAccepted: z.literal(true),
   expectedUserId: z.uuid().optional(),
   name: z.string().trim().min(1).max(128),
   email: z.email().trim().max(254),
@@ -34,7 +35,7 @@ export type RegistrationInput = z.input<typeof inputSchema>
 
 export function parseRegistrationInput(input: unknown) {
   const parsed = inputSchema.safeParse(input)
-  if (!parsed.success) throw new RegistrationError("invalid_input")
+  if (!parsed.success) throw new RegistrationError(parsed.error.issues.some(issue => issue.path[0] === "privacyAccepted") ? "privacy_required" : "invalid_input")
   return { ...parsed.data, phone: normalizeRegistrationPhone(parsed.data.phone) }
 }
 
@@ -106,6 +107,7 @@ export async function createRegistration(client: SupabaseClient, input: unknown)
     name: values.name, email: user.email, phone: values.phone,
     company: values.company || null, position: values.position || null,
     status: "confirmed", checked_in: false, checked_in_at: null,
+    custom_fields: { privacy_consent: { accepted: true, accepted_at: new Date().toISOString(), policy_path: "/privacy" } },
   }).select("id").single()
   if (error?.code === "23505") throw new RegistrationError("already_registered")
   if (error || !data) throw new RegistrationError("operation_failed")

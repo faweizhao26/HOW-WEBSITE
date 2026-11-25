@@ -14,12 +14,14 @@ import { authErrorCode } from "@/lib/auth/login"
 import type { AuthErrorCode } from "@/lib/auth/login"
 import { authErrors } from "@/lib/auth/messages"
 import { safeAuthRedirect } from "@/lib/auth/redirect"
+import { PrivacyConfirmation } from "@/components/privacy-confirmation"
 
 export default function RegisterPage() {
   const locale = useLocale()
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorCode, setErrorCode] = useState<AuthErrorCode | null>(null)
   const pending = useRef(false)
@@ -30,6 +32,7 @@ export default function RegisterPage() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
     if (pending.current) return
+    if (!privacyAccepted) { setErrorCode("privacy_required"); return }
     pending.current = true
     setLoading(true)
     setErrorCode(null)
@@ -39,7 +42,7 @@ export default function RegisterPage() {
       callback.searchParams.set("next", redirect)
       const { data, error } = await createClient().auth.signUp({
         email: email.trim(), password,
-        options: { data: { full_name: fullName.trim() }, emailRedirectTo: callback.href },
+        options: { data: { full_name: fullName.trim(), privacyAccepted }, emailRedirectTo: callback.href },
       })
       if (error) { setErrorCode(authErrorCode(error)); return }
       if (data.session) {
@@ -73,6 +76,7 @@ export default function RegisterPage() {
                 required
                 disabled={loading}
                 autoComplete="name"
+                maxLength={128}
               />
             </div>
             <div className="space-y-2">
@@ -103,6 +107,7 @@ export default function RegisterPage() {
                 autoComplete="new-password"
               />
             </div>
+            <PrivacyConfirmation id="signup-privacy" locale={locale} checked={privacyAccepted} disabled={loading} onChange={value => { setPrivacyAccepted(value); if (errorCode === "privacy_required") setErrorCode(null) }} />
             {errorCode && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{authErrors[errorCode][locale]}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (locale === "zh" ? "创建中..." : "Creating account...") : (locale === "zh" ? "创建账号" : "Create Account")}

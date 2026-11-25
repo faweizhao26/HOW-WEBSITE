@@ -24,6 +24,13 @@ Mock changes stay local and do not simulate real publication. Production must
 use `NEXT_PUBLIC_CONTENT_MODE=supabase` and valid Supabase public credentials.
 Never add a service-role key to `NEXT_PUBLIC_*` variables.
 
+## Docker Deployment
+
+The root `Dockerfile` builds the full Next.js server, including auth, registration
+and admin. See [Docker deployment](docs/DOCKER_DEPLOYMENT.md) for build arguments,
+reverse proxy setup and verification on the 2026 server. Docker deployment does
+not migrate Supabase or change the existing Vercel build.
+
 ## Database Setup
 
 For a new Supabase project, apply `supabase-schema.sql` once. For an existing

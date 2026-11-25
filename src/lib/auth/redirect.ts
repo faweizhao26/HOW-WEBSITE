@@ -1,3 +1,12 @@
+export function authRequestOrigin(request: Request): string {
+  const url = new URL(request.url)
+  const host = request.headers.get("host")
+  if (!host) return url.origin
+  if (!/^(?:[a-z0-9.-]+|\[[0-9a-f:.]+\])(?::[0-9]{1,5})?$/i.test(host)) throw new TypeError("Invalid Host")
+  // Standalone Next.js can put its internal listener and port in request.url.
+  return new URL(`${url.protocol}//${host}`).origin
+}
+
 export function safeAuthRedirect(value: unknown): string {
   if (typeof value !== "string" || !value.startsWith("/") || value.length > 2048) return "/"
   try {

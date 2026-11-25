@@ -10,7 +10,7 @@ async function service() {
 }
 const user = { id: "11111111-1111-4111-8111-111111111111", email: "attendee@example.test", email_confirmed_at: "2026-01-01" }
 const ticketId = "22222222-2222-4222-8222-222222222222"
-const values = { name: "  Attendee  ", email: user.email, phone: "13812345678", ticketTypeId: ticketId }
+const values = { name: "  Attendee  ", email: user.email, phone: "13812345678", ticketTypeId: ticketId, privacyAccepted: true }
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } })
 function client(fetch, currentUser = user) {
   const db = createClient("https://isolated.example.test", "test-key", { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch } })
@@ -69,6 +69,7 @@ test("successful registration uses authenticated identity and requires returned 
       assert.equal(record.phone, "+8613812345678")
       assert.equal(record.status, "confirmed")
       assert.equal(record.checked_in, false)
+      assert.equal(record.custom_fields.privacy_consent.accepted, true)
       return json({ id: "saved" })
     }
     if (String(url).endsWith("unused")) throw new Error("unexpected")
