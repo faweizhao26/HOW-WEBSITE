@@ -134,6 +134,7 @@ test("desktop and mobile headers show an admin link only for a confirmed admin",
       "next/link": { __esModule: true, default: props => React.createElement("a", props) },
       "next/navigation": { usePathname: () => "/", useRouter: () => ({ replace() {}, refresh() {} }) },
       "@/lib/supabase/client": {}, "@/lib/auth/watch-auth-user": {}, "@/lib/auth/watch-navigation-user": {},
+      "@/lib/notifications": {},
       "@/lib/i18n/translations": { navigation: new Proxy({}, { get: () => ({ en: "Menu", zh: "菜单" }) }) },
       "./language-switcher": { LanguageSwitcher: () => null }, "./theme-toggle": { ThemeToggle: () => null },
       "@/components/ui/button": { Button: props => React.createElement("button", props) }, "@/lib/utils": {},
@@ -141,6 +142,7 @@ test("desktop and mobile headers show an admin link only for a confirmed admin",
     vm.runInNewContext(javascript, { module: compiled, exports: compiled.exports, require: name => name in overrides ? overrides[name] : require(name) })
     const html = renderToStaticMarkup(React.createElement(compiled.exports.Header, { locale, initialTheme: "light" }))
     assert.equal([...html.matchAll(/href="\/admin"/g)].length, navigation.isAdmin ? 2 : 0)
+    assert.equal([...html.matchAll(/href="\/notifications"/g)].length, navigation.user ? 2 : 0)
     if (navigation.isAdmin) assert.match(html, new RegExp(locale === "zh" ? "管理后台" : "Admin"))
   }
 })

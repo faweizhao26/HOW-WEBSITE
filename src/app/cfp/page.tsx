@@ -8,22 +8,25 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { AccountRequestError, prepareAccountRequest } from "@/lib/auth/prepare-account-request"
 import { watchAuthUser } from "@/lib/auth/watch-auth-user"
-import { CFPError, loadCFPData, parseProposalInput } from "@/lib/cfp/service"
+import { CFPError, loadCFPData, ownedProposalPhoto, parseProposalInput, uploadProposalPhoto } from "@/lib/cfp/service"
 import type { CFPData, CFPErrorCode } from "@/lib/cfp/service"
 import { cfpErrors } from "@/lib/cfp/messages"
-import { getCFPState } from "@/lib/cfp/settings"
+import { cfpDurationOptions, getCFPState } from "@/lib/cfp/settings"
+import type { CFPType } from "@/lib/cfp/settings"
 import { submitCFP } from "./actions"
 import { cfp, common } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { Plus, ChevronRight, RotateCw, AlertCircle } from "lucide-react"
+
+const emptySpeaker = { full_name:"", company:"", position:"", bio:"" }
+const selectClass = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
 
 function statusBadge(status: string, locale: "en" | "zh") {
   switch (status) {
@@ -31,6 +34,8 @@ function statusBadge(status: string, locale: "en" | "zh") {
       return <Badge variant="secondary">{cfp.pending[locale]}</Badge>
     case "approved":
       return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800">{cfp.approved[locale]}</Badge>
+    case "waitlisted":
+      return <Badge className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">{cfp.waitlisted[locale]}</Badge>
     case "rejected":
       return <Badge variant="destructive">{cfp.rejected[locale]}</Badge>
     default:
@@ -59,13 +64,21 @@ export default function CFPPage() {
   const policyState = policy ? getCFPState(policy) : "closed"
 
   const [title, setTitle] = useState("")
-  const [titleZh, setTitleZh] = useState("")
   const [abstract, setAbstract] = useState("")
-  const [abstractZh, setAbstractZh] = useState("")
+  const [language, setLanguage] = useState(locale)
+  const [outline, setOutline] = useState("")
+  const [speaker, setSpeaker] = useState(emptySpeaker)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [photoError, setPhotoError] = useState(false)
   const [duration, setDuration] = useState("30")
-  const [sessionType, setSessionType] = useState("talk")
-  const selectedDuration = policy?.durations.includes(Number(duration) as 15 | 30 | 45 | 60) ? duration : String(policy?.durations[0] ?? 30)
-  const selectedType = policy?.sessionTypes.includes(sessionType as "talk" | "workshop" | "panel") ? sessionType : policy?.sessionTypes[0] ?? "talk"
+  const [sessionType, setSessionType] = useState<CFPType>("talk")
+  const selectedType = policy?.sessionTypes.includes(sessionType) ? sessionType : policy?.sessionTypes[0] ?? "talk"
+  const durations = cfpDurationOptions[selectedType]
+  const selectedDuration = durations.includes(Number(duration)) ? duration : String(durations[0])
+  const profilePhoto = data?.speaker?.avatar_url
+  const mayUseAvatar = profilePhoto && user && ownedProposalPhoto(profilePhoto,user.id)
+  const zh = locale === "zh"
 
   useEffect(() => {
     let active = true
@@ -78,6 +91,14 @@ export default function CFPPage() {
           setAccountChanged(true)
           return
         }
+        if (result.user && draftOwner.current !== result.user.id) {
+          const p = result.speaker
+          setSpeaker({
+            full_name: p?.full_name || String(result.user.user_metadata?.full_name || ""),
+            company: p?.company || "", position: "",
+            bio: locale === "zh" ? p?.bio_zh || "" : p?.bio || "",
+          })
+        }
         draftOwner.current = result.user?.id || null
         setData(result)
         setLoadError(false)
@@ -86,7 +107,7 @@ export default function CFPPage() {
     }
     void load()
     return () => { active = false }
-  }, [loadVersion])
+  }, [loadVersion,locale])
 
   useEffect(() => {
     const stop = watchAuthUser(createClient().auth, user => {
@@ -104,11 +125,12 @@ export default function CFPPage() {
       setSubmitError(null)
       pending.current = false
       setSubmitting(false)
-      setTitle(""); setTitleZh(""); setAbstract(""); setAbstractZh("")
+      setTitle(""); setAbstract(""); setOutline(""); setSpeaker(emptySpeaker)
+      setPhotoUrl(null); setPhotoError(false); setUploading(false); setLanguage(locale)
       setDuration("30"); setSessionType("talk")
     })
     return stop
-  }, [])
+  }, [locale])
 
   function retryLoad() {
     setLoading(true)
@@ -117,15 +139,28 @@ export default function CFPPage() {
     setLoadVersion(version => version + 1)
   }
 
+  async function uploadPhoto(file?: File) {
+    if (!file || !user || uploading || submitting) return
+    const version = identity.current.version, owner = user.id
+    const stillOwns = () => draftOwner.current === owner && identity.current.version === version
+    setUploading(true); setPhotoError(false)
+    try {
+      const photo = await uploadProposalPhoto(createClient(),owner,file)
+      if (stillOwns()) setPhotoUrl(photo)
+    } catch { if (stillOwns()) setPhotoError(true) }
+    finally { if (stillOwns()) setUploading(false) }
+  }
+
   function handleSubmit(e: React.SyntheticEvent, recover = false) {
     e.preventDefault()
-    if (pending.current) return
+    if (pending.current || uploading) return
     setSubmitError(null)
     if (!user) { setSubmitError("login_required"); return }
     const savedAttempt = recover ? attempt.current : null
     if (recover && !savedAttempt) return
     if (policyState !== "open" && !savedAttempt) { setSubmitError("cfp_closed"); return }
-    const fields = { title, titleZh, abstract, abstractZh, duration: Number(selectedDuration), type: selectedType }
+    const fields = { title, abstract, duration:Number(selectedDuration), type:selectedType,
+      proposalDetails:{ language,...speaker,outline,photo_url:photoUrl } }
     const fingerprint = savedAttempt?.fingerprint ?? JSON.stringify(fields)
     const id = savedAttempt?.id ?? (attempt.current?.fingerprint === fingerprint ? attempt.current.id : crypto.randomUUID())
     let values
@@ -152,9 +187,8 @@ export default function CFPPage() {
         toast.success(cfp.success[locale])
         if (!preserveDraft) {
           setTitle("")
-          setTitleZh("")
           setAbstract("")
-          setAbstractZh("")
+          setOutline("")
           setDuration("30")
           setSessionType("talk")
         }
@@ -216,91 +250,81 @@ export default function CFPPage() {
               <Button type="button" variant="outline" onClick={retryLoad} disabled={submitting}><RotateCw />{locale === "zh" ? "更新征稿信息" : "Refresh CFP information"}</Button>
             </div>
           </div> :
-          <Card className="bg-zinc-900/50 border-zinc-800">
-            <CardHeader>
-              <CardTitle>{cfp.submitTitle[locale]}</CardTitle>
-              <CardDescription>
-                {locale === "zh"
-                  ? "请用英文和中文（如适用）填写演讲信息。提交后我们的审核团队将评估您的提案。"
-                  : "Please fill in your session info in English and Chinese (where applicable). Our review team will evaluate your proposal."}
-              </CardDescription>
-            </CardHeader>
+          <Card>
+            <CardHeader><CardTitle>{cfp.submitTitle[locale]}</CardTitle></CardHeader>
             <CardContent>
-              <form onSubmit={event => handleSubmit(event)} className="space-y-5" aria-busy={submitting}>
-                <fieldset disabled={submitting} className="space-y-5 min-w-0">
-                <div className="space-y-2">
-                  <Label htmlFor="title">{cfp.titleLabel[locale]} *</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Building Modern APIs with PostgreSQL"
-                    maxLength={200}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="titleZh">{cfp.titleZhLabel[locale]}</Label>
-                  <Input
-                    id="titleZh"
-                    value={titleZh}
-                    onChange={(e) => setTitleZh(e.target.value)}
-                    placeholder="例如：PostgreSQL 构建现代 API"
-                    maxLength={200}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="abstract">{cfp.abstractLabel[locale]} *</Label>
-                  <Textarea
-                    id="abstract"
-                    value={abstract}
-                    onChange={(e) => setAbstract(e.target.value)}
-                    placeholder="Describe your session..."
-                    rows={4}
-                    maxLength={10000}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="abstractZh">{cfp.abstractZhLabel[locale]}</Label>
-                  <Textarea
-                    id="abstractZh"
-                    value={abstractZh}
-                    onChange={(e) => setAbstractZh(e.target.value)}
-                    placeholder="用中文描述您的演讲..."
-                    rows={4}
-                    maxLength={10000}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cfp-duration">{cfp.durationLabel[locale]} *</Label>
-                    <Select value={selectedDuration} disabled={submitting} onValueChange={(v) => setDuration(v || selectedDuration)}>
-                      <SelectTrigger id="cfp-duration">
-                        <SelectValue>{selectedDuration} {locale === "zh" ? "分钟" : "min"}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {policy?.durations.map(value => <SelectItem key={value} value={String(value)}>{value} {locale === "zh" ? "分钟" : "min"}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+              <form onSubmit={event => handleSubmit(event)} className="space-y-5" aria-busy={submitting || uploading}>
+                <fieldset disabled={submitting || uploading} className="space-y-5 min-w-0">
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="cfp-language">{zh ? "投稿语言" : "Proposal language"}</Label>
+                      <select id="cfp-language" className={selectClass} value={language} onChange={e => setLanguage(e.target.value as typeof language)}>
+                        <option value="zh">中文</option><option value="en">English</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cfp-type">{cfp.typeLabel[locale]}</Label>
+                      <select id="cfp-type" className={selectClass} value={selectedType} onChange={e => { setSessionType(e.target.value as CFPType); setDuration("30") }}>
+                        {policy?.sessionTypes.map(type => <option key={type} value={type}>{cfp[type][locale]}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cfp-duration">{cfp.durationLabel[locale]}</Label>
+                      {durations.length === 1 ? <Input id="cfp-duration" value={selectedDuration} readOnly /> :
+                        <select id="cfp-duration" className={selectClass} value={selectedDuration} onChange={e => setDuration(e.target.value)}>
+                          {durations.map(value => <option key={value} value={value}>{value}</option>)}
+                        </select>}
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="cfp-type">{cfp.typeLabel[locale]} *</Label>
-                    <Select value={selectedType} disabled={submitting} onValueChange={(v) => setSessionType(v || selectedType)}>
-                      <SelectTrigger id="cfp-type">
-                        <SelectValue>{selectedType === "workshop" ? cfp.workshop[locale] : selectedType === "panel" ? cfp.panel[locale] : cfp.talk[locale]}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {policy?.sessionTypes.map(value => <SelectItem key={value} value={value}>{cfp[value][locale]}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="title">{cfp.titleLabel[locale]} *</Label>
+                    <Input id="title" value={title} onChange={e => setTitle(e.target.value)} maxLength={200} required lang={language} />
                   </div>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="abstract">{cfp.abstractLabel[locale]} *</Label>
+                    <Textarea id="abstract" value={abstract} onChange={e => setAbstract(e.target.value)} rows={4} maxLength={10000} required lang={language} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cfp-outline">{zh ? "议题大纲" : "Proposal outline"} {selectedType === "lightning" ? (zh ? "（选填）" : "(optional)") : "*"}</Label>
+                    <Textarea id="cfp-outline" value={outline} onChange={e => setOutline(e.target.value)} rows={4} maxLength={6000} required={selectedType !== "lightning"} lang={language} />
+                  </div>
+                  <div className="space-y-4 border-t pt-5">
+                    <h2 className="font-semibold">{zh ? "讲者资料" : "Speaker details"}</h2>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      {([
+                        ["full_name",zh ? "姓名" : "Name","name",128],
+                        ["company",zh ? "单位" : "Organization","organization",200],
+                        ["position",zh ? "职位" : "Job title","organization-title",200],
+                      ] as const).map(([key,label,autoComplete,maxLength]) => <div key={key} className="space-y-2">
+                        <Label htmlFor={`cfp-${key}`}>{label} *</Label>
+                        <Input id={`cfp-${key}`} value={speaker[key]} autoComplete={autoComplete} maxLength={maxLength} required
+                          onChange={e => setSpeaker(current => ({...current,[key]:e.target.value}))} />
+                      </div>)}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cfp-bio">{zh ? "个人简介" : "Speaker bio"} *</Label>
+                      <Textarea id="cfp-bio" value={speaker.bio} onChange={e => setSpeaker(current => ({...current,bio:e.target.value}))} rows={4} maxLength={4000} required lang={language} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cfp-photo">{zh ? "个人照片（选填）" : "Speaker photo (optional)"}</Label>
+                      <Input id="cfp-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => {
+                        const file = e.target.files?.[0]
+                        e.target.value = ""
+                        void uploadPhoto(file)
+                      }} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        {mayUseAvatar && <Button type="button" variant="outline" size="sm" onClick={() => { setPhotoUrl(profilePhoto); setPhotoError(false) }}>{zh ? "使用账号头像" : "Use profile photo"}</Button>}
+                        {photoUrl && <><span role="status" className="text-sm">{zh ? "已添加照片" : "Photo attached"}</span><Button type="button" variant="ghost" size="sm" onClick={() => setPhotoUrl(null)}>{zh ? "移除照片" : "Remove photo"}</Button></>}
+                      </div>
+                      {uploading && <p role="status" className="text-sm">{zh ? "正在上传照片…" : "Uploading photo…"}</p>}
+                      {photoError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{zh ? "照片上传失败，请使用不超过 5 MB 的 JPEG、PNG 或 WebP 图片重试。" : "Photo upload failed. Try a JPEG, PNG or WebP image up to 5 MB."}</p>}
+                    </div>
+                  </div>
                 </fieldset>
                 {submitError && <div role="alert" className="flex gap-2 text-sm text-red-700 dark:text-red-300"><AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /><p>{cfpErrors[submitError][locale]}</p></div>}
                 {submitError && hasAttempt && <Button type="button" variant="outline" disabled={submitting} onClick={event => handleSubmit(event, true)}><RotateCw />{locale === "zh" ? "确认上次提交结果" : "Check last submission"}</Button>}
                 {(submitError === "cfp_options_changed" || submitError === "cfp_closed" || submitError === "operation_failed") && <Button type="button" variant="outline" onClick={retryLoad} disabled={submitting}><RotateCw />{locale === "zh" ? "更新征稿信息" : "Refresh CFP information"}</Button>}
-                <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 w-full" disabled={submitting}>
+                <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 w-full" disabled={submitting || uploading}>
                   {submitting ? cfp.submitting[locale] : cfp.submit[locale]}
                 </Button>
               </form>
@@ -316,17 +340,18 @@ export default function CFPPage() {
           ) : (
             <div className="space-y-4">
               {sessions.map((session) => (
-                <Card key={session.id} className="bg-zinc-900/50 border-zinc-800">
+                <Card key={session.id}>
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-2">
                           {statusBadge(session.status, locale)}
                           <Badge variant="outline" className="text-zinc-400 border-zinc-700">
-                            {session.duration} min · {session.type}
+                            {session.duration} {zh ? "分钟" : "min"} · {cfp[session.type][locale]}
+                            {session.proposal_details && (session.proposal_details.language === "zh" ? " · 中文" : " · English")}
                           </Badge>
                         </div>
-                        <h3 className="font-medium text-white mb-1">{session.title}</h3>
+                        <h3 className="break-words font-medium mb-1">{session.title}</h3>
                         {session.title_zh && (
                           <p className="text-sm text-muted-foreground mb-2">{session.title_zh}</p>
                         )}

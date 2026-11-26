@@ -31,6 +31,7 @@ function statusBadge(status: string, locale: "en" | "zh") {
   switch (status) {
     case "pending": return <Badge variant="secondary">{cfpT.pending[locale]}</Badge>
     case "approved": return <Badge className="bg-emerald-100 text-emerald-900 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-200 dark:border-emerald-800">{cfpT.approved[locale]}</Badge>
+    case "waitlisted": return <Badge className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">{cfpT.waitlisted[locale]}</Badge>
     case "rejected": return <Badge variant="outline" className="bg-red-100 text-red-900 border-red-200 dark:bg-red-950 dark:text-red-200 dark:border-red-800">{cfpT.rejected[locale]}</Badge>
     default: return <Badge variant="outline">{status}</Badge>
   }

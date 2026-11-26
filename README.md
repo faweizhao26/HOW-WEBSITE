@@ -78,12 +78,12 @@ flags, activation and display order. Channels have a custom code/name, linked
 ticket and activation switch. These changes take effect when saved.
 
 `/admin/settings` manages CFP activation, an inclusive Beijing-time deadline,
-allowed session types/durations, bilingual instructions/review notes and contact
-email. CFP settings use the same explicit draft/publish/rollback flow as other
-site settings. An empty deadline means no date restriction, not a fabricated date.
-Options are subsets of the existing talk/workshop/panel types and 15/30/45/60-minute
-durations. Saved proposals remain readable and idempotent retries recover the
-original submission after closure.
+allowed session types, bilingual instructions/review notes and contact email.
+New proposals use one language and a required speaker snapshot. Talk and lightning
+talk are fixed at 30 and 5 minutes respectively; workshop and panel offer 30, 45
+or 60 minutes. Saved proposals remain readable and idempotent retries recover the
+original submission after closure. See [CFP and notifications](docs/CFP_NOTIFICATIONS.md)
+for the two new migrations and notification or email-export workflow.
 
 Apply `supabase/migrations/20261014083201_cfp_settings_enforcement.sql` before
 deploying this feature. It validates published CFP settings and enforces ordinary

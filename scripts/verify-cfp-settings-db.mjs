@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process"
 
 assert.equal(process.env.PUBLICATION_TEST_ISOLATED_PROJECT, "true", "Explicit isolated local environment required")
 const container = "supabase_db_how-publication-stack"
+const details = '{"language":"en","full_name":"QA Speaker","company":"QA Org","position":"Engineer","bio":"QA bio","outline":"QA outline","photo_url":null}'
 const sql = `
 BEGIN;
 SELECT set_config('how.cfp_test_user', gen_random_uuid()::text, true);
@@ -13,7 +14,7 @@ UPDATE public.site_settings_releases SET payload = payload || '{"cfp_enabled":"t
 INSERT INTO public.site_settings (key,value) VALUES ('cfp_enabled','false') ON CONFLICT (key) DO UPDATE SET value=excluded.value;
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('how.cfp_test_user'), 'role','authenticated')::text, true);
 SET LOCAL ROLE authenticated;
-INSERT INTO public.sessions (user_id,title,abstract,duration,type,status) VALUES (auth.uid(),'QA draft isolation','Abstract',30,'talk','pending');
+INSERT INTO public.sessions (user_id,title,abstract,duration,type,status,proposal_details) VALUES (auth.uid(),'QA draft isolation','Abstract',30,'talk','pending','${details}');
 SELECT 'PASS unpublished CFP draft does not close the released policy';
 RESET ROLE;
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('how.cfp_test_admin'), 'role','authenticated')::text, true);
@@ -49,11 +50,11 @@ DO $$ BEGIN
     RAISE EXCEPTION 'Disallowed session type accepted';
   EXCEPTION WHEN check_violation THEN IF SQLERRM <> 'cfp_option_not_allowed' THEN RAISE; END IF; END;
   BEGIN
-    INSERT INTO public.sessions (user_id,title,abstract,duration,type,status) VALUES (auth.uid(),'QA disabled duration','Abstract',30,'workshop','pending');
+    INSERT INTO public.sessions (user_id,title,abstract,duration,type,status) VALUES (auth.uid(),'QA disabled duration','Abstract',15,'workshop','pending');
     RAISE EXCEPTION 'Disallowed duration accepted';
   EXCEPTION WHEN check_violation THEN IF SQLERRM <> 'cfp_option_not_allowed' THEN RAISE; END IF; END;
 END $$;
-INSERT INTO public.sessions (user_id,title,abstract,duration,type,status) VALUES (auth.uid(),'QA permitted options','Abstract',15,'workshop','pending');
+INSERT INTO public.sessions (user_id,title,abstract,duration,type,status,proposal_details) VALUES (auth.uid(),'QA permitted options','Abstract',30,'workshop','pending','${details}');
 SELECT 'PASS configured option restrictions and permitted inserts';
 RESET ROLE;
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('how.cfp_test_admin'), 'role','authenticated')::text, true);

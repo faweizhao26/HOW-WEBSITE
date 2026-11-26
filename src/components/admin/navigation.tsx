@@ -4,10 +4,12 @@ import { useId, useState, type MouseEvent } from "react"
 import Link from "next/link"
 import {
   LayoutDashboard, Mic, ContactRound, CalendarDays, Star, Newspaper, Settings,
-  LogOut, ChevronLeft, ChevronDown, Users, Ticket, UserCheck, ShieldCheck,
+  Bell, LogOut, ChevronLeft, ChevronDown, Users, Ticket, UserCheck, ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { admin as labels, type Locale } from "@/lib/i18n/translations"
+import { admin, type Locale } from "@/lib/i18n/translations"
+
+const labels = { ...admin, notifications: { zh: "站内通知", en: "Notifications" } }
 
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, key: "dashboard" },
@@ -17,6 +19,7 @@ const navItems = [
   { href: "/admin/registrations", icon: Users, key: "registrations" },
   { href: "/admin/checkin", icon: UserCheck, key: "checkin" },
   { href: "/admin/accounts", icon: ShieldCheck, key: "accounts" },
+  { href: "/admin/notifications", icon: Bell, key: "notifications" },
   { href: "/admin/tickets", icon: Ticket, key: "tickets" },
   { href: "/admin/group-orders", icon: Users, key: "groupOrders" },
   { href: "/admin/sponsors", icon: Star, key: "sponsors" },

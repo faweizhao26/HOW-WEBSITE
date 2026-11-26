@@ -62,6 +62,9 @@ pass("proposal read failure is not empty and explicit retry recovers");
 
 await page.fill("loc=css:#title"," \\u3000 ");
 await page.fill("loc=css:#abstract","QA Browser Abstract");
+for(const [field,value] of [["full_name","QA Speaker"],["company","QA Org"],["position","Engineer"],["bio","QA speaker bio"],["outline","QA outline"]]){
+  await page.fill("#cfp-"+field,value);
+}
 await page.events();
 await page.click("loc=css:main button[type=submit]");
 await page.waitForSelector("loc=css:main [role=alert]");

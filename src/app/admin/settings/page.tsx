@@ -22,7 +22,7 @@ import { parseSiteContent, parseSiteContentDraft } from "@/lib/content/site-cont
 import { Skeleton } from "@/components/ui/skeleton"
 import { conference } from "@/lib/conference"
 import { defaultSiteSettings, hasSettingsChanges } from "@/lib/content/settings"
-import { cfpDurations, cfpSessionTypes, defaultCFPSettings } from "@/lib/cfp/settings"
+import { cfpDurationOptions, cfpSessionTypes, defaultCFPSettings } from "@/lib/cfp/settings"
 import type { SiteSettingsRelease } from "@/lib/db/schema"
 import { admin as adminT, cfp as cfpT } from "@/lib/i18n/translations"
 import { createClient } from "@/lib/supabase/client"
@@ -183,7 +183,7 @@ export default function AdminSettingsPage() {
     { key: "cfp_review_notes", label: locale === "zh" ? "审核及结果通知说明（英文）" : "Review and result notification notes (English)" },
     { key: "cfp_review_notes_zh", label: locale === "zh" ? "审核及结果通知说明（中文）" : "Review and result notification notes (Chinese)" },
   ]
-  function changeOption(key: "cfp_types" | "cfp_durations", option: string | number, checked: boolean, options: readonly (string | number)[]) {
+  function changeOption(key: "cfp_types", option: string, checked: boolean, options: readonly string[]) {
     setSettings(current => {
       const selected = selectedOptions(current[key], defaultCFPSettings[key], options)
       return { ...current, [key]: JSON.stringify(options.filter(value => value === option ? checked : selected.includes(value))) }
@@ -218,8 +218,7 @@ export default function AdminSettingsPage() {
               <div className="space-y-2"><Label htmlFor="setting-cfp_deadline">{locale === "zh" ? "征稿截止日期（北京时间）" : "CFP deadline (Beijing time)"}</Label><Input data-setting-path="cfp_deadline" id="setting-cfp_deadline" type="date" value={settings.cfp_deadline || ""} onChange={event => setSettings(current => ({ ...current, cfp_deadline: event.target.value }))} /></div>
               <div className="space-y-2"><Label htmlFor="setting-cfp_contact_email">{locale === "zh" ? "投稿咨询邮箱" : "CFP contact email"}</Label><Input data-setting-path="cfp_contact_email" id="setting-cfp_contact_email" type="email" value={settings.cfp_contact_email || ""} placeholder={settings.contact_email || ""} onChange={event => setSettings(current => ({ ...current, cfp_contact_email: event.target.value }))} /></div>
             </div>
-            <fieldset data-setting-path="cfp_types" className="space-y-3"><legend className="mb-3 text-sm font-medium">{locale === "zh" ? "允许的演讲类型" : "Allowed session types"}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{cfpSessionTypes.map(type => <label key={type} className="flex items-center gap-2 text-sm"><input type="checkbox" name="cfp_types" value={type} checked={selectedOptions(settings.cfp_types, defaultCFPSettings.cfp_types, cfpSessionTypes).includes(type)} onChange={event => changeOption("cfp_types", type, event.target.checked, cfpSessionTypes)} className="size-4 accent-emerald-600" />{cfpT[type][locale]}</label>)}</div></fieldset>
-            <fieldset data-setting-path="cfp_durations" className="space-y-3"><legend className="mb-3 text-sm font-medium">{locale === "zh" ? "允许的演讲时长" : "Allowed session durations"}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{cfpDurations.map(duration => <label key={duration} className="flex items-center gap-2 text-sm"><input type="checkbox" name="cfp_durations" value={duration} checked={selectedOptions(settings.cfp_durations, defaultCFPSettings.cfp_durations, cfpDurations).includes(duration)} onChange={event => changeOption("cfp_durations", duration, event.target.checked, cfpDurations)} className="size-4 accent-emerald-600" />{duration} {locale === "zh" ? "分钟" : "min"}</label>)}</div></fieldset>
+            <fieldset data-setting-path="cfp_types" className="space-y-3"><legend className="mb-3 text-sm font-medium">{locale === "zh" ? "开放的议题类型" : "Allowed session types"}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{cfpSessionTypes.map(type => <label key={type} className="flex items-center gap-2 text-sm"><input type="checkbox" name="cfp_types" value={type} checked={selectedOptions(settings.cfp_types, defaultCFPSettings.cfp_types, cfpSessionTypes).includes(type)} onChange={event => changeOption("cfp_types", type, event.target.checked, cfpSessionTypes)} className="size-4 accent-emerald-600" />{cfpT[type][locale]} <span className="text-muted-foreground">{cfpDurationOptions[type].join(" / ")} {locale === "zh" ? "分钟" : "min"}</span></label>)}</div></fieldset>
             <div className="grid gap-5 sm:grid-cols-2">{cfpFields.map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Textarea data-setting-path={key} aria-invalid={issues.some(issue => issue.path === key)} id={`setting-${key}`} value={settings[key] || ""} rows={4} maxLength={10000} onChange={event => setSettings(current => ({ ...current, [key]: event.target.value }))} /></div>)}</div>
           </fieldset>
         </section>

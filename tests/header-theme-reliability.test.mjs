@@ -3,11 +3,14 @@ import { test } from "node:test"
 import { component, environment, nodes } from "./helpers/ui-reliability-harness.mjs"
 
 function header(env, user = { id: "member" }, locale = "en", auth = {}) {
+  env.window.setInterval = () => 1
+  env.window.clearInterval = () => {}
   return component("../../src/components/layout/header.tsx", "Header", { locale, initialTheme: "dark" }, env, {
     "next/link": { default: "Link" }, "next/navigation": { usePathname: () => "/", useRouter: () => ({ replace: path => env.window.location.assign(path), refresh() {} }) },
     "@/lib/supabase/client": { createClient: () => ({ auth }) },
     sonner: { toast: { error() {} } },
     "@/lib/auth/watch-navigation-user": { watchNavigationUser(_client, receive) { receive({ user, isAdmin: false }); return () => {} } },
+    "@/lib/notifications": { notificationReadEvent: "how-notification-read", notificationRpc: async () => 0 },
     "@/lib/i18n/translations": { navigation: new Proxy({}, { get: () => ({ zh: "Menu", en: "Menu" }) }) },
     "./language-switcher": { LanguageSwitcher: "LanguageSwitcher" }, "./theme-toggle": { ThemeToggle: "ThemeToggle" },
     "@/components/ui/button": { Button: "Button" }, "@/lib/utils": { isMockMode: () => false },

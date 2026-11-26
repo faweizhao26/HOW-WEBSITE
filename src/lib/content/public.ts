@@ -74,7 +74,7 @@ function toMockSession(session: MockSession): PublishedSession {
     abstract: session.abstract,
     abstract_zh: session.abstract_zh ?? null,
     duration: session.duration,
-    type: session.type === "workshop" ? "workshop" : session.type === "panel" ? "panel" : "talk",
+    type: session.type === "workshop" || session.type === "panel" || session.type === "lightning" ? session.type : "talk",
     slides_url: null,
     video_url: null,
     published_at: MOCK_PUBLISHED_AT,

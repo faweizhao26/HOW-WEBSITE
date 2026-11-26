@@ -7,7 +7,7 @@ import ts from "typescript"
 import { cfp, common } from "../src/lib/i18n/translations.ts"
 import { cfpErrors } from "../src/lib/cfp/messages.ts"
 import { CFPError, parseProposalInput } from "../src/lib/cfp/service.ts"
-import { getCFPState, parseCFPSettings } from "../src/lib/cfp/settings.ts"
+import { cfpDurationOptions, getCFPState, parseCFPSettings } from "../src/lib/cfp/settings.ts"
 import { AccountRequestError, prepareAccountRequest } from "../src/lib/auth/prepare-account-request.ts"
 import { watchAuthUser } from "../src/lib/auth/watch-auth-user.ts"
 
@@ -48,7 +48,7 @@ function mount() {
     "@/lib/cfp/messages": { cfpErrors },
     "@/lib/auth/prepare-account-request": { AccountRequestError, prepareAccountRequest },
     "@/lib/auth/watch-auth-user": { watchAuthUser },
-    "@/lib/cfp/settings": { getCFPState: policy => getCFPState(policy, now) },
+    "@/lib/cfp/settings": { cfpDurationOptions, getCFPState: policy => getCFPState(policy, now) },
     "@/lib/cfp/service": { CFPError, parseProposalInput, loadCFPData: async () => ({ user, sessions: [], policy }) },
     "@/lib/supabase/client": { createClient: () => ({ auth: { getUser: async () => ({ data: { user }, error: null }), getSession: async () => ({ data: { session: { user } }, error: null }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) } }) },
     "./actions": { submitCFP: async values => {
@@ -71,6 +71,9 @@ test("a committed response lost across the CFP deadline remains recoverable from
   let tree = h.render()
   nodes(tree).find(node => node.type === "Input" && node.props.id === "title").props.onChange({ target: { value: "Original proposal" } })
   nodes(tree).find(node => node.type === "Textarea" && node.props.id === "abstract").props.onChange({ target: { value: "Original abstract" } })
+  for (const [id,value] of [["cfp-full_name","QA Speaker"],["cfp-company","Community"],["cfp-position","Developer"],["cfp-bio","QA biography"],["cfp-outline","First, then last"]]) {
+    nodes(tree).find(node => node.props?.id === id).props.onChange({ target: { value } })
+  }
   tree = h.render()
   nodes(tree).find(node => node.type === "form").props.onSubmit({ preventDefault() {} })
   await h.settle()

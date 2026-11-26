@@ -1,6 +1,7 @@
 "use client"
 
 import { useLocale } from "@/lib/i18n/provider"
+import Link from "next/link"
 
 import { useCallback, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -15,7 +16,7 @@ import { toast } from "sonner"
 import { Search, Filter, Download, Mail, Phone, Ticket, XCircle, RotateCcw, UserCheck } from "lucide-react"
 import { AdminLoadError } from "@/components/admin/load-error"
 import { loadRegistrationRecords, type RegistrationRecord } from "@/lib/admin/data"
-import { registrationsToCSV } from "@/lib/admin/registration-export"
+import { registrationEmailsToCSV, registrationsToCSV } from "@/lib/admin/registration-export"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
 
@@ -63,19 +64,21 @@ export default function AdminRegistrationsPage() {
     finally { setUpdating(null) }
   }
 
-  function exportCSV(scope: "all" | "filtered") {
-    const records = scope === "filtered" ? filtered : registrations
+  function exportCSV(scope: "all" | "filtered" | "emails") {
+    const records = scope === "all" ? registrations : filtered
     if (!records.length) return
-    const blob = new Blob([registrationsToCSV(records, locale)], { type: "text/csv;charset=utf-8" })
+    const data = scope === "emails" ? registrationEmailsToCSV(records,locale) : { csv:registrationsToCSV(records, locale),count:records.length }
+    if (!data.count) { toast.error(locale === "zh" ? "无邮箱可导出" : "No email addresses to export"); return }
+    const blob = new Blob([data.csv], { type: "text/csv;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = scope === "filtered" ? "registrations-filtered.csv" : "registrations.csv"
+    a.download = scope === "emails" ? "registration-emails.csv" : scope === "filtered" ? "registrations-filtered.csv" : "registrations.csv"
     document.body.appendChild(a)
     a.click()
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-    toast.success(locale === "zh" ? `已导出 ${records.length} 条报名记录` : `Exported ${records.length} registrations`)
+    toast.success(locale === "zh" ? `已导出 ${data.count} 条记录` : `Exported ${data.count} records`)
   }
 
   const filtered = registrations.filter(r => {
@@ -101,6 +104,7 @@ export default function AdminRegistrationsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <h1 className="text-2xl font-bold">{locale === "zh" ? "报名管理" : "Registrations"}</h1>
         <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" render={<Link href="/admin/notifications?audience=registered" />} nativeButton={false}>{locale === "zh" ? "通知已确认参会者" : "Notify confirmed attendees"}</Button>
           <Badge variant="outline" className="text-emerald-400 border-emerald-800">{locale === "zh" ? "已确认" : "Confirmed"} {confirmed}</Badge>
           {cancelled > 0 && <Badge variant="outline" className="text-red-400 border-red-800">{locale === "zh" ? "已取消" : "Cancelled"} {cancelled}</Badge>}
           {checkedIn > 0 && <Badge variant="outline" className="text-cyan-400 border-cyan-800"><UserCheck className="h-3 w-3 mr-1" />{checkedIn}</Badge>}
@@ -110,6 +114,7 @@ export default function AdminRegistrationsPage() {
             <DropdownMenuContent align="end" className="w-auto min-w-56">
               <DropdownMenuItem onClick={() => exportCSV("all")}>{locale === "zh" ? "全部名单" : "All registrations"} ({registrations.length})</DropdownMenuItem>
               <DropdownMenuItem disabled={!filtered.length} onClick={() => exportCSV("filtered")}>{locale === "zh" ? "当前筛选结果" : "Current filtered results"} ({filtered.length})</DropdownMenuItem>
+              <DropdownMenuItem disabled={!filtered.length} onClick={() => exportCSV("emails")}>{locale === "zh" ? "当前筛选结果：仅邮箱" : "Current filters: emails only"}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

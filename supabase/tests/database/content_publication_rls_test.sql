@@ -148,10 +148,10 @@ select results_eq(
   'initial settings release passes the same validation as later publications'
 );
 
-insert into auth.users (id, email, raw_user_meta_data)
+insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data)
 values (
   '10000000-0000-0000-0000-000000000001',
-  'submitter@example.com',
+  'submitter@example.com', now(),
   '{"full_name":"Test submitter"}'::jsonb
 );
 
@@ -187,15 +187,17 @@ cross join (values
 ) as rpcs(name, args);
 
 select throws_ok(
-  $$insert into public.sessions (user_id, title, abstract, duration, type, status)
-    values ('10000000-0000-0000-0000-000000000001', 'Escalated', 'Should fail', 30, 'talk', 'approved')$$::text,
+  $$insert into public.sessions (user_id, title, abstract, duration, type, status, proposal_details)
+    values ('10000000-0000-0000-0000-000000000001', 'Escalated', 'Should fail', 30, 'talk', 'approved',
+      '{"language":"en","full_name":"Test submitter","company":"Test company","position":"Engineer","bio":"Bio","outline":"Outline","photo_url":null}')$$::text,
   42501,
   null::text,
   'submitters cannot create pre-approved sessions'::text
 );
 select lives_ok(
-  $$insert into public.sessions (id, user_id, title, abstract, duration, type)
-    values ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Pending', 'Allowed', 30, 'talk')$$,
+  $$insert into public.sessions (id, user_id, title, abstract, duration, type, proposal_details)
+    values ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Pending', 'Allowed', 30, 'talk',
+      '{"language":"en","full_name":"Test submitter","company":"Test company","position":"Engineer","bio":"Bio","outline":"Outline","photo_url":null}')$$,
   'submitters can create pending draft sessions'
 );
 select throws_ok(

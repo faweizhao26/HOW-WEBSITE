@@ -1,6 +1,10 @@
 import { z } from "zod"
 
-export const cfpSessionTypes = ["talk", "workshop", "panel"] as const
+export const cfpSessionTypes = ["talk", "workshop", "panel", "lightning"] as const
+export type CFPType = typeof cfpSessionTypes[number]
+export const cfpDurationOptions: Record<CFPType, readonly number[]> = {
+  talk: [30], workshop: [30,45,60], panel: [30,45,60], lightning: [5],
+}
 export const cfpDurations = [15, 30, 45, 60] as const
 export const defaultCFPSettings: Record<string, string> = {
   cfp_enabled: "true",

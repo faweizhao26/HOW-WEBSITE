@@ -95,7 +95,7 @@ test.describe("authenticated publication lifecycle", () => {
       expect((await db.from("sessions").update({ status: "approved", speaker_id: speakerId }).eq("id", sessionId)).error).toBeNull()
       await page.goto("/admin/sessions")
       await page.getByRole("combobox").first().click()
-      await page.getByRole("option", { name: "Approved", exact: true }).click()
+      await page.getByRole("option", { name: "Accepted", exact: true }).click()
       const card = page.locator("[data-slot=card]").filter({ hasText: `QA session ${suffix}` })
       await card.getByRole("button", { name: "Publish", exact: true }).click()
       await expect.poll(async () => (await db.from("published_sessions").select("id").eq("id", sessionId)).data?.length).toBe(1)

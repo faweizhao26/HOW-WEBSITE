@@ -110,6 +110,9 @@ export type Profile = {
 export type ProfileInsert = Omit<Profile, "created_at">
 export type ProfileUpdate = Partial<Omit<Profile, "id" | "created_at">>
 
+export type ProposalReviewStatus = "pending" | "approved" | "waitlisted" | "rejected"
+export type ProposalDecision = Exclude<ProposalReviewStatus, "pending">
+
 export type Session = PublicationMetadata & {
   id: string
   user_id: string
@@ -118,8 +121,8 @@ export type Session = PublicationMetadata & {
   abstract: string
   abstract_zh: string | null
   duration: number
-  type: "talk" | "workshop" | "panel"
-  status: "pending" | "approved" | "rejected"
+  type: "talk" | "workshop" | "panel" | "lightning"
+  status: ProposalReviewStatus
   speaker_id: string | null
   admin_feedback: string | null
   slides_url: string | null
@@ -226,7 +229,7 @@ export type PublishedSession = {
   abstract: string
   abstract_zh: string | null
   duration: number
-  type: "talk" | "workshop" | "panel"
+  type: "talk" | "workshop" | "panel" | "lightning"
   slides_url: string | null
   video_url: string | null
   published_at: string

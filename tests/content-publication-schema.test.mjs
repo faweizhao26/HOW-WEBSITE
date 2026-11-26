@@ -170,7 +170,8 @@ test("database types separate review state from publication state", () => {
   const types = read("src/lib/db/schema.ts")
 
   assert.match(types, /export type PublicationStatus = "draft" \| "published"/)
-  assert.match(types, /status: "pending" \| "approved" \| "rejected"/)
+  assert.match(types, /export type ProposalReviewStatus = "pending" \| "approved" \| "waitlisted" \| "rejected"/)
+  assert.match(types, /status: ProposalReviewStatus/)
   assert.match(types, /speaker_id: string \| null/)
   assert.match(types, /export type AgendaReleasePayload/)
   assert.match(types, /export type PublishedSiteSettings/)

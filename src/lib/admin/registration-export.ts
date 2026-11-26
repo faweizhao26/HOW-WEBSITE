@@ -23,3 +23,11 @@ export function registrationsToCSV(records: RegistrationRecord[], locale: Locale
   ])
   return "\uFEFF" + [headers, ...rows].map(row => row.map(csvField).join(",")).join("\r\n")
 }
+
+export function registrationEmailsToCSV(records: RegistrationRecord[], locale: Locale) {
+  const byAddress = new Map<string, RegistrationRecord>()
+  for (const record of records) if (record.email.trim()) byAddress.set(record.email.trim().toLowerCase(),record)
+  const rows = [locale === "zh" ? ["姓名","邮箱"] : ["Name","Email"],
+    ...Array.from(byAddress.values(),r => [r.name,r.email.trim()])]
+  return { count:byAddress.size, csv:"\uFEFF" + rows.map(row => row.map(csvField).join(",")).join("\r\n") }
+}

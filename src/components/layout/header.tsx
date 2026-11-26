@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Menu, X } from "lucide-react"
+import { Bell, LayoutDashboard, Menu, X } from "lucide-react"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { watchNavigationUser } from "@/lib/auth/watch-navigation-user"
@@ -14,6 +14,7 @@ import { LanguageSwitcher } from "./language-switcher"
 import { ThemeToggle } from "./theme-toggle"
 import { Button } from "@/components/ui/button"
 import { isMockMode } from "@/lib/utils"
+import { notificationReadEvent, notificationRpc } from "@/lib/notifications"
 
 const navLinks = [
   { href: "/", key: "home" },
@@ -28,11 +29,23 @@ const navLinks = [
   { href: "/register", key: "register" },
 ] as const
 
+function NotificationLink({ locale, count, onNavigate }: { locale: Locale; count: number; onNavigate?: () => void }) {
+  const label = locale === "zh" ? "站内通知" : "Notifications"
+  return <Link href="/notifications" title={label} aria-label={count ? (locale === "zh" ? `${label}，${count} 条未读` : `${label}, ${count} unread`) : label}
+    onNavigate={onNavigate} className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2">
+    <Bell className="size-4" aria-hidden="true" />
+    {count > 0 && <span aria-hidden="true" className="absolute -right-1 -top-0.5 min-w-4 rounded-full bg-emerald-700 px-0.5 text-center text-[10px] leading-4 text-white">{count > 9 ? "9+" : count}</span>}
+  </Link>
+}
+
 export function Header({ locale, initialTheme }: { locale: Locale; initialTheme: "dark" | "light" }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const logoutPending = useRef(false)
   const [{ user, isAdmin }, setNavigationUser] = useState<NavigationUser>({ user: null, isAdmin: false })
+  const [unread, setUnread] = useState<{ userId: string; count: number } | null>(null)
+  const userId = user?.id
+  const unreadCount = unread?.userId === userId ? unread?.count ?? 0 : 0
   const pathname = usePathname()
   const router = useRouter()
   const isCurrent = (href: string) => pathname === href
@@ -63,6 +76,29 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
     } catch {}
   }, [])
 
+  useEffect(() => {
+    if (!userId) return
+    let active = true
+    let revision = 0
+    function refresh() {
+      if (document.visibilityState === "hidden") return
+      const current = ++revision
+      void notificationRpc<number>(createClient(),"unread").then(count => {
+        if (active && current === revision && userId) setUnread({userId,count})
+      }).catch(() => {})
+    }
+    refresh()
+    const timer = window.setInterval(refresh, 60_000)
+    window.addEventListener("focus",refresh)
+    window.addEventListener(notificationReadEvent,refresh)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      window.removeEventListener("focus",refresh)
+      window.removeEventListener(notificationReadEvent,refresh)
+    }
+  }, [userId,pathname])
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80 dark:shadow-none dark:backdrop-blur-md" onKeyDown={event => {
       if (event.key === "Escape" && mobileOpen) {
@@ -90,6 +126,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
             {user ? (
               <div className="flex items-center gap-1">
                 {isAdmin && <Link href="/admin" className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-emerald-400 dark:hover:bg-emerald-950/50"><LayoutDashboard className="size-4" aria-hidden="true" />{locale === "zh" ? "管理后台" : "Admin"}</Link>}
+                <NotificationLink locale={locale} count={unreadCount} />
                 <Link href="/profile">
                   <Button variant="ghost" size="sm" className="text-zinc-400">
                     {locale === "zh" ? "个人中心" : "Profile"}
@@ -112,6 +149,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
 
           <div className="flex items-center gap-2 min-[1440px]:hidden">
             {isAdmin && <Link href="/admin" onNavigate={() => setMobileOpen(false)} className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-emerald-400 dark:hover:bg-emerald-950/50"><LayoutDashboard className="size-4" aria-hidden="true" />{locale === "zh" ? "管理后台" : "Admin"}</Link>}
+            {user && <NotificationLink locale={locale} count={unreadCount} onNavigate={() => setMobileOpen(false)} />}
             <button
               ref={menuButtonRef}
               type="button"

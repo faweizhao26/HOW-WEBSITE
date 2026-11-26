@@ -1,11 +1,16 @@
 "use client"
 
+import Link from "next/link"
+import { ownedProposalPhoto, type ProposalDetails } from "@/lib/cfp/service"
+import { isProposalDecision, topicLabels, topicTypes } from "@/lib/notifications"
+import type { ProposalDecision, ProposalReviewStatus } from "@/lib/db/schema"
+
 import { useLocale } from "@/lib/i18n/provider"
 import { isMockMode } from "@/lib/utils"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { admin as adminT } from "@/lib/i18n/translations"
+import { admin as adminT, cfp as cfpT } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -16,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { CheckCircle, XCircle, FileText, Video, Eye, Search, Filter } from "lucide-react"
+import { CheckCircle, Clock, XCircle, FileText, Video, Eye, Search, Filter } from "lucide-react"
 import { unpublishSession } from "@/app/admin/actions/publication"
 import { PublicationActions } from "@/components/admin/publication-actions"
 import { PublicationBadge } from "@/components/admin/publication-badge"
@@ -24,10 +29,11 @@ import { uploadSessionMedia } from "@/lib/admin/session-media"
 
 type SessionWithProfile = {
   id: string; user_id: string; title: string; title_zh: string | null; abstract: string; abstract_zh: string | null
-  duration: number; type: string; status: string; admin_feedback: string | null; slides_url: string | null
+  duration: number; type: string; status: ProposalReviewStatus; admin_feedback: string | null; slides_url: string | null
   video_url: string | null; created_at: string; updated_at?: string
   speaker_id?: string | null; publication_status?: "draft" | "published"; published_at?: string | null
   profiles?: { full_name: string; company: string | null }
+  proposal_details?: ProposalDetails | null
 }
 
 type PublishedSpeakerOption = {
@@ -56,9 +62,10 @@ const mockSessions: SessionWithProfile[] = [
 
 function statusBadge(status: string, locale: "en" | "zh") {
   switch (status) {
-    case "pending": return <Badge variant="secondary">{adminT.pending[locale]}</Badge>
-    case "approved": return <Badge className="bg-emerald-900/50 text-emerald-300 border-emerald-800">{adminT.approved[locale]}</Badge>
-    case "rejected": return <Badge variant="destructive">{adminT.rejected[locale]}</Badge>
+    case "pending": return <Badge variant="secondary">{cfpT.pending[locale]}</Badge>
+    case "approved": return <Badge className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{cfpT.approved[locale]}</Badge>
+    case "waitlisted": return <Badge className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">{cfpT.waitlisted[locale]}</Badge>
+    case "rejected": return <Badge variant="destructive">{cfpT.rejected[locale]}</Badge>
     default: return <Badge variant="outline">{status}</Badge>
   }
 }
@@ -81,10 +88,12 @@ export default function AdminSessionsPage() {
   const [publishedSpeakers, setPublishedSpeakers] = useState<PublishedSpeakerOption[]>(() => mock ? mockPublishedSpeakers : [])
   const [loading, setLoading] = useState(!mock)
   const [loadError, setLoadError] = useState(false)
-  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending")
+  const [filter, setFilter] = useState<"all" | ProposalReviewStatus>("pending")
   const [search, setSearch] = useState("")
   const [feedback, setFeedback] = useState("")
   const [uploading, setUploading] = useState(false)
+  const savingReview = useRef(false)
+  const [reviewBusy, setReviewBusy] = useState(false)
 
   const loadSessions = useCallback(async () => {
     if (mock) return
@@ -110,7 +119,11 @@ export default function AdminSessionsPage() {
     return () => { cancelled = true }
   }, [mock])
 
-  async function updateStatus(id: string, status: string, feedbackText?: string) {
+  async function updateStatus(id: string, status: ProposalDecision, feedbackText?: string) {
+    const current = sessions.find(session => session.id === id)
+    if (savingReview.current || !current || current.status === status) return
+    if (status === "waitlisted" && current.publication_status === "published") return
+    const success = locale === "zh" ? `审核状态已更新：${cfpT[status].zh}` : `Review status updated: ${cfpT[status].en}`
     if (isMockMode()) {
       setSessions(prev => prev.map(s => s.id === id ? {
         ...s,
@@ -118,24 +131,26 @@ export default function AdminSessionsPage() {
         admin_feedback: feedbackText ?? s.admin_feedback,
         ...(status === "approved" ? {} : { speaker_id: null, publication_status: "draft", published_at: null }),
       } : s))
-      toast.success(status === "approved" ? adminT.sessionApprovedMsg[locale] : adminT.sessionRejectedMsg[locale])
+      toast.success(success)
       return
     }
+    savingReview.current = true
+    setReviewBusy(true)
     try {
       const supabase = createClient()
-      const current = sessions.find((session) => session.id === id)
-      if (status !== "approved" && current?.publication_status === "published") {
+      if (status !== "approved" && current.publication_status === "published") {
         const result = await unpublishSession(id)
         if (!result.ok) throw new Error(result.message)
       }
       const update: Record<string, string | null> = { status }
       if (feedbackText !== undefined) update.admin_feedback = feedbackText
       if (status !== "approved") update.speaker_id = null
-      const { error } = await supabase.from("sessions").update(update).eq("id", id)
-      if (error) throw error
-      toast.success(status === "approved" ? adminT.sessionApprovedMsg[locale] : adminT.sessionRejectedMsg[locale])
-      loadSessions()
+      const { data, error } = await supabase.from("sessions").update(update).eq("id", id).eq("status", current.status).select("id").maybeSingle()
+      if (error || !data) throw error || new Error("review_status_changed")
+      toast.success(success)
+      await loadSessions()
     } catch { toast.error(locale === "zh" ? "操作失败，请稍后重试" : "Action failed. Please try again.") }
+    finally { savingReview.current = false; setReviewBusy(false) }
   }
 
   async function assignSpeaker(sessionId: string, speakerId: string) {
@@ -176,7 +191,7 @@ export default function AdminSessionsPage() {
   const filtered = sessions.filter((s) => {
     const statusMatch = filter === "all" || s.status === filter
     const q = search.toLowerCase()
-    const searchMatch = !q || s.title.toLowerCase().includes(q) || (s.title_zh && s.title_zh.includes(q)) || s.profiles?.full_name.toLowerCase().includes(q)
+    const searchMatch = !q || [s.title,s.title_zh,s.proposal_details?.full_name,s.profiles?.full_name].some(value => value?.toLowerCase().includes(q))
     return statusMatch && searchMatch
   })
 
@@ -190,20 +205,25 @@ export default function AdminSessionsPage() {
         {mock ? adminT.demoMode[locale] : (locale === "zh" ? "讲师提交的议题在这里查看、审核和管理。" : "View, review and manage speaker proposals here.")}
       </p>
 
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-xs">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder={adminT.searchProposals[locale]} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-          <SelectTrigger className="w-32"><Filter className="h-4 w-4 mr-1" /><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40" aria-label={locale === "zh" ? "审核状态" : "Review status"}><Filter className="size-4" /><SelectValue>{filter === "all" ? adminT.all[locale] : cfpT[filter][locale]}</SelectValue></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{adminT.all[locale]}</SelectItem>
-            <SelectItem value="pending">{adminT.pending[locale]}</SelectItem>
-            <SelectItem value="approved">{adminT.approved[locale]}</SelectItem>
-            <SelectItem value="rejected">{adminT.rejected[locale]}</SelectItem>
+            <SelectItem value="pending">{cfpT.pending[locale]}</SelectItem>
+            <SelectItem value="approved">{cfpT.approved[locale]}</SelectItem>
+            <SelectItem value="waitlisted">{cfpT.waitlisted[locale]}</SelectItem>
+            <SelectItem value="rejected">{cfpT.rejected[locale]}</SelectItem>
           </SelectContent>
         </Select>
+        {isProposalDecision(filter) && <Button size="sm" variant="outline"
+          render={<Link href={`/admin/notifications?audience=${filter}&mode=result&query=${encodeURIComponent(search.trim())}`} />} nativeButton={false}>
+          {locale === "zh" ? "通知 / 导出筛选结果" : "Notify or export results"}
+        </Button>}
       </div>
 
       {loading ? (
@@ -214,10 +234,15 @@ export default function AdminSessionsPage() {
         <div className="text-center py-20 text-muted-foreground"><p>{adminT.noSessions[locale]}</p></div>
       ) : (
         <div className="space-y-4">
-          {filtered.map((session) => (
-            <Card key={session.id} className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-colors">
+          {filtered.map((session) => {
+            const details = session.proposal_details
+            const speakerName = details?.full_name || session.profiles?.full_name
+            const speakerLine = [speakerName, details?.company || session.profiles?.company, details?.position].filter(Boolean).join(" · ")
+            const kind = topicTypes.find(type => type === session.type)
+            const kindLabel = kind ? topicLabels[kind][locale === "zh" ? 0 : 1] : session.type
+            return <Card key={session.id}>
               <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
                       {statusBadge(session.status, locale)}
@@ -227,12 +252,13 @@ export default function AdminSessionsPage() {
                         updatedAt={session.updated_at ?? session.created_at}
                         locale={locale}
                       />
-                      <Badge variant="outline" className="text-zinc-400 border-zinc-700">{session.duration}min · {session.type}</Badge>
+                      <Badge variant="outline">{session.duration} {locale === "zh" ? "分钟" : "min"} · {kindLabel}</Badge>
+                      {details && <Badge variant="outline">{details.language === "zh" ? "中文" : "English"}</Badge>}
                     </div>
-                    <h3 className="font-medium text-white text-lg mb-1">{session.title}</h3>
+                    <h3 className="break-words font-medium text-lg mb-1">{session.title}</h3>
                     {session.title_zh && <p className="text-sm text-muted-foreground mb-2">{session.title_zh}</p>}
                     <p className="text-sm text-zinc-400 line-clamp-2 mb-2">{session.abstract}</p>
-                    <p className="text-xs text-muted-foreground">{session.profiles?.full_name}{session.profiles?.company && ` · ${session.profiles.company}`}</p>
+                    <p className="break-words text-xs text-muted-foreground">{speakerLine}</p>
                     {session.admin_feedback && (
                       <div className="mt-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
                         <p className="text-xs text-muted-foreground mb-1">{adminT.adminFeedback[locale]}:</p>
@@ -286,22 +312,25 @@ export default function AdminSessionsPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {session.status === "pending" && (
+                  <div className="flex max-w-full flex-wrap items-center gap-2 lg:shrink-0">
+                    {(session.status === "pending" || session.status === "waitlisted") && (
                       <>
-                        <Button size="sm" variant="outline" className="border-emerald-800 text-emerald-400 hover:bg-emerald-950/50" onClick={() => updateStatus(session.id, "approved")}>
-                          <CheckCircle className="h-4 w-4 mr-1" /> {adminT.approve[locale]}
+                        <Button size="sm" variant="outline" disabled={reviewBusy} onClick={() => updateStatus(session.id, "approved")}>
+                          <CheckCircle className="size-4" /> {locale === "zh" ? "录取" : "Accept"}
                         </Button>
+                        {session.status === "pending" && <Button size="sm" variant="outline" disabled={reviewBusy} onClick={() => updateStatus(session.id,"waitlisted")}>
+                          <Clock className="size-4" />{locale === "zh" ? "列为候补" : "Waitlist"}
+                        </Button>}
                         <Dialog>
-                          <DialogTrigger render={<Button size="sm" variant="outline" className="border-red-800 text-red-400 hover:bg-red-950/50" />} onClick={() => setFeedback("")}>
-                              <XCircle className="h-4 w-4 mr-1" /> {adminT.reject[locale]}
+                          <DialogTrigger render={<Button size="sm" variant="outline" disabled={reviewBusy} />} onClick={() => setFeedback("")}>
+                              <XCircle className="size-4" /> {locale === "zh" ? "不录取" : "Decline"}
                           </DialogTrigger>
-                          <DialogContent className="bg-zinc-900 border-zinc-800">
-                            <DialogHeader><DialogTitle>{adminT.rejectProposal[locale]}</DialogTitle></DialogHeader>
+                          <DialogContent>
+                            <DialogHeader><DialogTitle>{locale === "zh" ? "不录取该提案" : "Decline proposal"}</DialogTitle></DialogHeader>
                             <div className="space-y-3">
                               <Label>{adminT.feedback[locale]} (optional)</Label>
                               <Textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder={adminT.explainReject[locale]} rows={3} />
-                              <Button variant="destructive" onClick={() => updateStatus(session.id, "rejected", feedback)}>{adminT.confirmReject[locale]}</Button>
+                              <Button variant="destructive" disabled={reviewBusy} onClick={() => updateStatus(session.id, "rejected", feedback)}>{locale === "zh" ? "确认不录取" : "Confirm decline"}</Button>
                             </div>
                           </DialogContent>
                         </Dialog>
@@ -312,21 +341,30 @@ export default function AdminSessionsPage() {
                       <DialogTrigger render={<Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-white" />} onClick={() => setFeedback(session.admin_feedback || "")}>
                           <Eye className="h-4 w-4 mr-1" /> {adminT.detail[locale]}
                       </DialogTrigger>
-                      <DialogContent className="bg-zinc-900 border-zinc-800 max-w-lg">
-                        <DialogHeader><DialogTitle>{session.title}</DialogTitle></DialogHeader>
+                      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
+                        <DialogHeader><DialogTitle className="break-words">{session.title}</DialogTitle></DialogHeader>
                         <div className="space-y-4">
-                          <div><Label className="text-zinc-400">{adminT.speaker[locale]}</Label><p className="text-white">{session.profiles?.full_name} · {session.profiles?.company}</p></div>
-                          <div><Label className="text-zinc-400">{adminT.abstractEn[locale]}</Label><p className="text-sm text-zinc-300">{session.abstract}</p></div>
+                          <div><Label>{adminT.speaker[locale]}</Label><p className="break-words text-sm">{speakerLine}</p></div>
+                          <div><Label>{details ? (locale === "zh" ? "议题简介" : "Abstract") : adminT.abstractEn[locale]}</Label><p className="whitespace-pre-wrap break-words text-sm">{session.abstract}</p></div>
                           {session.abstract_zh && <div><Label className="text-zinc-400">{adminT.abstractZh[locale]}</Label><p className="text-sm text-zinc-300">{session.abstract_zh}</p></div>}
-                          <div className="flex gap-4 items-center">
+                          {details?.outline && <div><Label>{locale === "zh" ? "议题大纲" : "Outline"}</Label><p className="whitespace-pre-wrap break-words text-sm">{details.outline}</p></div>}
+                          {details && <div><Label>{locale === "zh" ? "个人简介" : "Speaker bio"}</Label><p className="whitespace-pre-wrap break-words text-sm">{details.bio}</p></div>}
+                          {details?.photo_url && ownedProposalPhoto(details.photo_url,session.user_id) && <a className="text-sm underline underline-offset-4" href={details.photo_url} target="_blank" rel="noopener noreferrer">{locale === "zh" ? "查看个人照片" : "View speaker photo"}</a>}
+                          <div className="flex flex-wrap gap-2 items-center">
                             <Badge variant="outline">{session.duration} min</Badge>
-                            <Badge variant="outline">{session.type}</Badge>
+                            <Badge variant="outline">{kindLabel}</Badge>
                             {statusBadge(session.status, locale)}
                           </div>
-                          {session.status !== "pending" && (
-                            <div><Button size="sm" variant="outline" onClick={() => updateStatus(session.id, session.status === "approved" ? "rejected" : "approved")}>
-                              {session.status === "approved" ? adminT.moveToRejected[locale] : adminT.moveToApproved[locale]}
-                            </Button></div>
+                          {(session.status === "approved" || session.status === "rejected") && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button size="sm" variant="outline" disabled={reviewBusy} onClick={() => updateStatus(session.id, session.status === "approved" ? "rejected" : "approved")}>
+                                {session.status === "approved" ? (locale === "zh" ? "改为未录取" : "Move to declined") : (locale === "zh" ? "改为已录取" : "Move to accepted")}
+                              </Button>
+                              <Button size="sm" variant="outline" disabled={reviewBusy || session.publication_status === "published"} onClick={() => updateStatus(session.id, "waitlisted")}>
+                                <Clock className="size-4" />{locale === "zh" ? "移至候补" : "Move to waitlist"}
+                              </Button>
+                              {session.publication_status === "published" && <p className="text-sm text-muted-foreground">{locale === "zh" ? "下架后可移至候补。" : "Unpublish before moving to the waitlist."}</p>}
+                            </div>
                           )}
                           <div className="border-t border-zinc-800 pt-4">
                             <h4 className="text-sm font-medium text-zinc-300 mb-3">{adminT.sessionMaterials[locale]}</h4>
@@ -350,7 +388,7 @@ export default function AdminSessionsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          })}
         </div>
       )}
     </div>

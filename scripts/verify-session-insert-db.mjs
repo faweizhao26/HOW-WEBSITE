@@ -7,6 +7,7 @@ const container = process.env.AUDIT_DB_CONTAINER
 const database = process.env.AUDIT_DB_NAME
 assert.ok(container && database?.startsWith("how_audit_"), "Use the dedicated audit database, never a shared or production database")
 const ordinary = randomUUID(), admin = randomUUID()
+const details = '{"language":"en","full_name":"QA Speaker","company":"QA Org","position":"Engineer","bio":"QA bio","outline":"QA outline","photo_url":null}'
 const sql = `
 BEGIN;
 SET LOCAL statement_timeout='15s';
@@ -17,18 +18,24 @@ UPDATE public.site_settings_releases SET payload=payload||'{"cfp_enabled":"true"
 SELECT set_config('request.jwt.claim.sub','${ordinary}',true);
 SELECT set_config('request.jwt.claims','{"sub":"${ordinary}","role":"authenticated"}',true);
 SET LOCAL ROLE authenticated;
-INSERT INTO public.sessions(user_id,title,abstract,duration,type) VALUES(auth.uid(),'QA ordinary proposal','Abstract',30,'talk');
+INSERT INTO public.sessions(user_id,title,abstract,duration,type,proposal_details) VALUES(auth.uid(),'QA ordinary proposal','Abstract',30,'talk','${details}');
 DO $$ DECLARE field text; BEGIN
   FOREACH field IN ARRAY ARRAY['admin_feedback','slides_url','video_url'] LOOP
     BEGIN
-      EXECUTE format('INSERT INTO public.sessions(user_id,title,abstract,duration,type,%I) VALUES(auth.uid(),%L,%L,30,%L,$1)',field,'QA forged field','Abstract','talk') USING 'https://forged.example.test/admin-content';
+      EXECUTE format('INSERT INTO public.sessions(user_id,title,abstract,duration,type,proposal_details,%I) VALUES(auth.uid(),%L,%L,30,%L,$1,$2)',field,'QA forged field','Abstract','talk') USING '${details}'::jsonb,'https://forged.example.test/admin-content';
       RAISE EXCEPTION 'ordinary user inserted administrator field %',field;
     EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   END LOOP;
   IF (SELECT count(*) FROM public.sessions WHERE user_id=auth.uid()) <> 1 THEN RAISE EXCEPTION 'Unexpected forged session persisted'; END IF;
 END $$;
-UPDATE public.sessions SET title='QA permitted edit' WHERE user_id=auth.uid();
-SELECT 'PASS ordinary pending insert/content edit and all three forged INSERT fields rejected';
+DO $$ BEGIN
+  BEGIN
+    UPDATE public.sessions SET title='QA unexpected edit' WHERE user_id=auth.uid();
+    RAISE EXCEPTION 'Modern submitted proposal allowed a direct edit';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+END $$;
+SELECT 'PASS ordinary pending insert; post-submission edit and all three admin fields rejected';
 RESET ROLE;
 SELECT set_config('request.jwt.claim.sub','${admin}',true);
 SELECT set_config('request.jwt.claims','{"sub":"${admin}","role":"authenticated"}',true);

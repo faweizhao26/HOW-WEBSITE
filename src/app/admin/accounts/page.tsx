@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Search, RefreshCw, ShieldPlus, ShieldMinus, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react"
+import Link from "next/link"
+import { Bell, Search, RefreshCw, ShieldPlus, ShieldMinus, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 import { useLocale } from "@/lib/i18n/provider"
 import { Button } from "@/components/ui/button"
@@ -82,7 +83,10 @@ export default function AccountsPage() {
   return <div className="mx-auto max-w-6xl space-y-6">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h1 className="text-2xl font-bold">{zh ? "账号管理" : "Accounts"}</h1>
-      <Button variant="outline" size="sm" disabled={loading || saving} onClick={() => refresh()}><RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />{zh ? "刷新" : "Refresh"}</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" render={<Link href="/admin/notifications?audience=manual" />} nativeButton={false}><Bell className="size-4" />{zh ? "通知指定账号" : "Notify selected accounts"}</Button>
+        <Button variant="outline" size="sm" disabled={loading || saving} onClick={() => refresh()}><RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />{zh ? "刷新" : "Refresh"}</Button>
+      </div>
     </div>
 
     <form className="flex flex-wrap items-end gap-3" onSubmit={event => { event.preventDefault(); refresh({ query, role, page: 1 }) }}>

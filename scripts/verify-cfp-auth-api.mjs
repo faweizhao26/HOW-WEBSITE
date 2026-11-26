@@ -45,7 +45,8 @@ if (env.CFP_QA_CLEANUP === "true") {
     assert.equal((await loadCFPData(anonymous)).user, null)
     console.log("PASS real login success, wrong password, unconfirmed email and empty/signed-out reads")
 
-    const values = { requestId: randomUUID(), expectedUserId: fixture.users[0], title: "  QA PostgreSQL  ", abstract: "  QA Abstract  ", titleZh: "QA 提案", duration: 30, type: "talk" }
+    const values = { requestId: randomUUID(), expectedUserId: fixture.users[0], title: "  QA PostgreSQL  ", abstract: "  QA Abstract  ", duration: 30, type: "talk",
+      proposalDetails: { language:"en",full_name:"QA Speaker",company:"QA Org",position:"Engineer",bio:"QA speaker bio",outline:"QA outline",photo_url:null } }
     await assert.rejects(submitProposal(anonymous, values), e => e.code === "login_required")
     for (const changed of [{ title: "\t\u3000" }, { abstract: "\u00a0\ufeff" }, { duration: -1 }, { userId: fixture.users[1] }]) await assert.rejects(submitProposal(speaker, { ...values, ...changed }), e => e.code === "invalid_input")
     const attempts = await Promise.all(Array.from({ length: 8 }, () => submitProposal(speaker, values)))

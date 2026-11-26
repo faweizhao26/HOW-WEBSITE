@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs"
 import vm from "node:vm"
 import ts from "typescript"
 import { watchAuthUser } from "../src/lib/auth/watch-auth-user.ts"
+import { cfpDurationOptions } from "../src/lib/cfp/settings.ts"
 
 const source = readFileSync(new URL("../src/app/cfp/page.tsx", import.meta.url), "utf8")
 const js = ts.transpileModule(source, {
@@ -31,6 +32,7 @@ function mount() {
     "@/lib/i18n/provider": { useLocale: () => "en" },
     "@/lib/i18n/translations": { common: { loading: { en: "Loading" } } },
     "@/lib/cfp/service": { loadCFPData: () => load },
+    "@/lib/cfp/settings": { cfpDurationOptions },
     "@/lib/auth/watch-auth-user": { watchAuthUser },
     "@/lib/supabase/client": { createClient: () => ({ auth: {
       getUser: () => new Promise(() => {}),
