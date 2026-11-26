@@ -99,7 +99,7 @@ export function SitePageView({ page, settings, content, locale }: SiteViewProps 
     : page === "conduct" ? content.contacts.report || settings.contact_email : settings.contact_email
   const showContact = contactBlock && entry.sections.some(block => block.id === contactBlock && block.enabled)
   return (
-    <ContentPage page={entry} locale={locale}>
+    <ContentPage page={entry} locale={locale} pastConferences={page === "about"}>
       {page === "attend" && <OutreachLinks content={content} locale={locale} />}
       {showContact && <ContentContact email={email} locale={locale} sponsor={page === "attend"} />}
     </ContentPage>

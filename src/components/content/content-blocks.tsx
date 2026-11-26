@@ -4,6 +4,7 @@ import Link from "next/link"
 import { ArrowRight, ExternalLink } from "lucide-react"
 import { contentText } from "@/lib/content/site-content"
 import type { ContentBlock, SiteContent } from "@/lib/content/site-content"
+import { isPastConferenceEntry, pastConferencesId, visiblePastConferenceEntries } from "@/lib/content/past-conferences"
 
 type Locale = "en" | "zh"
 
@@ -15,14 +16,16 @@ export function ContentLink({ href, children }: { href: string; children: ReactN
   return <a href={href} target="_blank" rel="noopener noreferrer" className={className}><span className="min-w-0 [overflow-wrap:anywhere]">{children}</span><ExternalLink className="size-4 shrink-0" aria-hidden="true" /></a>
 }
 
-export function ContentBlocks({ blocks, locale, className = "" }: {
+export function ContentBlocks({ blocks, locale, className = "", pastConferences = false }: {
   blocks: ContentBlock[]
   locale: Locale
   className?: string
+  pastConferences?: boolean
 }) {
+  const pastEntries = pastConferences ? visiblePastConferenceEntries(blocks) : []
   return (
     <div className={`space-y-10 ${className}`}>
-      {blocks.filter(block => block.enabled).map(block => {
+      {blocks.filter(block => block.enabled && !(pastConferences && isPastConferenceEntry(block))).map(block => {
         const title = contentText(block.title, locale)
         const body = contentText(block.body, locale)
         const items = block.items.map(item => contentText(item, locale)).filter(Boolean)
@@ -41,6 +44,13 @@ export function ContentBlocks({ blocks, locale, className = "" }: {
               </div>
             )}
             {block.linkUrl && <ContentLink href={block.linkUrl}>{contentText(block.linkLabel, locale) || (locale === "zh" ? "查看详情" : "View details")}</ContentLink>}
+            {pastConferences && block.id === pastConferencesId && pastEntries.length > 0 && (
+              <ul className="divide-y divide-border border-y">
+                {pastEntries.map(({ id, title, linkUrl }) => <li key={id} className="py-3">
+                  <ContentLink href={linkUrl}>{contentText({ en: title.en.trim(), zh: title.zh.trim() }, locale)}</ContentLink>
+                </li>)}
+              </ul>
+            )}
           </section>
         )
       })}
@@ -58,7 +68,7 @@ export function ContentContact({ email, locale, sponsor = false }: { email: stri
   )
 }
 
-export function ContentPage({ page, locale, children }: { page: SiteContent["pages"]["about"]; locale: Locale; children?: ReactNode }) {
+export function ContentPage({ page, locale, children, pastConferences }: { page: SiteContent["pages"]["about"]; locale: Locale; children?: ReactNode; pastConferences?: boolean }) {
   const intro = contentText(page.intro, locale)
   const subtitle = contentText(page.subtitle, locale)
   return (
@@ -68,7 +78,7 @@ export function ContentPage({ page, locale, children }: { page: SiteContent["pag
         {subtitle && <p className="whitespace-pre-line text-zinc-600 dark:text-zinc-400">{subtitle}</p>}
         {intro && <p className="whitespace-pre-line text-lg leading-relaxed text-zinc-700 dark:text-zinc-300">{intro}</p>}
       </header>
-      <ContentBlocks blocks={page.sections} locale={locale} />
+      <ContentBlocks blocks={page.sections} locale={locale} pastConferences={pastConferences} />
       {children && <div className="mt-8">{children}</div>}
     </div>
   )
