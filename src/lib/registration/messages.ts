@@ -1,6 +1,7 @@
 import type { RegistrationErrorCode } from "./service"
 
 export const registrationMessages: Record<RegistrationErrorCode, { en: string; zh: string }> = {
+  registration_closed: { en: "Registration on this site is no longer open. Check the homepage for current options.", zh: "站内报名已关闭，请返回首页查看当前报名方式。" },
   privacy_required: { en: "Read and agree to the Privacy Policy before registering.", zh: "请先阅读并同意隐私条款，再提交报名。" },
   login_required: { en: "Please log in again before registering.", zh: "请重新登录后报名。" },
   email_not_verified: { en: "Please confirm your account email before registering.", zh: "请先确认账号邮箱，再提交报名。" },

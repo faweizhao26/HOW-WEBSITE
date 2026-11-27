@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { isMockMode } from "@/lib/utils"
 import { notificationReadEvent, notificationRpc } from "@/lib/notifications"
 import { How2027Logo } from "./how-2027-logo"
+import { useRegistrationHref } from "@/lib/registration/link-provider"
 
 const navLinks = [
   { href: "/", key: "home" },
@@ -27,7 +28,6 @@ const navLinks = [
   { href: "/venue", key: "venue" },
   { href: "/updates", key: "updates" },
   { href: "/code-of-conduct", key: "codeOfConduct" },
-  { href: "/register", key: "register" },
 ] as const
 
 function NotificationLink({ locale, count, onNavigate }: { locale: Locale; count: number; onNavigate?: () => void }) {
@@ -49,6 +49,8 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
   const unreadCount = unread?.userId === userId ? unread?.count ?? 0 : 0
   const pathname = usePathname()
   const router = useRouter()
+  const registrationHref = useRegistrationHref()
+  const links = registrationHref ? [...navLinks, { href: registrationHref, key: "register" as const }] : navLinks
   const isCurrent = (href: string) => pathname === href
   const navClass = (active: boolean) => `inline-flex items-center whitespace-nowrap rounded-md px-2 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${active ? "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-white" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800/50 dark:hover:text-white"}`
 
@@ -115,7 +117,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
           </Link>
 
           <nav aria-label={locale === "zh" ? "主导航" : "Main navigation"} className="hidden min-[1440px]:flex items-center gap-1">
-            {navLinks.map(({ href, key }) => <Link key={href} href={href} aria-current={isCurrent(href) ? "page" : undefined} className={navClass(isCurrent(href))}>{navigation[key][locale]}</Link>)}
+            {links.map(({ href, key }) => <Link key={key} href={href} referrerPolicy={key === "register" ? "no-referrer" : undefined} aria-current={isCurrent(href) ? "page" : undefined} className={navClass(isCurrent(href))}>{navigation[key][locale]}</Link>)}
           </nav>
 
           <div className="hidden min-[1440px]:flex shrink-0 items-center gap-2">
@@ -168,7 +170,7 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
         <div id="mobile-navigation" className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-zinc-200 bg-white min-[1440px]:hidden dark:border-zinc-800 dark:bg-zinc-950">
           <div className="px-4 py-3 space-y-1">
             <nav aria-label={locale === "zh" ? "手机导航" : "Mobile navigation"} className="space-y-1">
-              {navLinks.map(({ href, key }) => <Link key={href} href={href} aria-current={isCurrent(href) ? "page" : undefined} onNavigate={() => setMobileOpen(false)} className={`w-full ${navClass(isCurrent(href))}`}>{navigation[key][locale]}</Link>)}
+              {links.map(({ href, key }) => <Link key={key} href={href} referrerPolicy={key === "register" ? "no-referrer" : undefined} aria-current={isCurrent(href) ? "page" : undefined} onNavigate={() => setMobileOpen(false)} className={`w-full ${navClass(isCurrent(href))}`}>{navigation[key][locale]}</Link>)}
             </nav>
             <hr className="my-2 border-zinc-200 dark:border-zinc-800" />
             <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2">

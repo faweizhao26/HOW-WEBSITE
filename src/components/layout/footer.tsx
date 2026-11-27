@@ -5,10 +5,12 @@ import { Locale } from "@/lib/i18n/utils"
 import { navigation } from "@/lib/i18n/translations"
 import { getPublishedSettings } from "@/lib/content/public"
 import { defaultSiteSettings } from "@/lib/content/settings"
+import { getRegistrationOptions } from "@/lib/registration/settings"
 
 export async function Footer({ locale }: { locale: Locale }) {
   const result = await getPublishedSettings()
   const settings = result.status === "error" ? null : result.status === "empty" ? defaultSiteSettings : result.data
+  const registrationHref = getRegistrationOptions(settings).href
   let content = null
   try { if (settings) content = parseSiteContent(settings) } catch { /* Keep existing navigation available. */ }
   return (
@@ -39,7 +41,7 @@ export async function Footer({ locale }: { locale: Locale }) {
           <div>
             <h4 className="mb-3 text-sm font-medium text-zinc-900 dark:text-zinc-300">{locale === "zh" ? "参与" : "Participate"}</h4>
             <div className="space-y-2">
-              <Link href="/register" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.register[locale]}</Link>
+              {registrationHref && <Link href={registrationHref} referrerPolicy="no-referrer" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.register[locale]}</Link>}
               <Link href="/cfp" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.cfp[locale]}</Link>
               {content && <OutreachLinks content={content} locale={locale} />}
               <Link href="/code-of-conduct" className="block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">{navigation.codeOfConduct[locale]}</Link>

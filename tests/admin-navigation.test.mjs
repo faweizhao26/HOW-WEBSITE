@@ -138,6 +138,7 @@ test("desktop and mobile headers show an admin link only for a confirmed admin",
       "@/lib/i18n/translations": { navigation: new Proxy({}, { get: () => ({ en: "Menu", zh: "菜单" }) }) },
       "./language-switcher": { LanguageSwitcher: () => null }, "./theme-toggle": { ThemeToggle: () => null },
       "./how-2027-logo": { How2027Logo: () => "HOW 2027" },
+    "@/lib/registration/link-provider": { useRegistrationHref: () => "/register" },
       "@/components/ui/button": { Button: props => React.createElement("button", props) }, "@/lib/utils": {},
     }
     vm.runInNewContext(javascript, { module: compiled, exports: compiled.exports, require: name => name in overrides ? overrides[name] : require(name) })

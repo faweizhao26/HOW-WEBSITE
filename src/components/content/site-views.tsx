@@ -5,10 +5,12 @@ import Image from "next/image"
 import { home, schedule as sched } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRight, Calendar, MapPin, Users, Mic, ExternalLink } from "lucide-react"
+import { ArrowRight, Calendar, MapPin, Users, Mic, ExternalLink, Megaphone } from "lucide-react"
 import { Countdown } from "@/components/countdown"
 import { HeroMotion } from "@/components/home/hero-motion"
 import { conference, formatConferenceDateRange, getConferenceStartDate } from "@/lib/conference"
+import { getCFPState, parseCFPSettings } from "@/lib/cfp/settings"
+import { getRegistrationOptions } from "@/lib/registration/settings"
 import { contentText } from "@/lib/content/site-content"
 import type { SiteContent } from "@/lib/content/site-content"
 import type { PublishedSession, PublishedSponsor, PublicContentResult } from "@/lib/content/types"
@@ -17,6 +19,38 @@ import { PastConferenceCards } from "./past-conference-cards"
 import { How2027Logo } from "@/components/layout/how-2027-logo"
 
 export type SiteViewProps = { settings: Record<string, string>; content: SiteContent; locale: "en" | "zh" }
+
+function CFPAnnouncement({ settings, locale }: Pick<SiteViewProps, "settings" | "locale">) {
+  let policy
+  try { policy = parseCFPSettings(settings) } catch { return null }
+  if (getCFPState(policy) !== "open") return null
+
+  const zh = locale === "zh"
+  const deadline = policy.deadline ? `${policy.deadline}T23:59:59+08:00` : null
+  return (
+    <section aria-labelledby="home-cfp-title" className="border-b border-amber-200 bg-amber-50 text-zinc-950 dark:border-amber-800/70 dark:bg-amber-950 dark:text-white">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-900 dark:bg-amber-900/65 dark:text-amber-200">
+            <Megaphone className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 id="home-cfp-title" className="text-base font-bold sm:text-lg">{zh ? "演讲征稿已开启" : "Call for Proposals is open"}</h2>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm leading-5 text-zinc-700 dark:text-zinc-200">
+              <p>{zh ? "无需注册或登录，即可投稿。" : "No account required to submit."}</p>
+              {deadline && <p>{zh ? "截止：" : "Deadline: "}<time dateTime={deadline}>
+                {new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "Asia/Shanghai" }).format(new Date(deadline))} {zh ? "23:59（北京时间）" : "23:59 (UTC+8)"}
+              </time></p>}
+            </div>
+          </div>
+        </div>
+        <Link href="/cfp" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 self-start rounded-lg bg-amber-900 px-4 py-2 text-sm font-semibold text-amber-50 transition-colors hover:bg-amber-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-800 sm:self-auto dark:bg-amber-300 dark:text-zinc-950 dark:hover:bg-amber-200 dark:focus-visible:outline-amber-300">
+          {zh ? "提交议题" : "Submit a proposal"} <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+        </Link>
+      </div>
+    </section>
+  )
+}
 
 export function HomeView({ settings, content, locale, sessions, contentState = "ready" }: SiteViewProps & {
   sessions: PublicContentResult<Pick<PublishedSession, "id">[]>
@@ -30,6 +64,7 @@ export function HomeView({ settings, content, locale, sessions, contentState = "
   const location = settings.conference_location
   const locationZh = settings.conference_location_zh
   const venueLine = content.venue.confirmed ? contentText(content.venue.name, locale) : conference.venue[locale]
+  const registrationHref = getRegistrationOptions(settings).href
   const pending = locale === "zh" ? "待公布" : "TBA"
   const sessionCount = sessions.status === "ready" ? String(sessions.data.length)
     : sessions.status === "empty" ? pending : locale === "zh" ? "暂不可用" : "Unavailable"
@@ -43,6 +78,7 @@ export function HomeView({ settings, content, locale, sessions, contentState = "
 
   return (
     <div data-content-state={contentState}>
+      {contentState === "ready" && <CFPAnnouncement settings={settings} locale={locale} />}
       <section className="relative isolate overflow-hidden bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-white">
         <HeroMotion />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(248_250_252_/_0.88)_0%,rgb(248_250_252_/_0.6)_42%,rgb(248_250_252_/_0.12)_100%)] dark:bg-[linear-gradient(90deg,rgb(2_6_23_/_0.74)_0%,rgb(2_6_23_/_0.38)_42%,rgb(2_6_23_/_0.06)_100%)]" />
@@ -60,11 +96,10 @@ export function HomeView({ settings, content, locale, sessions, contentState = "
               <p className="flex items-center gap-2"><MapPin className="size-4 shrink-0" aria-hidden="true" />{locale === "zh" ? locationZh : location}</p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <Link href="/register">
-                <Button size="lg" className="bg-emerald-700 hover:bg-emerald-800 text-white gap-2">
-                  {home.registerNow[locale]} <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+              {registrationHref && <Button size="lg" className="bg-emerald-700 hover:bg-emerald-800 text-white gap-2" nativeButton={false}
+                render={<Link href={registrationHref} referrerPolicy="no-referrer" />}>
+                {home.registerNow[locale]} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Button>}
               <Link href="/schedule">
                 <Button size="lg" variant="outline" className="border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-transparent dark:text-zinc-300 dark:hover:bg-zinc-800/50">
                   {sched.title[locale]}
@@ -93,7 +128,7 @@ export function HomeView({ settings, content, locale, sessions, contentState = "
         <ProgressView content={content} locale={locale} />
         <OutreachLinks content={content} locale={locale} />
         <PastConferenceCards rows={content.pages.about.sections} locale={locale} />
-        <ContentBlocks blocks={content.home.sections.map(block => block.id === "cta" ? { ...block, body: { en: [block.body.en, venueLine].filter(Boolean).join("\n"), zh: [block.body.zh, venueLine].filter(Boolean).join("\n") } } : block)} locale={locale} />
+        <ContentBlocks blocks={content.home.sections.map(block => block.id === "cta" ? { ...block, body: { en: [block.body.en, venueLine].filter(Boolean).join("\n"), zh: [block.body.zh, venueLine].filter(Boolean).join("\n") } } : block)} locale={locale} registrationHref={registrationHref} />
         <ConferenceFAQ settings={settings} content={content} locale={locale} />
       </div>
     </div>
@@ -107,7 +142,7 @@ export function SitePageView({ page, settings, content, locale }: SiteViewProps 
     : page === "conduct" ? content.contacts.report || settings.contact_email : settings.contact_email
   const showContact = contactBlock && entry.sections.some(block => block.id === contactBlock && block.enabled)
   return (
-    <ContentPage page={entry} locale={locale} pastConferences={page === "about"}>
+    <ContentPage page={entry} locale={locale} pastConferences={page === "about"} registrationHref={getRegistrationOptions(settings).href}>
       {page === "attend" && <OutreachLinks content={content} locale={locale} />}
       {showContact && <ContentContact email={email} locale={locale} sponsor={page === "attend"} />}
     </ContentPage>

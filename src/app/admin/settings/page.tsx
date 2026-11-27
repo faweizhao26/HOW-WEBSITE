@@ -29,6 +29,7 @@ import { createClient } from "@/lib/supabase/client"
 import { isMockMode } from "@/lib/utils"
 import { saveSettingsDraft, SettingsDraftConflictError } from "@/lib/admin/settings-draft"
 import { BadgePrintSettings } from "@/components/admin/badge-print-settings"
+import { getRegistrationOptions, registrationToggleKeys } from "@/lib/registration/settings"
 
 type SettingsData = { draft: Record<string, string>; releases: SiteSettingsRelease[] }
 
@@ -166,7 +167,6 @@ export default function AdminSettingsPage() {
     { key: "conference_date", label: adminT.conferenceDate[locale], placeholder: conference.settingDate },
     { key: "conference_location", label: adminT.locationEn[locale] },
     { key: "conference_location_zh", label: adminT.locationZh[locale] },
-    { key: "register_url", label: adminT.registerUrl[locale], type: "url", placeholder: "https://..." },
     { key: "contact_email", label: adminT.contactEmail[locale], type: "email", placeholder: "faweizhao26@gmail.com" },
   ]
   const heroFields = [
@@ -183,6 +183,9 @@ export default function AdminSettingsPage() {
     { key: "cfp_review_notes", label: locale === "zh" ? "审核及结果通知说明（英文）" : "Review and result notification notes (English)" },
     { key: "cfp_review_notes_zh", label: locale === "zh" ? "审核及结果通知说明（中文）" : "Review and result notification notes (Chinese)" },
   ]
+  const registrationOnsite = getRegistrationOptions(settings).onsite
+  const registrationExternal = settings.registration_external_enabled === "true"
+  const registrationLabels = locale === "zh" ? ["站内报名", "站外报名"] : ["Register on this site", "Register on an external platform"]
   function changeOption(key: "cfp_types", option: string, checked: boolean, options: readonly string[]) {
     setSettings(current => {
       const selected = selectedOptions(current[key], defaultCFPSettings[key], options)
@@ -209,6 +212,34 @@ export default function AdminSettingsPage() {
       </div>
       {loadError ? <div className="flex flex-wrap items-center gap-3 text-muted-foreground"><p>{locale === "zh" ? "设置加载失败" : "Unable to load settings"}</p><Button type="button" variant="outline" onClick={loadSettings}>{locale === "zh" ? "重试" : "Retry"}</Button></div> : <>
         <section className="space-y-5"><h2 className="text-lg font-semibold">{adminT.conferenceInfo[locale]}</h2><div className="grid gap-5 sm:grid-cols-2">{fields.map(({ key, label, type, placeholder }) => <div key={key} className="space-y-2"><Label htmlFor={`setting-${key}`}>{label}</Label><Input data-setting-path={key} aria-invalid={issues.some(issue => issue.path === key)} id={`setting-${key}`} type={type || "text"} value={settings[key] || ""} placeholder={placeholder} disabled={busy} onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))} /></div>)}</div></section>
+        <fieldset disabled={busy} className="min-w-0 space-y-4 border-t pt-6">
+          <legend className="float-left mb-3 w-full text-lg font-semibold">{locale === "zh" ? "报名方式" : "Registration methods"}</legend>
+          <div className="flex clear-both flex-wrap gap-x-6 gap-y-3">
+            {registrationToggleKeys.map((key, index) => (
+              <label key={key} data-setting-path={key} className="flex min-h-7 items-center gap-2 text-sm">
+                <input type="checkbox" name={key} checked={index === 0 ? registrationOnsite : registrationExternal}
+                  className="size-4 shrink-0 accent-emerald-600"
+                  onChange={event => {
+                    const checked = event.target.checked
+                    setSettings(current => ({
+                      ...current,
+                      registration_onsite_enabled: String(getRegistrationOptions(current).onsite),
+                      registration_external_enabled: String(current.registration_external_enabled === "true"),
+                      [key]: String(checked),
+                    }))
+                  }} />
+                {registrationLabels[index]}
+              </label>
+            ))}
+          </div>
+          {registrationExternal && <div className="space-y-2">
+            <Label htmlFor="setting-register_url">{locale === "zh" ? "站外报名链接" : "External registration URL"}</Label>
+            <Input id="setting-register_url" data-setting-path="register_url" type="url" placeholder="https://..." required
+              aria-invalid={issues.some(issue => issue.path === "register_url")} value={settings.register_url || ""}
+              onChange={event => setSettings(current => ({ ...current, register_url: event.target.value }))} />
+          </div>}
+          <p className="text-sm text-muted-foreground">{locale === "zh" ? "两项都选时由访客选择；都不选则隐藏报名入口。" : "Enable both to let visitors choose, or disable both to hide registration."}</p>
+        </fieldset>
         <BadgePrintSettings settings={settings} locale={locale} disabled={busy} onChange={value => setSettings(current => ({ ...current, badge_print: value }))} />
         <section className="space-y-5 border-t pt-6">
           <h2 className="text-lg font-semibold">{locale === "zh" ? "征稿设置" : "Call for proposals"}</h2>

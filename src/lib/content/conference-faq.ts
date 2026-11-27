@@ -2,6 +2,7 @@ import { contentText, parseSiteContent } from "./site-content.ts"
 import type { SiteContent } from "./site-content.ts"
 import { formatConferenceDateRange } from "../conference.ts"
 import { getCFPState, parseCFPSettings } from "../cfp/settings.ts"
+import { getRegistrationOptions } from "../registration/settings.ts"
 
 export type FAQPublishedContent = { settings: Record<string, string>; content: SiteContent }
 
@@ -65,7 +66,13 @@ export function getConferenceAnswer(question: string, locale: "en" | "zh", publi
   if (/speaker|讲者|讲师|嘉宾|谁.*来|who.*speak/.test(q)) return zh ? "已公布的讲者请查看讲者页面，演讲内容和时间以议程页面的最新发布版本为准。" : "The Speakers page lists announced speakers. Check the Schedule page for their published sessions and times."
   if (/sponsor|赞助/.test(q)) return zh ? `赞助咨询请联系 ${content.contacts.sponsor || contact}，合作安排以赞助商页面为准。` : `For sponsorship, contact ${content.contacts.sponsor || contact}. See the Sponsors page for current details.`
   if (/contact|email|联系|邮件|help|support/.test(q)) return zh ? `大会咨询请联系 ${contact}。` : `For conference questions, contact ${contact}.`
-  if (/register|sign.?up|ticket|price|cost|free|paid|报名|注册|票|费用|价格|多少钱|收费|免费/.test(q)) return zh ? "登录后可在报名页面完成报名。票种、费用及渠道码要求以报名页面当前说明为准。" : "Sign in and use the Register page. Current ticket terms, costs and channel-code requirements are shown there."
+  if (/register|sign.?up|ticket|price|cost|free|paid|报名|注册|票|费用|价格|多少钱|收费|免费/.test(q)) {
+    const { onsite, externalUrl } = getRegistrationOptions(settings)
+    if (externalUrl && onsite) return zh ? "点击报名入口，可选择站内或站外报名。票种和费用以所选平台为准。" : "Select Register to choose between this site and the external platform. Ticket terms depend on the option you choose."
+    if (externalUrl) return zh ? "点击报名入口前往指定平台，票种和费用以该平台为准。" : "Select Register to continue to the external platform for tickets and pricing."
+    if (onsite) return zh ? "登录后可在报名页面完成报名。票种、费用及渠道码要求以报名页面当前说明为准。" : "Sign in and use the Register page. Current ticket terms, costs and channel-code requirements are shown there."
+    return zh ? "大会报名暂未开放。" : "Conference registration is not currently open."
+  }
   if (/cancel|refund|取消|退款/.test(q)) return zh ? `您可以在个人中心取消报名。退款问题请联系 ${contact}。` : `You can cancel registration on your Profile page. Contact ${contact} for refund questions.`
   for (const item of content.faq.items) {
     if (item.enabled && item.keywords.some(keyword => q.includes(keyword.toLowerCase()))) return contentText(item.answer, locale)

@@ -2,7 +2,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js"
 import { parsePhoneNumberFromString } from "libphonenumber-js/max"
 import { z } from "zod"
 
-export type RegistrationErrorCode = "login_required" | "email_not_verified" | "account_changed" | "invalid_input" | "invalid_phone" | "invalid_ticket" | "invalid_channel" | "already_registered" | "load_failed" | "operation_failed" | "privacy_required"
+export type RegistrationErrorCode = "login_required" | "email_not_verified" | "account_changed" | "invalid_input" | "invalid_phone" | "invalid_ticket" | "invalid_channel" | "already_registered" | "load_failed" | "operation_failed" | "privacy_required" | "registration_closed"
 
 export class RegistrationError extends Error {
   code: RegistrationErrorCode

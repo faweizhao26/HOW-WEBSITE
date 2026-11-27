@@ -24,6 +24,10 @@ type ChannelState = { code: string; status: "idle" | "checking" | "valid" | "inv
 
 export default function RegistrationForm({ locale }: { locale: Locale }) {
   const searchParams = useSearchParams()
+  const loginReturn = new URLSearchParams({ method: "onsite" })
+  const linkedCode = searchParams.get("code")
+  if (linkedCode) loginReturn.set("code", linkedCode)
+  const loginHref = `/auth/login?redirect=${encodeURIComponent(`/register?${loginReturn}`)}`
   const [data, setData] = useState<RegistrationData | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -255,7 +259,7 @@ export default function RegistrationForm({ locale }: { locale: Locale }) {
             </fieldset>
             {user && <PrivacyConfirmation id="registration-privacy" locale={locale} checked={privacyAccepted} disabled={submitting} onChange={value => { setPrivacyAccepted(value); if (submitError === "privacy_required") setSubmitError(null) }} />}
             {submitError && <div role="alert" className="space-y-2"><p className="text-sm text-red-700 dark:text-red-300">{registrationMessages[submitError][locale]}</p>{submitError === "already_registered" && <Link href="/profile" className="text-sm underline">{locale === "zh" ? "查看报名" : "View in Profile"}</Link>}</div>}
-            {submitError === "account_changed" ? <Button type="button" variant="outline" onClick={() => { initialized.current = false; setData(null); setName(""); setPhone(""); setCompany(""); setPosition(""); retryLoad() }}><RotateCw />{locale === "zh" ? "重新加载报名信息" : "Reload registration information"}</Button> : !user || submitError === "login_required" ? <div className="text-center space-y-3"><p className="text-sm text-muted-foreground">{locale === "zh" ? "请先登录后提交报名" : "Please log in to register"}</p><Button render={<Link href="/auth/login?redirect=/register" />} nativeButton={false}>{locale === "zh" ? "登录 / 注册" : "Login / Register"}<ChevronRight className="h-4 w-4" /></Button></div> : <Button type="submit" disabled={submitting || !selectedTicket || !tickets.length || (Boolean(channelCode.trim()) && codeStatus === "checking")} className="w-full">{submitting ? (locale === "zh" ? "提交中..." : "Submitting...") : (locale === "zh" ? "确认报名" : "Confirm Registration")}</Button>}
+            {submitError === "account_changed" ? <Button type="button" variant="outline" onClick={() => { initialized.current = false; setData(null); setName(""); setPhone(""); setCompany(""); setPosition(""); retryLoad() }}><RotateCw />{locale === "zh" ? "重新加载报名信息" : "Reload registration information"}</Button> : !user || submitError === "login_required" ? <div className="text-center space-y-3"><p className="text-sm text-muted-foreground">{locale === "zh" ? "请先登录后提交报名" : "Please log in to register"}</p><Button render={<Link href={loginHref} />} nativeButton={false}>{locale === "zh" ? "登录 / 注册" : "Login / Register"}<ChevronRight className="h-4 w-4" /></Button></div> : <Button type="submit" disabled={submitting || !selectedTicket || !tickets.length || (Boolean(channelCode.trim()) && codeStatus === "checking")} className="w-full">{submitting ? (locale === "zh" ? "提交中..." : "Submitting...") : (locale === "zh" ? "确认报名" : "Confirm Registration")}</Button>}
           </form>
         </CardContent>
       </Card>

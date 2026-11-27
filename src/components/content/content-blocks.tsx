@@ -5,22 +5,24 @@ import { ArrowRight, ExternalLink } from "lucide-react"
 import { contentText, pastConferenceHref } from "@/lib/content/site-content"
 import type { ContentBlock, SiteContent } from "@/lib/content/site-content"
 import { isPastConferenceEntry, pastConferencesId, visiblePastConferenceEntries } from "@/lib/content/past-conferences"
+import { resolveRegistrationLink } from "@/lib/registration/settings"
 
 type Locale = "en" | "zh"
 
-export function ContentLink({ href, children }: { href: string; children: ReactNode }) {
+export function ContentLink({ href, children, sameTab = false }: { href: string; children: ReactNode; sameTab?: boolean }) {
   const className = "inline-flex max-w-full items-center gap-2 break-words text-emerald-700 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 dark:text-emerald-400"
   if (href.startsWith("/")) {
     return <Link href={href} className={className}><span className="min-w-0 [overflow-wrap:anywhere]">{children}</span><ArrowRight className="size-4 shrink-0" aria-hidden="true" /></Link>
   }
-  return <a href={href} target="_blank" rel="noopener noreferrer" className={className}><span className="min-w-0 [overflow-wrap:anywhere]">{children}</span><ExternalLink className="size-4 shrink-0" aria-hidden="true" /></a>
+  return <a href={href} target={sameTab ? undefined : "_blank"} rel="noopener noreferrer" className={className}><span className="min-w-0 [overflow-wrap:anywhere]">{children}</span><ExternalLink className="size-4 shrink-0" aria-hidden="true" /></a>
 }
 
-export function ContentBlocks({ blocks, locale, className = "", pastConferences = false }: {
+export function ContentBlocks({ blocks, locale, className = "", pastConferences = false, registrationHref }: {
   blocks: ContentBlock[]
   locale: Locale
   className?: string
   pastConferences?: boolean
+  registrationHref?: string | null
 }) {
   const pastEntries = pastConferences ? visiblePastConferenceEntries(blocks) : []
   return (
@@ -29,6 +31,8 @@ export function ContentBlocks({ blocks, locale, className = "", pastConferences 
         const title = contentText(block.title, locale)
         const body = contentText(block.body, locale)
         const items = block.items.map(item => contentText(item, locale)).filter(Boolean)
+        const href = resolveRegistrationLink(block.linkUrl, registrationHref)
+        if (block.id === "register" && href === null) return null
         return (
           <section key={block.id} data-content-block={block.id} className="min-w-0 space-y-4 [overflow-wrap:anywhere]">
             {title && <h2 className="whitespace-pre-line text-2xl font-semibold text-zinc-950 dark:text-white">{title}</h2>}
@@ -43,7 +47,7 @@ export function ContentBlocks({ blocks, locale, className = "", pastConferences 
                 <Image src={block.imageUrl} alt={contentText(block.imageAlt, locale) || title} fill unoptimized sizes="(max-width: 768px) 100vw, 896px" className="object-contain" />
               </div>
             )}
-            {block.linkUrl && <ContentLink href={block.linkUrl}>{contentText(block.linkLabel, locale) || (locale === "zh" ? "查看详情" : "View details")}</ContentLink>}
+            {href && <ContentLink href={href} sameTab={href !== block.linkUrl}>{contentText(block.linkLabel, locale) || (locale === "zh" ? "查看详情" : "View details")}</ContentLink>}
             {pastConferences && block.id === pastConferencesId && pastEntries.length > 0 && (
               <ul className="divide-y divide-border border-y">
                 {pastEntries.map(edition => <li key={edition.id} className="py-3">
@@ -68,7 +72,7 @@ export function ContentContact({ email, locale, sponsor = false }: { email: stri
   )
 }
 
-export function ContentPage({ page, locale, children, pastConferences }: { page: SiteContent["pages"]["about"]; locale: Locale; children?: ReactNode; pastConferences?: boolean }) {
+export function ContentPage({ page, locale, children, pastConferences, registrationHref }: { page: SiteContent["pages"]["about"]; locale: Locale; children?: ReactNode; pastConferences?: boolean; registrationHref?: string | null }) {
   const intro = contentText(page.intro, locale)
   const subtitle = contentText(page.subtitle, locale)
   return (
@@ -78,7 +82,7 @@ export function ContentPage({ page, locale, children, pastConferences }: { page:
         {subtitle && <p className="whitespace-pre-line text-zinc-600 dark:text-zinc-400">{subtitle}</p>}
         {intro && <p className="whitespace-pre-line text-lg leading-relaxed text-zinc-700 dark:text-zinc-300">{intro}</p>}
       </header>
-      <ContentBlocks blocks={page.sections} locale={locale} pastConferences={pastConferences} />
+      <ContentBlocks blocks={page.sections} locale={locale} pastConferences={pastConferences} registrationHref={registrationHref} />
       {children && <div className="mt-8">{children}</div>}
     </div>
   )

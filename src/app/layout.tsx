@@ -9,6 +9,8 @@ import { Toaster } from "./toaster"
 import { LocaleProvider } from "@/lib/i18n/provider"
 import { getPublishedSiteContent } from "@/lib/content/site-public"
 import { siteOrigin } from "@/lib/seo/metadata"
+import { getRegistrationOptions } from "@/lib/registration/settings"
+import { RegistrationLinkProvider } from "@/lib/registration/link-provider"
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin()),
@@ -27,13 +29,16 @@ export default async function RootLayout({
   const locale = getLocale(cookieStore.get("lang")?.value)
   const theme = cookieStore.get("theme")?.value === "light" ? "light" : "dark"
   const published = await getPublishedSiteContent()
+  const registrationHref = getRegistrationOptions(published.status === "ready" ? published.settings : null).href
 
   return (
     <html lang={locale} className={theme} suppressHydrationWarning>
       <body className="font-sans bg-background text-foreground antialiased min-h-screen flex flex-col">
         <LocaleProvider locale={locale}>
-          <Header locale={locale} initialTheme={theme} />
-          <main className="flex-1 pt-16">{children}</main>
+          <RegistrationLinkProvider href={registrationHref}>
+            <Header locale={locale} initialTheme={theme} />
+            <main className="flex-1 pt-16">{children}</main>
+          </RegistrationLinkProvider>
           <Footer locale={locale} />
           <ChatbotWidget published={published.status === "ready" ? { settings: published.settings, content: published.content } : null} />
           <Toaster />

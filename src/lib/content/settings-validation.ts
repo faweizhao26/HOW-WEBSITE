@@ -5,9 +5,13 @@ import { isSiteLink, parseSiteContent, pastConferenceEnglishUrl } from "./site-c
 import { isPastConferenceEntry } from "./past-conferences.ts"
 import type { Bilingual } from "./site-content.ts"
 import { parseBadgePrintSettings } from "../admin/badge-settings.ts"
+import { invalidRegistrationSettings } from "../registration/settings.ts"
 
 export type SettingsIssue = { path: string; label: Bilingual; message: Bilingual }
 const names: Record<string, Bilingual> = {
+  registration_onsite_enabled: { en: "On-site registration", zh: "站内报名" },
+  registration_external_enabled: { en: "External registration", zh: "站外报名" },
+  register_url: { en: "External registration URL", zh: "站外报名链接" },
   englishLinkUrl: { en: "English recap URL", zh: "英文回顾网址" },
   outreach: { en: "Conference resources", zh: "筹备资料" }, sponsorship: { en: "Sponsorship packages", zh: "赞助方案" }, tiers: { en: "Tiers", zh: "赞助等级" }, price: { en: "Price description", zh: "价格说明" }, availability: { en: "Availability", zh: "名额说明" }, prospectusUrl: { en: "Sponsorship PDF", zh: "招商 PDF" }, media: { en: "Media resources", zh: "宣传资料" }, speakerGuide: { en: "Speaker guide", zh: "讲者指南" }, progress: { en: "Homepage updates", zh: "筹备进展" },
   conference_name: { en: "Conference name", zh: "大会名称" }, conference_date: { en: "Conference dates", zh: "大会日期" },
@@ -55,6 +59,9 @@ export function getSettingsIssues(settings: Record<string, string>): SettingsIss
   for (const key of requiredSettingsKeys) if (!settings[key]?.trim()) add(key, { en: "This field is required.", zh: "此项必填。" })
   if (settings.conference_date && !/^2027([.-])4([.-])16-4([.-])18$/.test(settings.conference_date)) add("conference_date", { en: "Use 2027.4.16-4.18.", zh: "日期须为 2027.4.16-4.18。" })
   if (settings.contact_email && !z.email().safeParse(settings.contact_email).success) add("contact_email", { en: "Enter a valid email address.", zh: "请填写有效邮箱。" })
+  for (const key of invalidRegistrationSettings(settings)) {
+    add(key, key === "register_url" ? { en: "Enter a complete HTTP(S) link to the registration platform.", zh: "请填写完整的 HTTP(S) 报名平台链接。" } : incomplete)
+  }
   const badJSON = new Set<string>()
   for (const key of ["cfp_types", "cfp_durations"]) if (settings[key]) { try { JSON.parse(settings[key]) } catch { badJSON.add(key); add(key, incomplete) } }
   if (!badJSON.size) {

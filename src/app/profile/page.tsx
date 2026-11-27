@@ -1,6 +1,7 @@
 "use client"
 
 import { useLocale } from "@/lib/i18n/provider"
+import { useRegistrationHref } from "@/lib/registration/link-provider"
 
 import { useCallback, useEffect, useState, useRef } from "react"
 import type { User as AuthUser } from "@supabase/supabase-js"
@@ -39,6 +40,7 @@ function statusBadge(status: string, locale: "en" | "zh") {
 
 export default function ProfilePage() {
   const locale = useLocale()
+  const registrationHref = useRegistrationHref()
   const [user, setUser] = useState<AuthUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [sessions, setSessions] = useState<ProfileSession[]>([])
@@ -387,11 +389,10 @@ export default function ProfilePage() {
                     <div className="text-center py-8 text-muted-foreground">
                       <Calendar className="h-8 w-8 mx-auto mb-3 opacity-50" />
                       <p className="text-sm">{locale === "zh" ? "还没有报名记录" : "No registration records"}</p>
-                      <Link href="/register">
-                        <Button size="sm" variant="outline" className="mt-3 border-emerald-800 text-emerald-400">
-                          {locale === "zh" ? "去报名" : "Register Now"} <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </Link>
+                      {registrationHref && <Button size="sm" variant="outline" className="mt-3 border-emerald-800 text-emerald-400"
+                        nativeButton={false} render={<Link href={registrationHref} referrerPolicy="no-referrer" />}>
+                        {locale === "zh" ? "去报名" : "Register Now"} <ChevronRight className="h-4 w-4 ml-1" aria-hidden="true" />
+                      </Button>}
                     </div>
                   ) : (
                     <div className="space-y-3">

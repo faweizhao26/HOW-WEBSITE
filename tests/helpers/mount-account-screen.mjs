@@ -51,6 +51,7 @@ export function mountAccountScreen(kind, options = {}) {
     "react/jsx-runtime": { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
     "next/navigation": { useRouter: () => router, useSearchParams: () => new URLSearchParams() },
     "@/lib/i18n/provider": { useLocale: () => "en" },
+    "@/lib/registration/link-provider": { useRegistrationHref: () => "/register" },
     "@/lib/i18n/translations": translations,
     "@/lib/supabase/client": { createClient: () => ({ auth }) },
     "@/lib/auth/watch-auth-user": { watchAuthUser },
