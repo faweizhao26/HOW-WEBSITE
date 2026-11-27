@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { defaultSiteContent } from "./site-defaults.ts"
+import { isPastConferenceEntry, pastConferenceEntryId, pastConferencesId } from "./past-conferences.ts"
 
 export const bilingualSchema = z.object({ en: z.string().max(10000), zh: z.string().max(10000) })
 export type Bilingual = z.infer<typeof bilingualSchema>
@@ -34,9 +35,42 @@ export const siteContentSchema = z.object({
 })
 export type SiteContent = z.infer<typeof siteContentSchema>
 
+const legacyPastConferenceCopy = "HOW 2025 · HOW 2026"
+
+function withPastConferenceLinks(content: SiteContent): SiteContent {
+  const about = content.pages.about
+  const section = about.sections.find(row => row.id === pastConferencesId)
+  if (!section || section.body.en !== legacyPastConferenceCopy || section.body.zh !== legacyPastConferenceCopy) return content
+  const existingEntries = about.sections.some(isPastConferenceEntry)
+  if (!existingEntries && about.sections.length > 48) return content
+  const entries = existingEntries ? [] : [
+    {
+      ...newContentBlock(pastConferenceEntryId("2026")),
+      title: { en: "HOW 2026", zh: "HOW 2026" },
+      body: { en: "Jinan · Keynotes, PostgreSQL 18 contributors and community highlights", zh: "济南 · 主论坛、PG 18 贡献者授章与社区交流" },
+      imageUrl: "/conference/how-2026-recap.webp",
+      imageAlt: { en: "Audience at HOW 2026", zh: "HOW 2026 大会现场" },
+      linkUrl: "https://ivorysql.io/how2026-zh/",
+      items: [{ en: "https://ivorysql.io/", zh: "" }],
+    },
+    {
+      ...newContentBlock(pastConferenceEntryId("2025")),
+      title: { en: "HOW 2025", zh: "HOW 2025" },
+      body: { en: "Jinan · Main forum and technical sessions", zh: "济南 · 主论坛与技术分论坛" },
+      imageUrl: "/conference/how-2025-recap.webp",
+      imageAlt: { en: "Audience at HOW 2025", zh: "HOW 2025 大会现场" },
+      linkUrl: "https://howconf.cn/",
+      items: [{ en: "https://ivorysql.io/how2025/", zh: "" }],
+    },
+  ]
+  // Replace the old stock placeholder once; a saved empty list stays empty.
+  const sections = about.sections.flatMap(row => row === section ? [{ ...row, body: emptyCopy() }, ...entries] : [row])
+  return { ...content, pages: { ...content.pages, about: { ...about, sections } } }
+}
+
 export function parseSiteContent(settings: Record<string, string>): SiteContent {
   if (settings.site_content && settings.site_content.length > 400000) throw new Error("site_content_too_large")
-  return siteContentSchema.parse(settings.site_content ? JSON.parse(settings.site_content) : structuredClone(defaultSiteContent))
+  return withPastConferenceLinks(siteContentSchema.parse(settings.site_content ? JSON.parse(settings.site_content) : structuredClone(defaultSiteContent)))
 }
 
 export function parseSiteContentDraft(settings: Record<string, string>): SiteContent {
@@ -44,11 +78,25 @@ export function parseSiteContentDraft(settings: Record<string, string>): SiteCon
   if (raw && typeof raw === "object" && !Array.isArray(raw) && raw.outreach === undefined) raw.outreach = defaultOutreach()
   const result = siteContentSchema.safeParse(raw)
   if (!result.success && result.error.issues.some(issue => issue.code === "invalid_type" || (issue.code === "custom" && !String(issue.path.at(-1)).endsWith("Url")))) throw new Error("invalid_content_structure")
-  return result.success ? result.data : raw as SiteContent
+  return result.success ? withPastConferenceLinks(result.data) : raw as SiteContent
 }
 
 export function contentText(value: Bilingual, locale: "en" | "zh"): string {
   return value[locale] || value.en || value.zh
+}
+
+export function isSiteLink(value: string) {
+  return link.safeParse(value).success
+}
+
+export function pastConferenceEnglishUrl(row: ContentBlock) {
+  // An archive entry reserves its first bilingual list item for the localized URL override.
+  return row.items[0]?.en ?? ""
+}
+
+export function pastConferenceHref(row: ContentBlock, locale: "en" | "zh") {
+  const english = pastConferenceEnglishUrl(row)
+  return locale === "en" && english && isSiteLink(english) ? english : row.linkUrl
 }
 
 export function newContentBlock(id: string): ContentBlock {

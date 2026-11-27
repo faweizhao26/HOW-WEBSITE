@@ -13,6 +13,7 @@ function header(env, user = { id: "member" }, locale = "en", auth = {}) {
     "@/lib/notifications": { notificationReadEvent: "how-notification-read", notificationRpc: async () => 0 },
     "@/lib/i18n/translations": { navigation: new Proxy({}, { get: () => ({ zh: "Menu", en: "Menu" }) }) },
     "./language-switcher": { LanguageSwitcher: "LanguageSwitcher" }, "./theme-toggle": { ThemeToggle: "ThemeToggle" },
+    "./how-2027-logo": { How2027Logo: "How2027Logo" },
     "@/components/ui/button": { Button: "Button" }, "@/lib/utils": { isMockMode: () => false },
   })
 }

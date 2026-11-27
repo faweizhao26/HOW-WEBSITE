@@ -9,7 +9,8 @@ import ts from "typescript"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { defaultSiteSettings } from "../src/lib/content/settings.ts"
-import { parseSiteContent } from "../src/lib/content/site-content.ts"
+import { parseSiteContent, parseSiteContentDraft } from "../src/lib/content/site-content.ts"
+import { isPastConferenceEntry } from "../src/lib/content/past-conferences.ts"
 
 const root = fileURLToPath(new URL("../", import.meta.url))
 const require = createRequire(import.meta.url)
@@ -95,6 +96,37 @@ test("homepage promotes configured conference name and renders accessible FAQ us
   assert.match(html, /<details[^>]*data-faq="custom:qa"/)
   assert.match(html, /<summary[^>]*>.*自定义问题/s)
   assert.match(html, /草稿答案/)
+})
+
+test("the homepage uses the saved About archive links and respects hiding or removing an edition", () => {
+  const content = parseSiteContent({})
+  const rows = content.pages.about.sections
+  const entries = rows.filter(isPastConferenceEntry)
+  assert.deepEqual(entries.map(row => row.title.en), ["HOW 2026", "HOW 2025"])
+  const load = loader()
+  const { PastConferenceCards } = load("@/components/content/past-conference-cards")
+  const { ContentBlocks } = load("@/components/content/content-blocks")
+  for (const [locale, links] of [
+    ["zh", ["https://ivorysql.io/how2026-zh/", "https://howconf.cn/"]],
+    ["en", ["https://ivorysql.io/", "https://ivorysql.io/how2025/"]],
+  ]) {
+    for (const [View, props] of [[PastConferenceCards, { rows }], [ContentBlocks, { blocks: rows, pastConferences: true }]]) {
+      const html = renderToStaticMarkup(createElement(View, { ...props, locale }))
+      assert.deepEqual([...html.matchAll(/href="([^"]+)"/g)].map(match => match[1]), links)
+    }
+  }
+  entries[0].enabled = false
+  entries[1].linkUrl = "/our-2025-recap"
+  const render = value => renderToStaticMarkup(createElement(PastConferenceCards, { rows: value, locale: "zh" }))
+  const html = render(rows)
+  assert.match(html, /href="\/our-2025-recap"/)
+  assert.doesNotMatch(html, /HOW 2026/)
+  rows.find(row => row.id === "past").enabled = false
+  assert.equal(render(rows), "")
+
+  content.pages.about.sections = rows.filter(row => !isPastConferenceEntry(row))
+  const draft = parseSiteContentDraft({ site_content: JSON.stringify(content) })
+  assert.equal(draft.pages.about.sections.some(isPastConferenceEntry), false, "Deleted links must stay deleted after saving")
 })
 
 test("unpublished resource routes return 404 even when visited directly", async () => {

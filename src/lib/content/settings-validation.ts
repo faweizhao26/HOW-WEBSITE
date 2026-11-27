@@ -1,12 +1,14 @@
 import { z } from "zod"
 import { requiredSettingsKeys } from "./settings.ts"
 import { parseCFPSettings } from "../cfp/settings.ts"
-import { parseSiteContent } from "./site-content.ts"
+import { isSiteLink, parseSiteContent, pastConferenceEnglishUrl } from "./site-content.ts"
+import { isPastConferenceEntry } from "./past-conferences.ts"
 import type { Bilingual } from "./site-content.ts"
 import { parseBadgePrintSettings } from "../admin/badge-settings.ts"
 
 export type SettingsIssue = { path: string; label: Bilingual; message: Bilingual }
 const names: Record<string, Bilingual> = {
+  englishLinkUrl: { en: "English recap URL", zh: "英文回顾网址" },
   outreach: { en: "Conference resources", zh: "筹备资料" }, sponsorship: { en: "Sponsorship packages", zh: "赞助方案" }, tiers: { en: "Tiers", zh: "赞助等级" }, price: { en: "Price description", zh: "价格说明" }, availability: { en: "Availability", zh: "名额说明" }, prospectusUrl: { en: "Sponsorship PDF", zh: "招商 PDF" }, media: { en: "Media resources", zh: "宣传资料" }, speakerGuide: { en: "Speaker guide", zh: "讲者指南" }, progress: { en: "Homepage updates", zh: "筹备进展" },
   conference_name: { en: "Conference name", zh: "大会名称" }, conference_date: { en: "Conference dates", zh: "大会日期" },
   conference_location: { en: "Location (English)", zh: "地点（英文）" }, conference_location_zh: { en: "Location (Chinese)", zh: "地点（中文）" },
@@ -66,7 +68,15 @@ export function getSettingsIssues(settings: Record<string, string>): SettingsIss
     }
   }
   let raw: unknown = null
-  try { raw = settings.site_content ? JSON.parse(settings.site_content) : null; parseSiteContent(settings) } catch (error) {
+  try {
+    raw = settings.site_content ? JSON.parse(settings.site_content) : null
+    const content = parseSiteContent(settings)
+    content.pages.about.sections.forEach((row, index) => {
+      if (!isPastConferenceEntry(row) || isSiteLink(pastConferenceEnglishUrl(row))) return
+      const path = ["pages", "about", "sections", String(index), "englishLinkUrl"]
+      add(path.join("."), { en: "Use an HTTP(S) URL or a site-relative path.", zh: "请使用有效的 HTTP(S) 链接或站内路径。" }, labelFor(path, raw))
+    })
+  } catch (error) {
     if (error instanceof z.ZodError) for (const issue of error.issues) {
       const path = issue.path.map(String)
       add(path.join(".") || "site_content", issueMessage(issue, path.join(".")), path.length ? labelFor(path, raw) : names.site_content)

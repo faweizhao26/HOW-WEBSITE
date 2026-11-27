@@ -34,6 +34,8 @@ async function render(sessions, locale = "en") {
     "@/components/content/content-blocks": { ContentBlocks: () => null },
     "./outreach-views": { OutreachLinks: () => null, ProgressView: () => null, SponsorshipView: () => null },
     "./conference-faq": { ConferenceFAQ: () => null },
+    "./past-conference-cards": { PastConferenceCards: () => null },
+    "@/components/layout/how-2027-logo": { How2027Logo: () => "HOW 2027" },
     "@/lib/content/public": {
       getPublishedSettings: async () => ({ status: "ready", data: defaultSiteSettings }),
       getPublishedSessions: async () => sessions,

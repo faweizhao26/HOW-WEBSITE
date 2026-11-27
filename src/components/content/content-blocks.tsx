@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, ExternalLink } from "lucide-react"
-import { contentText } from "@/lib/content/site-content"
+import { contentText, pastConferenceHref } from "@/lib/content/site-content"
 import type { ContentBlock, SiteContent } from "@/lib/content/site-content"
 import { isPastConferenceEntry, pastConferencesId, visiblePastConferenceEntries } from "@/lib/content/past-conferences"
 
@@ -46,8 +46,8 @@ export function ContentBlocks({ blocks, locale, className = "", pastConferences 
             {block.linkUrl && <ContentLink href={block.linkUrl}>{contentText(block.linkLabel, locale) || (locale === "zh" ? "查看详情" : "View details")}</ContentLink>}
             {pastConferences && block.id === pastConferencesId && pastEntries.length > 0 && (
               <ul className="divide-y divide-border border-y">
-                {pastEntries.map(({ id, title, linkUrl }) => <li key={id} className="py-3">
-                  <ContentLink href={linkUrl}>{contentText({ en: title.en.trim(), zh: title.zh.trim() }, locale)}</ContentLink>
+                {pastEntries.map(edition => <li key={edition.id} className="py-3">
+                  <ContentLink href={pastConferenceHref(edition, locale)}>{contentText({ en: edition.title.en.trim(), zh: edition.title.zh.trim() }, locale)}</ContentLink>
                 </li>)}
               </ul>
             )}

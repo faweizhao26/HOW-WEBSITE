@@ -13,6 +13,8 @@ import { contentText } from "@/lib/content/site-content"
 import type { SiteContent } from "@/lib/content/site-content"
 import type { PublishedSession, PublishedSponsor, PublicContentResult } from "@/lib/content/types"
 import { ContentBlocks, ContentPage, ContentContact, ContentLink } from "@/components/content/content-blocks"
+import { PastConferenceCards } from "./past-conference-cards"
+import { How2027Logo } from "@/components/layout/how-2027-logo"
 
 export type SiteViewProps = { settings: Record<string, string>; content: SiteContent; locale: "en" | "zh" }
 
@@ -50,7 +52,7 @@ export function HomeView({ settings, content, locale, sessions, contentState = "
           <div className="max-w-3xl [overflow-wrap:anywhere]">
             <p className="mb-4 text-base font-medium text-emerald-800 dark:text-emerald-300">{locale === "zh" ? heroTitleZh : heroTitle}</p>
             <h1 className="mb-5 text-5xl font-bold leading-tight tracking-normal text-zinc-950 sm:text-6xl lg:text-7xl dark:text-white">
-              {settings.conference_name}
+              {settings.conference_name === "HOW 2027" ? <How2027Logo prominent /> : settings.conference_name}
             </h1>
             <p className="mb-7 max-w-2xl whitespace-pre-line text-xl leading-relaxed text-zinc-700 sm:text-2xl dark:text-zinc-200">{locale === "zh" ? heroSubZh : heroSub}</p>
             <div className="mb-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -87,7 +89,13 @@ export function HomeView({ settings, content, locale, sessions, contentState = "
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl space-y-12 px-4 py-12 sm:px-6 lg:px-8"><ProgressView content={content} locale={locale} /><OutreachLinks content={content} locale={locale} /><ContentBlocks blocks={content.home.sections.map(block => block.id === "cta" ? { ...block, body: { en: [block.body.en, venueLine].filter(Boolean).join("\n"), zh: [block.body.zh, venueLine].filter(Boolean).join("\n") } } : block)} locale={locale} /><ConferenceFAQ settings={settings} content={content} locale={locale} /></div>
+      <div className="mx-auto max-w-7xl space-y-12 px-4 py-12 sm:px-6 lg:px-8">
+        <ProgressView content={content} locale={locale} />
+        <OutreachLinks content={content} locale={locale} />
+        <PastConferenceCards rows={content.pages.about.sections} locale={locale} />
+        <ContentBlocks blocks={content.home.sections.map(block => block.id === "cta" ? { ...block, body: { en: [block.body.en, venueLine].filter(Boolean).join("\n"), zh: [block.body.zh, venueLine].filter(Boolean).join("\n") } } : block)} locale={locale} />
+        <ConferenceFAQ settings={settings} content={content} locale={locale} />
+      </div>
     </div>
   )
 }

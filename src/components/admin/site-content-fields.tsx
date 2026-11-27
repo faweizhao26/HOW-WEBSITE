@@ -8,9 +8,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { SiteMediaField } from "./site-media-field"
-import { contentText, newContentBlock } from "@/lib/content/site-content"
+import { contentText, newContentBlock, pastConferenceEnglishUrl } from "@/lib/content/site-content"
 import type { Bilingual, ContentBlock } from "@/lib/content/site-content"
-import { isPastConferenceEntry, newPastConferenceEntry, newPastConferencesSection, pastConferencesId } from "@/lib/content/past-conferences"
+import { isPastConferenceEntry, pastConferenceEntryId, pastConferencesId } from "@/lib/content/past-conferences"
 
 export function CopyField({ label, path, value, onChange, multiline = false }: { label: string; path: string; value: Bilingual; onChange: (value: Bilingual) => void; multiline?: boolean }) {
   const id = useId()
@@ -65,8 +65,8 @@ function PastConferenceEntryFields({ value, path, onChange, locale }: {
   const id = useId()
   const zh = locale === "zh"
   return <div className="space-y-3">
-    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-      <div className="space-y-2">
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="space-y-2 sm:col-span-2">
         <Label htmlFor={`${id}-title`}>{zh ? "届次名称" : "Edition name"}</Label>
         <Input id={`${id}-title`} data-setting-path={`${path}.title`} maxLength={200} placeholder="HOW 2026" value={contentText(value.title, locale)} onChange={event => {
           const name = event.target.value
@@ -74,11 +74,26 @@ function PastConferenceEntryFields({ value, path, onChange, locale }: {
         }} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${id}-url`}>{zh ? "往届网址" : "Edition URL"}</Label>
+        <Label htmlFor={`${id}-url`}>{zh ? "中文或通用网址" : "Chinese or default URL"}</Label>
         <Input id={`${id}-url`} data-setting-path={`${path}.linkUrl`} inputMode="url" maxLength={2048} placeholder="https://..." value={value.linkUrl} onChange={event => onChange({ ...value, linkUrl: event.target.value.trim() })} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${id}-english-url`}>{zh ? "英文网址（选填）" : "English URL (optional)"}</Label>
+        <Input id={`${id}-english-url`} data-setting-path={`${path}.englishLinkUrl`} inputMode="url" maxLength={2048} placeholder="https://..." value={pastConferenceEnglishUrl(value)} onChange={event => {
+          const [item, ...rest] = value.items
+          onChange({ ...value, items: [{ en: event.target.value.trim(), zh: item?.zh ?? "" }, ...rest] })
+        }} />
       </div>
     </div>
     <Enabled path={`${path}.enabled`} label={zh ? "显示此链接" : "Show this link"} checked={value.enabled} onChange={enabled => onChange({ ...value, enabled })} />
+    <details className="border-t pt-2">
+      <summary className="cursor-pointer py-1 text-sm font-medium">{zh ? "首页卡片图片与简介" : "Home card image and summary"}</summary>
+      <div className="space-y-3 pt-2">
+        <SiteMediaField path={`${path}.imageUrl`} locale={locale} kind="image" label={zh ? "卡片图片" : "Card image"} value={value.imageUrl} onChange={imageUrl => onChange({ ...value, imageUrl })} />
+        <CopyField path={`${path}.imageAlt`} label={zh ? "图片说明" : "Image description"} value={value.imageAlt} onChange={imageAlt => onChange({ ...value, imageAlt })} />
+        <CopyField path={`${path}.body`} label={zh ? "卡片简介" : "Card summary"} value={value.body} onChange={body => onChange({ ...value, body })} />
+      </div>
+    </details>
   </div>
 }
 
@@ -94,7 +109,7 @@ function PastConferencesFields({ rows, path, onChange, locale, sectionIndex }: B
       <PastConferenceEntryFields path={`${path}.${index}`} value={row} locale={locale} onChange={next => replace(index, next)} />
       <MoveButtons index={order} count={entries.length} locale={locale} move={offset => onChange(moved(rows, index, entries[order + offset].index - index))} remove={() => onChange(rows.filter(item => item.id !== row.id))} />
     </fieldset>)}
-    <Button type="button" variant="outline" disabled={rows.length >= 50} onClick={() => onChange([...rows, newPastConferenceEntry(crypto.randomUUID())])}>
+    <Button type="button" variant="outline" disabled={rows.length >= 50} onClick={() => onChange([...rows, newContentBlock(pastConferenceEntryId(crypto.randomUUID()))])}>
       <Plus />{zh ? "添加往届链接" : "Add edition link"}
     </Button>
     <details className="border-t pt-2">
@@ -122,7 +137,7 @@ export function BlocksEditor({ rows, path, onChange, locale, pastConferences = f
     </details>)}
     <div className="flex flex-wrap gap-2">
       <Button type="button" variant="outline" disabled={rows.length >= 50} onClick={() => onChange([...rows, newContentBlock(crypto.randomUUID())])}><Plus />{zh ? "添加栏目" : "Add section"}</Button>
-      {pastConferences && !sections.some(({ row }) => isPastSection(row)) && <Button type="button" variant="outline" disabled={rows.length >= 50} onClick={() => onChange([...rows, newPastConferencesSection()])}><Plus />{zh ? "添加往届回顾栏目" : "Add past conferences section"}</Button>}
+      {pastConferences && !sections.some(({ row }) => isPastSection(row)) && <Button type="button" variant="outline" disabled={rows.length >= 50} onClick={() => onChange([...rows, { ...newContentBlock(pastConferencesId), title: { en: "Past Conferences", zh: "往届回顾" } }])}><Plus />{zh ? "添加往届回顾栏目" : "Add past conferences section"}</Button>}
     </div>
   </div>
 }

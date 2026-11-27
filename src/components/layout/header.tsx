@@ -15,6 +15,7 @@ import { ThemeToggle } from "./theme-toggle"
 import { Button } from "@/components/ui/button"
 import { isMockMode } from "@/lib/utils"
 import { notificationReadEvent, notificationRpc } from "@/lib/notifications"
+import { How2027Logo } from "./how-2027-logo"
 
 const navLinks = [
   { href: "/", key: "home" },
@@ -109,10 +110,8 @@ export function Header({ locale, initialTheme }: { locale: Locale; initialTheme:
     }}>
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-            <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              HOW 2027
-            </span>
+          <Link href="/" aria-label="HOW 2027" className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+            <How2027Logo />
           </Link>
 
           <nav aria-label={locale === "zh" ? "主导航" : "Main navigation"} className="hidden min-[1440px]:flex items-center gap-1">
