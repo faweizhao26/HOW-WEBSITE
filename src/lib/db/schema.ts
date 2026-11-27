@@ -115,7 +115,8 @@ export type ProposalDecision = Exclude<ProposalReviewStatus, "pending">
 
 export type Session = PublicationMetadata & {
   id: string
-  user_id: string
+  user_id: string | null
+  guest_email?: string | null
   title: string
   title_zh: string | null
   abstract: string

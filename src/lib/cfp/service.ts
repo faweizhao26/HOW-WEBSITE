@@ -4,7 +4,7 @@ import { cfpDurationOptions, cfpSessionTypes, getCFPState, parseCFPSettings } fr
 import type { CFPPolicy, CFPType } from "./settings.ts"
 import type { ProposalReviewStatus } from "../db/schema.ts"
 
-export type CFPErrorCode = "login_required" | "email_not_verified" | "invalid_input" | "load_failed" | "operation_failed" | "request_conflict" | "account_changed" | "cfp_closed" | "cfp_options_changed"
+export type CFPErrorCode = "login_required" | "email_not_verified" | "invalid_input" | "load_failed" | "operation_failed" | "request_conflict" | "account_changed" | "cfp_closed" | "cfp_options_changed" | "guest_rate_limit"
 export class CFPError extends Error {
   code: CFPErrorCode
   constructor(code: CFPErrorCode) { super(code); this.name = "CFPError"; this.code = code }
@@ -21,15 +21,18 @@ const detailsSchema = z.object({
 }).strict()
 export type ProposalDetails = z.infer<typeof detailsSchema>
 
-const inputSchema = z.object({
+const proposalFields = {
   requestId: z.uuid(),
-  expectedUserId: z.uuid(),
   title: z.string().trim().min(1).max(200),
-  titleZh: z.string().trim().max(200).optional().default(""),
   abstract: z.string().trim().min(1).max(10000),
-  abstractZh: z.string().trim().max(10000).optional().default(""),
   duration: z.number().int().refine(value => [5, 15, 30, 45, 60].includes(value)),
   type: z.enum(cfpSessionTypes),
+}
+const inputSchema = z.object({
+  ...proposalFields,
+  expectedUserId: z.uuid(),
+  titleZh: z.string().trim().max(200).optional().default(""),
+  abstractZh: z.string().trim().max(10000).optional().default(""),
   proposalDetails: detailsSchema.optional(),
 }).strict().refine(value => value.proposalDetails ? (
   cfpDurationOptions[value.type].includes(value.duration) && (value.type === "lightning" || value.proposalDetails.outline.length > 0)
@@ -40,6 +43,31 @@ export function parseProposalInput(input: unknown) {
   const parsed = inputSchema.safeParse(input)
   if (!parsed.success) throw new CFPError("invalid_input")
   return parsed.data
+}
+
+const guestSchema = z.object({
+  ...proposalFields,
+  email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
+  privacyAccepted: z.literal(true),
+  proposalDetails: detailsSchema.extend({ photo_url: z.null() }),
+}).strict().refine(value => cfpDurationOptions[value.type].includes(value.duration)
+  && (value.type === "lightning" || value.proposalDetails.outline.length > 0))
+
+export function parseGuestProposalInput(input: unknown) {
+  const parsed = guestSchema.safeParse(input)
+  if (!parsed.success) throw new CFPError("invalid_input")
+  return parsed.data
+}
+
+export async function submitGuestProposal(client: Pick<SupabaseClient, "rpc">, input: unknown) {
+  const values = parseGuestProposalInput(input)
+  const { data, error } = await client.rpc("submit_guest_cfp", { p_proposal: values })
+  if (error?.message === "cfp_closed") throw new CFPError("cfp_closed")
+  if (error?.message === "cfp_option_not_allowed") throw new CFPError("cfp_options_changed")
+  if (error?.message === "cfp_guest_rate_limit") throw new CFPError("guest_rate_limit")
+  if (error?.message === "cfp_guest_conflict") throw new CFPError("request_conflict")
+  if (error || data !== values.requestId) throw new CFPError("operation_failed")
+  return data as string
 }
 
 export type Proposal = {
@@ -63,7 +91,7 @@ export async function loadCFPData(client: SupabaseClient): Promise<CFPData> {
   try {
     const { data: { user }, error } = await client.auth.getUser()
     if (error && error.name !== "AuthSessionMissingError") throw new CFPError("load_failed")
-    if (!user) return { user: null, sessions: [], policy: null }
+    if (!user) return { user: null, sessions: [], policy: await readPolicy(client) }
     const [policy, sessions, profile] = await Promise.all([
       readPolicy(client),
       client.from("sessions").select(columns).eq("user_id", user.id).order("created_at", { ascending: false }),

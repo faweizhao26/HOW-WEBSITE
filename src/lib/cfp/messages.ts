@@ -10,4 +10,5 @@ export const cfpErrors: Record<CFPErrorCode, { en: string; zh: string }> = {
   load_failed: { en: "Could not load your proposals. Please try again.", zh: "提案加载失败，请重试。" },
   operation_failed: { en: "Could not confirm your submission. Your draft is preserved; please retry.", zh: "暂时无法确认提交结果，草稿已保留，请重试。" },
   request_conflict: { en: "This request no longer matches the saved proposal. Check My Proposals before submitting again.", zh: "本次请求与已保存的提案不一致，请先查看“我的提案”。" },
+  guest_rate_limit: { en: "Too many proposals have been sent recently. Your draft is preserved; please try again later.", zh: "近期投稿请求过多，填写内容已保留，请稍后重试。" },
 }

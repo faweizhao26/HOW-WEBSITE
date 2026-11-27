@@ -23,7 +23,10 @@ const row = { id: input.requestId, user_id: user.id, title: "PostgreSQL", title_
 
 test("CFP reads distinguish signed-out, empty, Auth failure and proposal query failure", async () => {
   const { loadCFPData } = await cfp()
-  assert.deepEqual(await loadCFPData(client(() => { throw Error("should not read") }, null, { name: "AuthSessionMissingError" })), { user: null, sessions: [], policy: null })
+  const guest = await loadCFPData(client(() => { throw Error("should not read private proposal data") }, null, { name: "AuthSessionMissingError" }))
+  assert.equal(guest.user, null)
+  assert.deepEqual(guest.sessions, [])
+  assert.ok(guest.policy?.sessionTypes.includes("talk"))
   assert.equal((await loadCFPData(client(() => json([])))).sessions.length, 0)
   await assert.rejects(loadCFPData(client(() => json([]), null, { name: "AuthRetryableFetchError" })), e => e.code === "load_failed")
   await assert.rejects(loadCFPData(client(() => json({ message: "private query failure" }, 503))), e => e.code === "load_failed")

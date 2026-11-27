@@ -35,7 +35,9 @@ function escapeCell(value: unknown) {
   return `"${text.replaceAll('"', '""')}"`
 }
 
-export function notificationCsv(rows: readonly Recipient[], mode: NotificationFilter["mode"], zh: boolean) {
+type RecipientExport = Pick<Recipient, "name" | "email" | "proposal_title" | "proposal_status" | "proposal_type" | "proposal_duration">
+
+export function notificationCsv(rows: readonly RecipientExport[], mode: NotificationFilter["mode"], zh: boolean) {
   const headers = zh ? ["姓名","邮箱"] : ["Name","Email"]
   if (mode === "result") headers.push(...(zh ? ["议题标题","审核结果","类型","时长（分钟）"] : ["Proposal","Decision","Type","Minutes"]))
   const result = rows.filter(row => row.email).map(row => mode === "result" ? [

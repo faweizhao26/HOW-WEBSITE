@@ -57,17 +57,9 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (request.nextUrl.pathname.startsWith("/cfp")) {
-    if (!user) {
-      return NextResponse.redirect(
-        new URL("/auth/login?redirect=/cfp", request.url)
-      )
-    }
-  }
-
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/cfp/:path*"],
+  matcher: ["/admin/:path*"],
 }

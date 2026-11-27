@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { ownedProposalPhoto, type ProposalDetails } from "@/lib/cfp/service"
-import { isProposalDecision, topicLabels, topicTypes } from "@/lib/notifications"
+import { isProposalDecision, notificationCsv, topicLabels, topicTypes } from "@/lib/notifications"
 import type { ProposalDecision, ProposalReviewStatus } from "@/lib/db/schema"
 
 import { useLocale } from "@/lib/i18n/provider"
@@ -21,19 +21,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { CheckCircle, Clock, XCircle, FileText, Video, Eye, Search, Filter } from "lucide-react"
+import { CheckCircle, Clock, XCircle, FileText, Video, Eye, Search, Filter, Download } from "lucide-react"
 import { unpublishSession } from "@/app/admin/actions/publication"
 import { PublicationActions } from "@/components/admin/publication-actions"
 import { PublicationBadge } from "@/components/admin/publication-badge"
 import { uploadSessionMedia } from "@/lib/admin/session-media"
 
 type SessionWithProfile = {
-  id: string; user_id: string; title: string; title_zh: string | null; abstract: string; abstract_zh: string | null
+  id: string; user_id: string | null; title: string; title_zh: string | null; abstract: string; abstract_zh: string | null
   duration: number; type: string; status: ProposalReviewStatus; admin_feedback: string | null; slides_url: string | null
   video_url: string | null; created_at: string; updated_at?: string
   speaker_id?: string | null; publication_status?: "draft" | "published"; published_at?: string | null
   profiles?: { full_name: string; company: string | null }
   proposal_details?: ProposalDetails | null
+  guest_email?: string | null
 }
 
 type PublishedSpeakerOption = {
@@ -191,9 +192,28 @@ export default function AdminSessionsPage() {
   const filtered = sessions.filter((s) => {
     const statusMatch = filter === "all" || s.status === filter
     const q = search.toLowerCase()
-    const searchMatch = !q || [s.title,s.title_zh,s.proposal_details?.full_name,s.profiles?.full_name].some(value => value?.toLowerCase().includes(q))
+    const searchMatch = !q || [s.title,s.title_zh,s.proposal_details?.full_name,s.profiles?.full_name,s.guest_email,s.id].some(value => value?.toLowerCase().includes(q))
     return statusMatch && searchMatch
   })
+  const guests = filtered.filter(session => session.guest_email)
+
+  function exportGuests() {
+    if (!isProposalDecision(filter)) return
+    const { csv } = notificationCsv(guests.map(session => ({
+      name: session.proposal_details?.full_name || "",
+      email: session.guest_email ?? null,
+      proposal_title: session.title,
+      proposal_status: filter,
+      proposal_type: topicTypes.find(type => type === session.type) ?? null,
+      proposal_duration: session.duration,
+    })), "result", locale === "zh")
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = `how-guest-proposals-${filter}.csv`
+    anchor.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
 
   return (
     <div>
@@ -222,7 +242,10 @@ export default function AdminSessionsPage() {
         </Select>
         {isProposalDecision(filter) && <Button size="sm" variant="outline"
           render={<Link href={`/admin/notifications?audience=${filter}&mode=result&query=${encodeURIComponent(search.trim())}`} />} nativeButton={false}>
-          {locale === "zh" ? "通知 / 导出筛选结果" : "Notify or export results"}
+          {locale === "zh" ? "通知 / 导出账号投稿" : "Notify or export account proposals"}
+        </Button>}
+        {isProposalDecision(filter) && guests.length > 0 && <Button size="sm" variant="outline" onClick={exportGuests}>
+          <Download />{locale === "zh" ? "导出访客投稿邮箱" : "Export guest emails"}
         </Button>}
       </div>
 
@@ -254,11 +277,15 @@ export default function AdminSessionsPage() {
                       />
                       <Badge variant="outline">{session.duration} {locale === "zh" ? "分钟" : "min"} · {kindLabel}</Badge>
                       {details && <Badge variant="outline">{details.language === "zh" ? "中文" : "English"}</Badge>}
+                      {session.guest_email && <Badge variant="outline">{locale === "zh" ? "访客投稿" : "Guest proposal"}</Badge>}
                     </div>
                     <h3 className="break-words font-medium text-lg mb-1">{session.title}</h3>
                     {session.title_zh && <p className="text-sm text-muted-foreground mb-2">{session.title_zh}</p>}
                     <p className="text-sm text-zinc-400 line-clamp-2 mb-2">{session.abstract}</p>
                     <p className="break-words text-xs text-muted-foreground">{speakerLine}</p>
+                    {session.guest_email && <p className="break-words text-xs text-muted-foreground">
+                      {locale === "zh" ? "联系邮箱（未验证）：" : "Contact email (unverified): "}{session.guest_email}
+                    </p>}
                     {session.admin_feedback && (
                       <div className="mt-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
                         <p className="text-xs text-muted-foreground mb-1">{adminT.adminFeedback[locale]}:</p>
@@ -349,7 +376,7 @@ export default function AdminSessionsPage() {
                           {session.abstract_zh && <div><Label className="text-zinc-400">{adminT.abstractZh[locale]}</Label><p className="text-sm text-zinc-300">{session.abstract_zh}</p></div>}
                           {details?.outline && <div><Label>{locale === "zh" ? "议题大纲" : "Outline"}</Label><p className="whitespace-pre-wrap break-words text-sm">{details.outline}</p></div>}
                           {details && <div><Label>{locale === "zh" ? "个人简介" : "Speaker bio"}</Label><p className="whitespace-pre-wrap break-words text-sm">{details.bio}</p></div>}
-                          {details?.photo_url && ownedProposalPhoto(details.photo_url,session.user_id) && <a className="text-sm underline underline-offset-4" href={details.photo_url} target="_blank" rel="noopener noreferrer">{locale === "zh" ? "查看个人照片" : "View speaker photo"}</a>}
+                          {details?.photo_url && session.user_id && ownedProposalPhoto(details.photo_url,session.user_id) && <a className="text-sm underline underline-offset-4" href={details.photo_url} target="_blank" rel="noopener noreferrer">{locale === "zh" ? "查看个人照片" : "View speaker photo"}</a>}
                           <div className="flex flex-wrap gap-2 items-center">
                             <Badge variant="outline">{session.duration} min</Badge>
                             <Badge variant="outline">{kindLabel}</Badge>

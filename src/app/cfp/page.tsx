@@ -1,6 +1,7 @@
 "use client"
 
 import { CFPPolicySummary } from "@/components/content/cfp-policy-summary"
+import { PrivacyConfirmation } from "@/components/privacy-confirmation"
 import { useLocale } from "@/lib/i18n/provider"
 
 import { startTransition, useState, useEffect, useRef } from "react"
@@ -8,12 +9,12 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { AccountRequestError, prepareAccountRequest } from "@/lib/auth/prepare-account-request"
 import { watchAuthUser } from "@/lib/auth/watch-auth-user"
-import { CFPError, loadCFPData, ownedProposalPhoto, parseProposalInput, uploadProposalPhoto } from "@/lib/cfp/service"
+import { CFPError, loadCFPData, ownedProposalPhoto, parseGuestProposalInput, parseProposalInput, uploadProposalPhoto } from "@/lib/cfp/service"
 import type { CFPData, CFPErrorCode } from "@/lib/cfp/service"
 import { cfpErrors } from "@/lib/cfp/messages"
 import { cfpDurationOptions, getCFPState } from "@/lib/cfp/settings"
 import type { CFPType } from "@/lib/cfp/settings"
-import { submitCFP } from "./actions"
+import { submitCFP, submitGuestCFP } from "./actions"
 import { cfp, common } from "@/lib/i18n/translations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,6 +57,10 @@ export default function CFPPage() {
   const [tab, setTab] = useState("new")
   const pending = useRef(false)
   const attempt = useRef<{ fingerprint: string; id: string; values: ReturnType<typeof parseProposalInput> } | null>(null)
+  const guestAttempt = useRef<{ fingerprint: string; id: string } | null>(null)
+  const [guestEmail, setGuestEmail] = useState("")
+  const [guestConsent, setGuestConsent] = useState(false)
+  const [guestReference, setGuestReference] = useState<string | null>(null)
   const draftOwner = useRef<string | null | undefined>(undefined)
   const identity = useRef<{ userId: string | null | undefined; version: number }>({ userId: undefined, version: 0 })
   const user = data?.user
@@ -118,6 +123,8 @@ export default function CFPPage() {
       identity.current.version++
       draftOwner.current = undefined
       attempt.current = null
+      guestAttempt.current = null
+      setGuestEmail(""); setGuestConsent(false); setGuestReference(null)
       setHasAttempt(false)
       setData(null)
       setAccountChanged(true)
@@ -155,12 +162,15 @@ export default function CFPPage() {
     e.preventDefault()
     if (pending.current || uploading) return
     setSubmitError(null)
-    if (!user) { setSubmitError("login_required"); return }
     const savedAttempt = recover ? attempt.current : null
     if (recover && !savedAttempt) return
     if (policyState !== "open" && !savedAttempt) { setSubmitError("cfp_closed"); return }
     const fields = { title, abstract, duration:Number(selectedDuration), type:selectedType,
       proposalDetails:{ language,...speaker,outline,photo_url:photoUrl } }
+    if (!user) {
+      submitAsGuest({ ...fields, proposalDetails: { ...fields.proposalDetails, photo_url: null } })
+      return
+    }
     const fingerprint = savedAttempt?.fingerprint ?? JSON.stringify(fields)
     const id = savedAttempt?.id ?? (attempt.current?.fingerprint === fingerprint ? attempt.current.id : crypto.randomUUID())
     let values
@@ -198,6 +208,31 @@ export default function CFPPage() {
     })
   }
 
+  function submitAsGuest(fields: Omit<ReturnType<typeof parseGuestProposalInput>, "requestId" | "email" | "privacyAccepted">) {
+    const input = { ...fields, email: guestEmail.trim(), privacyAccepted: guestConsent }
+    const fingerprint = JSON.stringify(input)
+    const id = guestAttempt.current?.fingerprint === fingerprint ? guestAttempt.current.id : crypto.randomUUID()
+    let values
+    try { values = parseGuestProposalInput({ ...input, requestId: id }) }
+    catch { setSubmitError("invalid_input"); return }
+    guestAttempt.current = { fingerprint, id }
+    const version = identity.current.version
+    pending.current = true
+    setSubmitting(true)
+    setGuestReference(null)
+    startTransition(async () => {
+      try {
+        const result = await submitGuestCFP(values)
+        if (identity.current.version !== version || draftOwner.current !== null) return
+        if (!result.success) { setSubmitError(result.code); return }
+        guestAttempt.current = null
+        setGuestReference(result.id)
+        setTitle(""); setAbstract(""); setOutline("")
+      } catch { if (identity.current.version === version) setSubmitError("operation_failed") }
+      finally { if (identity.current.version === version) { pending.current = false; setSubmitting(false) } }
+    })
+  }
+
   if (loading) {
     return <div className="max-w-3xl mx-auto px-4 py-16 text-center text-muted-foreground">{common.loading[locale]}</div>
   }
@@ -210,18 +245,6 @@ export default function CFPPage() {
     </div>
   )
 
-  if (!user) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-3xl font-bold mb-6">{cfp.title[locale]}</h1>
-        <p className="text-muted-foreground mb-4">{cfp.loginRequired[locale]}</p>
-          <Button render={<Link href="/auth/login?redirect=/cfp" />} nativeButton={false} className="bg-emerald-600 hover:bg-emerald-500">
-            {locale === "en" ? "Login" : "登录"} <ChevronRight className="h-4 w-4" />
-          </Button>
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <h1 className="text-4xl font-bold mb-8">{cfp.title[locale]}</h1>
@@ -233,17 +256,19 @@ export default function CFPPage() {
             <Plus className="h-4 w-4 mr-1" />
             {cfp.submitTitle[locale]}
           </TabsTrigger>
-          <TabsTrigger value="submissions" disabled={submitting}>
+          {user && <TabsTrigger value="submissions" disabled={submitting}>
             {locale === "zh" ? "我的提案" : "My Proposals"}
             {sessions.length > 0 && (
               <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded-full">{sessions.length}</span>
             )}
-          </TabsTrigger>
+          </TabsTrigger>}
         </TabsList>
 
         <TabsContent value="new">
           {policyState !== "open" ? <div className="space-y-4 border-y py-8">
-            <p role="status" className="text-muted-foreground">{locale === "zh" ? "当前不接受新提案，已提交提案仍可在“我的提案”查看。" : "New proposals are not being accepted. Existing proposals remain available in My Proposals."}</p>
+            <p role="status" className="text-muted-foreground">{user
+              ? (zh ? "当前不接受新提案，已提交提案仍可在“我的提案”查看。" : "New proposals are not being accepted. Existing proposals remain available in My Proposals.")
+              : (zh ? "当前不接受新提案。" : "New proposals are not being accepted.")}</p>
             {submitError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{cfpErrors[submitError][locale]}</p>}
             <div className="flex flex-wrap gap-3">
               {hasAttempt && <Button type="button" variant="outline" disabled={submitting} onClick={event => handleSubmit(event, true)}><RotateCw />{locale === "zh" ? "确认上次提交结果" : "Check last submission"}</Button>}
@@ -253,6 +278,10 @@ export default function CFPPage() {
           <Card>
             <CardHeader><CardTitle>{cfp.submitTitle[locale]}</CardTitle></CardHeader>
             <CardContent>
+              {guestReference && <div role="status" className="mb-5 space-y-1 rounded-md border p-4">
+                <p className="font-semibold">{zh ? "提案已提交" : "Proposal submitted"}</p>
+                <p className="text-sm text-muted-foreground">{zh ? "提案编号：" : "Proposal reference: "}<code className="break-all">{guestReference}</code></p>
+              </div>}
               <form onSubmit={event => handleSubmit(event)} className="space-y-5" aria-busy={submitting || uploading}>
                 <fieldset disabled={submitting || uploading} className="space-y-5 min-w-0">
                   <div className="grid gap-4 sm:grid-cols-3">
@@ -305,7 +334,11 @@ export default function CFPPage() {
                       <Label htmlFor="cfp-bio">{zh ? "个人简介" : "Speaker bio"} *</Label>
                       <Textarea id="cfp-bio" value={speaker.bio} onChange={e => setSpeaker(current => ({...current,bio:e.target.value}))} rows={4} maxLength={4000} required lang={language} />
                     </div>
-                    <div className="space-y-2">
+                    {!user && <div className="space-y-2">
+                      <Label htmlFor="cfp-guest-email">{zh ? "联系邮箱" : "Contact email"} *</Label>
+                      <Input id="cfp-guest-email" type="email" autoComplete="email" maxLength={254} required value={guestEmail} onChange={e => setGuestEmail(e.target.value)} />
+                    </div>}
+                    {user && <div className="space-y-2">
                       <Label htmlFor="cfp-photo">{zh ? "个人照片（选填）" : "Speaker photo (optional)"}</Label>
                       <Input id="cfp-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => {
                         const file = e.target.files?.[0]
@@ -318,16 +351,22 @@ export default function CFPPage() {
                       </div>
                       {uploading && <p role="status" className="text-sm">{zh ? "正在上传照片…" : "Uploading photo…"}</p>}
                       {photoError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{zh ? "照片上传失败，请使用不超过 5 MB 的 JPEG、PNG 或 WebP 图片重试。" : "Photo upload failed. Try a JPEG, PNG or WebP image up to 5 MB."}</p>}
-                    </div>
+                    </div>}
                   </div>
+                  {!user && <PrivacyConfirmation id="cfp-guest-privacy" locale={locale} checked={guestConsent} disabled={submitting} onChange={setGuestConsent} />}
                 </fieldset>
-                {submitError && <div role="alert" className="flex gap-2 text-sm text-red-700 dark:text-red-300"><AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /><p>{cfpErrors[submitError][locale]}</p></div>}
+                {submitError && <div role="alert" className="flex gap-2 text-sm text-red-700 dark:text-red-300"><AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /><p>{!user && submitError === "request_conflict"
+                  ? (zh ? "本次请求和已收到的提案不一致，请联系组委会核对。" : "This request does not match the proposal received. Contact the organizers to check it.")
+                  : cfpErrors[submitError][locale]}</p></div>}
                 {submitError && hasAttempt && <Button type="button" variant="outline" disabled={submitting} onClick={event => handleSubmit(event, true)}><RotateCw />{locale === "zh" ? "确认上次提交结果" : "Check last submission"}</Button>}
                 {(submitError === "cfp_options_changed" || submitError === "cfp_closed" || submitError === "operation_failed") && <Button type="button" variant="outline" onClick={retryLoad} disabled={submitting}><RotateCw />{locale === "zh" ? "更新征稿信息" : "Refresh CFP information"}</Button>}
-                <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 w-full" disabled={submitting || uploading}>
+                <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 w-full" disabled={submitting || uploading || (!user && !guestConsent)}>
                   {submitting ? cfp.submitting[locale] : cfp.submit[locale]}
                 </Button>
               </form>
+              {!user && <Button variant="link" render={<Link href="/auth/login?redirect=/cfp" />} nativeButton={false} className="mt-3 px-0">
+                {zh ? "登录查看账号下的提案" : "Sign in to view account proposals"}<ChevronRight className="h-4 w-4" />
+              </Button>}
             </CardContent>
           </Card>}
         </TabsContent>

@@ -29,13 +29,14 @@ test("Supabase schema supports registration and profile fields used by the app",
   assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.rls_auto_enable\(\) FROM PUBLIC, anon, authenticated/)
 })
 
-test("Next 16 uses proxy instead of deprecated middleware for route protection", () => {
+test("Next 16 proxy protects the admin routes without requiring sign-in for CFP", () => {
   assert.equal(existsSync(new URL("../src/proxy.ts", import.meta.url)), true)
   assert.equal(existsSync(new URL("../src/middleware.ts", import.meta.url)), false)
 
   const proxy = read("src/proxy.ts")
   assert.match(proxy, /export async function proxy/)
-  assert.match(proxy, /matcher: \["\/admin\/:path\*", "\/cfp\/:path\*"\]/)
+  assert.match(proxy, /matcher: \["\/admin\/:path\*"\]/)
+  assert.doesNotMatch(proxy, /pathname\.startsWith\("\/cfp"\)/)
 })
 
 test("Header has working sign-out routes for desktop and mobile", () => {
